@@ -1,0 +1,130 @@
+:root {
+  --admin-sidebar-width: 252px;
+  --admin-sidebar-offset: 24px;
+  --admin-sidebar-top: 100px;
+  --admin-sidebar-right-gap: 340px;
+}
+
+body.role-professional.role-admin {
+  overflow-x: hidden;
+}
+
+body.role-professional.role-admin .sidebar {
+  position: fixed !important;
+  top: var(--admin-sidebar-top) !important;
+  left: var(--admin-sidebar-offset) !important;
+  width: var(--admin-sidebar-width) !important;
+  min-width: var(--admin-sidebar-width) !important;
+  height: calc(100vh - 124px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 1000 !important;
+  border-radius: 32px !important;
+  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%) !important;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 28px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+  view-transition-name: none !important;
+  transition:
+    transform 0.2s ease !important,
+    opacity 0.18s ease !important,
+    background-color 0.18s ease !important;
+}
+
+body.role-professional.role-admin .sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+body.role-professional.role-admin .sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.role-professional.role-admin .sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+body.role-professional.role-admin .sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+body.role-professional.role-admin .sidebar .profile-card {
+  position: sticky !important;
+  top: 24px !important;
+  z-index: 12 !important;
+  align-self: stretch !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 12px 0 18px !important;
+  padding: 18px !important;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(14px) !important;
+  box-shadow: none !important;
+}
+
+body.role-professional.role-admin .main-content {
+  margin-left: var(--admin-sidebar-right-gap) !important;
+  padding: 28px 24px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  max-width: calc(100% - var(--admin-sidebar-right-gap)) !important;
+  min-height: calc(100vh - 100px) !important;
+  view-transition-name: none !important;
+  transition:
+    opacity 0.18s ease !important,
+    transform 0.18s ease !important,
+    background-color 0.18s ease !important;
+}
+
+body.role-professional.role-admin .reports-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: #20485b;
+  font-family: "Fraunces", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+body.role-professional.role-admin .reports-brand .brand-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+body.role-professional.role-admin .sidebar.show {
+  transform: translateX(0) !important;
+}
+
+@media (max-width: 768px) {
+  body.role-professional.role-admin .sidebar {
+    left: 0 !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    height: calc(100vh - 100px) !important;
+    top: 100px !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  body.role-professional.role-admin .sidebar.show {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  body.role-professional.role-admin .main-content {
+    margin-left: 0;
+    padding: 25px;
+    width: 100%;
+  }
+}

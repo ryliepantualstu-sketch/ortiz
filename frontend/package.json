@@ -1,0 +1,14 @@
+{
+  "name": "ortiz-optical-frontend",
+  "version": "1.0.0",
+  "description": "Ortiz Optical Frontend - Login and Dashboard Pages",
+  "type": "module",
+  "main": "public/index.html",
+  "scripts": {
+    "start": "http-server public -p 8000",
+    "dev": "http-server public -p 8000 -c-1"
+  },
+  "keywords": ["optical", "management", "system"],
+  "author": "",
+  "license": "ISC"
+}

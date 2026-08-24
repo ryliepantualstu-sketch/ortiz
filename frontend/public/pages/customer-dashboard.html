@@ -1,0 +1,3496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Portal - Ortiz Optical</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../css/customer-fixes.css" rel="stylesheet">
+    <link href="../css/professional-shell.css" rel="stylesheet">
+    <link href="../css/customer-professional-pages.css" rel="stylesheet">
+    <link href="../css/customer-shell.css?v=2" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4efe6;
+            --panel: #ffffff;
+            --panel-strong: #fffdf8;
+            --ink: #172121;
+            --muted: #64748b;
+            --line: rgba(0, 0, 0, 0.06);
+            --accent: #0d8f83;
+            --accent-deep: #095f58;
+            --accent-soft: rgba(13, 143, 131, 0.12);
+            --primary-blue: #00a8ff;
+            --gold: #c58b3a;
+            --rose: #d46f66;
+            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.1);
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            background: #f9f4eb;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Manrope', sans-serif;
+            color: var(--ink);
+            padding-top: 100px;
+            background:
+                radial-gradient(circle at top left, rgba(197, 139, 58, 0.18), transparent 28%),
+                radial-gradient(circle at right 10%, rgba(13, 143, 131, 0.14), transparent 24%),
+                linear-gradient(180deg, #f9f4eb 0%, #efe6d9 100%);
+        }
+
+        /* Top Navbar */
+        .navbar {
+            background: linear-gradient(90deg, #2c3e50 0%, #3d5970 100%);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+            border-bottom: 4px solid #00a8ff;
+            padding: 1.5rem 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1100;
+            width: 100%;
+        }
+
+        .navbar .container-fluid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2.5rem;
+        }
+
+        .navbar-brand {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.03);
+        }
+
+        .navbar-brand i {
+            font-size: 2.8rem;
+            color: #00a8ff;
+            filter: drop-shadow(0 3px 6px rgba(0,168,255,0.4));
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .navbar-user-name {
+            color: rgba(255,255,255,0.95);
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.3px;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 6px 8px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .brand-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #00a8ff 0%, #0077b6 100%);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 1.4rem;
+            box-shadow: 0 10px 24px rgba(0, 168, 255, 0.35);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-family: 'Fraunces', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: white;
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.82rem;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-left: 4px solid transparent;
+            padding: 13px 18px;
+            transition: all 0.22s ease;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
+
+        .sidebar .nav-link i {
+            width: 22px;
+            text-align: center;
+            font-size: 1.15rem;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(0,168,255,0.15);
+            color: #fff;
+            padding-left: 20px;
+            border-left-color: #00a8ff;
+            transform: translateX(2px);
+        }
+
+        .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0,168,255,0.3) 0%, rgba(0,168,255,0.08) 100%);
+            border-left-color: #00a8ff;
+            color: #fff;
+            font-weight: 700;
+            box-shadow: inset 0 0 10px rgba(0,168,255,0.2);
+        }
+
+        .sidebar .nav-link.active i {
+            color: #00a8ff;
+            transform: scale(1.1);
+        }
+
+        .sidebar .nav-badge {
+            margin-left: auto;
+            background: #ff4757;
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 999px;
+        }
+
+        .sidebar-footer {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 14px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            background: rgba(255, 71, 87, 0.12);
+            border: 1px solid rgba(255, 71, 87, 0.35);
+            color: #ff6b81;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ff4757;
+            color: white;
+            border-color: #ff4757;
+            box-shadow: 0 6px 16px rgba(255, 71, 87, 0.35);
+        }
+
+        /* ======================================================== */
+        /* SECTION GRID & DASHBOARD CARDS                           */
+        /* ======================================================== */
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .panel {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--radius-lg);
+            padding: 26px 24px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(0, 168, 255, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-title h4 {
+            margin: 0 0 4px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+
+        .panel-title p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .panel-link {
+            color: #0088cc !important;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            white-space: nowrap;
+            padding: 6px 14px;
+            border-radius: 10px;
+            background: rgba(0, 168, 255, 0.08);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .panel-link:hover {
+            background: #00a8ff;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+        }
+
+        /* Timeline in Appointments panel */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            background: #f8fafc;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .timeline-item:hover {
+            background: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 168, 255, 0.35);
+        }
+
+        .timeline-accent {
+            width: 4px;
+            height: 38px;
+            border-radius: 99px;
+            background: linear-gradient(180deg, #00a8ff 0%, #0077b6 100%);
+            flex-shrink: 0;
+        }
+
+        .timeline-title {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1rem;
+        }
+
+        .timeline-meta {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+
+        .timeline-status {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* Quick Action Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .action-card {
+            background: #f8fafc;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--radius-md);
+            padding: 18px 16px;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .action-card:hover {
+            background: #ffffff;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 168, 255, 0.14);
+            border-color: #00a8ff;
+        }
+
+        .action-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(0, 168, 255, 0.15) 0%, rgba(0, 119, 182, 0.1) 100%);
+            color: #00a8ff;
+            font-size: 1.2rem;
+            margin-bottom: 6px;
+            transition: all 0.22s ease;
+        }
+
+        .action-card:hover .action-icon {
+            background: linear-gradient(135deg, #00a8ff 0%, #0077b6 100%);
+            color: white;
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(0, 168, 255, 0.35);
+        }
+
+        .action-card h5 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .action-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+
+        /* Order List in Dashboard */
+        .order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .order-item {
+            background: #f8fafc;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.22s ease;
+        }
+
+        .order-item:hover {
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 168, 255, 0.3);
+        }
+
+        .order-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-top strong {
+            color: #1e293b;
+            font-size: 1.02rem;
+            font-weight: 700;
+        }
+
+        .order-meta {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .order-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .order-total {
+            font-weight: 800;
+            color: var(--accent-deep);
+            font-size: 1.15rem;
+            font-family: 'Fraunces', serif;
+        }
+
+        .mini-btn {
+            background: rgba(0, 168, 255, 0.1);
+            color: #0088cc;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .mini-btn:hover {
+            background: #00a8ff;
+            color: white;
+            transform: translateX(2px);
+        }
+
+        /* Focus Summary List */
+        .focus-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .focus-item {
+            background: #f8fafc;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.22s ease;
+        }
+
+        .focus-item:hover {
+            background: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+            border-color: rgba(13, 143, 131, 0.3);
+        }
+
+        .focus-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 800;
+            color: var(--muted);
+        }
+
+        .focus-text {
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .focus-value {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--accent);
+            font-family: 'Fraunces', serif;
+            flex-shrink: 0;
+        }
+
+        /* Status Colors */
+        .status-confirmed {
+            background: rgba(13, 143, 131, 0.14) !important;
+            color: #095f58 !important;
+        }
+
+        .status-ready {
+            background: rgba(0, 168, 255, 0.14) !important;
+            color: #0077b6 !important;
+        }
+
+        .status-pending {
+            background: rgba(197, 139, 58, 0.16) !important;
+            color: #9a691f !important;
+        }
+
+        .status-cancelled {
+            background: rgba(212, 111, 102, 0.16) !important;
+            color: #9b423b !important;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+            background: #f8fafc;
+            border-radius: var(--radius-md);
+            border: 2px dashed rgba(0, 0, 0, 0.08);
+        }
+
+        .empty-state i {
+            font-size: 2.2rem;
+            color: #94a3b8;
+        }
+
+        /* Cart Toast */
+        .cart-toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #2c3e50;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 10050;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-left: 4px solid #00a8ff;
+        }
+
+        .cart-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Unavailable Slots in Appointment form */
+        .unavailable-slot {
+            color: #999 !important;
+            background-color: #f8f9fa !important;
+        }
+
+        /* Ensure modals overlay cleanly */
+        .modal {
+            z-index: 10000 !important;
+        }
+        .modal-backdrop {
+            z-index: 9999 !important;
+        }
+
+        /* ======================================================== */
+        /* SECTION SPACING — gap between each block in main content */
+        /* ======================================================== */
+        #dashboardSection,
+        #productsSection,
+        #cartSection,
+        #appointmentsSection,
+        #ordersSection {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        /* ======================================================== */
+        /* PRODUCTS GRID                                            */
+        /* ======================================================== */
+        .products-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+            grid-auto-rows: 1fr !important;
+            gap: 20px !important;
+            padding: 4px 2px;
+        }
+
+        .product-card {
+            display: flex;
+            flex-direction: column;
+            height: 100% !important;
+            gap: 0;
+            overflow: hidden;
+            border-radius: 20px !important;
+            border: 1px solid rgba(23, 33, 33, 0.08) !important;
+            background: #fffdf8 !important;
+            transition: transform 0.24s ease, box-shadow 0.24s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px) !important;
+            box-shadow: 0 16px 32px rgba(39, 51, 50, 0.1) !important;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 150px;
+            overflow: hidden;
+            background: #f1ebe0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-image .product-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #c4b89a;
+        }
+
+        .product-body {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 14px 16px 14px;
+            flex: 1;
+        }
+
+        .product-name {
+            font-size: 0.97rem;
+            font-weight: 800;
+            color: var(--ink);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-category {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+        }
+
+        .product-detail {
+            display: none;
+        }
+
+        .product-description {
+            font-size: 0.83rem;
+            color: #6f7a76;
+            line-height: 1.5;
+            margin-top: 2px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-family: 'Fraunces', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-deep);
+            letter-spacing: -0.03em;
+            margin-top: 4px;
+        }
+
+        .product-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .stock-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 999px;
+        }
+
+        .stock-badge.in-stock {
+            background: rgba(13, 143, 131, 0.12);
+            color: #095f58;
+        }
+
+        .stock-badge.low-stock {
+            background: rgba(197, 139, 58, 0.14);
+            color: #9a691f;
+        }
+
+        .stock-badge.out-of-stock {
+            background: rgba(212, 111, 102, 0.14);
+            color: #9b423b;
+        }
+
+        .product-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .product-tag {
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(0, 168, 255, 0.1);
+            color: #0077b6;
+        }
+
+        .quantity-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1ebe0;
+            border-radius: 12px;
+            padding: 4px 12px;
+        }
+
+        .quantity-btn {
+            background: none;
+            border: none;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--accent-deep);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            transition: background 0.18s ease;
+        }
+
+        .quantity-btn:hover:not(:disabled) {
+            background: rgba(13, 143, 131, 0.15);
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .quantity-value {
+            font-weight: 800;
+            font-size: 1rem;
+            min-width: 24px;
+            text-align: center;
+            color: var(--ink);
+        }
+
+        .product-stock {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-view-product {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 14px;
+            border-radius: 14px;
+            background: #f1ebe0;
+            color: var(--ink);
+            border: none;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-view-product:hover {
+            background: rgba(13, 143, 131, 0.12);
+            color: var(--accent-deep);
+        }
+
+        .btn-add-cart {
+            flex: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 14px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0d8f83 0%, #095f58 100%);
+            color: white;
+            border: none;
+            font-weight: 800;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.22s ease;
+        }
+
+        .btn-add-cart:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(13, 143, 131, 0.35);
+        }
+
+        .btn-add-cart:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        /* ======================================================== */
+        /* CART CONTENT LAYOUT                                      */
+        /* ======================================================== */
+        .cart-container {
+            display: grid !important;
+            grid-template-columns: 1fr 360px !important;
+            gap: 28px !important;
+            align-items: start;
+        }
+
+        .cart-items {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .cart-item {
+            display: grid !important;
+            grid-template-columns: 100px 1fr auto !important;
+            gap: 20px !important;
+            align-items: start;
+            padding: 20px 22px !important;
+            border-radius: 20px !important;
+            background: #fffdf8 !important;
+            border: 1px solid rgba(23, 33, 33, 0.07) !important;
+            transition: box-shadow 0.22s ease, border-color 0.22s ease;
+        }
+
+        .cart-item:hover {
+            box-shadow: 0 12px 28px rgba(39, 51, 50, 0.08) !important;
+            border-color: rgba(13, 143, 131, 0.2) !important;
+        }
+
+        .item-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f1ebe0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .item-image .product-placeholder {
+            font-size: 2rem;
+            color: #c4b89a;
+        }
+
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .item-name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .item-price {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .item-quantity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 6px;
+            background: #f1ebe0;
+            border-radius: 12px;
+            padding: 5px 12px;
+            width: fit-content;
+        }
+
+        .qty-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent-deep);
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            transition: background 0.18s ease;
+        }
+
+        .qty-btn:hover {
+            background: rgba(13, 143, 131, 0.15);
+        }
+
+        .item-total {
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-deep);
+            text-align: right;
+            white-space: nowrap;
+            letter-spacing: -0.02em;
+        }
+
+        .remove-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(212, 111, 102, 0.1);
+            border: none;
+            color: #c0392b;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: #d46f66;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Cart summary panel */
+        .cart-summary {
+            background: #fffdf8 !important;
+            border: 1px solid rgba(23, 33, 33, 0.07) !important;
+            border-radius: 24px !important;
+            padding: 28px !important;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: sticky;
+            top: 120px;
+        }
+
+        .summary-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--ink);
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(23, 33, 33, 0.07);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .summary-value {
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .total-row {
+            background: rgba(13, 143, 131, 0.06);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .checkout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #0d8f83 0%, #095f58 100%);
+            color: white;
+            border: none;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.22s ease;
+        }
+
+        .checkout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(13, 143, 131, 0.35);
+        }
+
+        .empty-cart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 60px 32px;
+            text-align: center;
+            border-radius: 24px;
+            background: #fffdf8;
+            border: 2px dashed rgba(23, 33, 33, 0.1);
+            color: var(--muted);
+        }
+
+        .empty-cart i {
+            font-size: 3rem;
+            color: #c4b89a;
+        }
+
+        @media (max-width: 1024px) {
+            .section-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .cart-container {
+                grid-template-columns: 1fr !important;
+            }
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar .container-fluid {
+                padding: 0 1rem;
+            }
+            .navbar-brand {
+                font-size: 1.5rem;
+            }
+            .navbar-brand i {
+                font-size: 1.8rem;
+            }
+            .navbar-user-name {
+                font-size: 0.95rem;
+            }
+            .section-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .action-grid,
+            .focus-list {
+                grid-template-columns: 1fr;
+            }
+            .products-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .cart-item {
+                grid-template-columns: 80px 1fr auto !important;
+                gap: 14px !important;
+                padding: 16px !important;
+            }
+            .item-image {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body class="customer-professional role-professional role-customer">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn d-md-none mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="navbar-brand" onclick="loadSection('dashboard')">
+                    <i class="fas fa-glasses"></i>
+                    <span>Ortiz Optical</span>
+                </span>
+            </div>
+            <div class="navbar-right">
+                <button class="btn btn-outline-light btn-sm" type="button" onclick="openProfileModal()" style="border-radius:999px; padding:0.5rem 1rem;">
+                    <i class="fas fa-user-edit"></i> Profile
+                </button>
+                <span class="navbar-user-name" id="userName">Customer</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Shell Wrapper -->
+    <div class="shell-wrapper">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar" aria-label="Customer navigation">
+            <div class="brand">
+                <div class="brand-badge"><i class="fas fa-glasses"></i></div>
+                <div>
+                    <h1>Ortiz Optical</h1>
+                    <p>Customer Portal</p>
+                </div>
+            </div>
+
+            <ul class="nav-list">
+                <li>
+                    <a class="nav-link active" id="nav-dashboard" href="#dashboard" onclick="return loadSection('dashboard', event)">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" id="nav-products" href="#products" onclick="return loadSection('products', event)">
+                        <i class="fas fa-bag-shopping"></i>
+                        <span>Shop Glasses</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" id="nav-cart" href="#cart" onclick="return loadSection('cart', event)">
+                        <i class="fas fa-cart-shopping"></i>
+                        <span>My Cart</span>
+                        <span class="nav-badge d-none" id="sidebarCartBadge">0</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" id="nav-appointments" href="#appointments" onclick="return loadSection('appointments', event)">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Appointments</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" id="nav-orders" href="#orders" onclick="return loadSection('orders', event)">
+                        <i class="fas fa-receipt"></i>
+                        <span>My Orders</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" type="button" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="content">
+
+            <!-- ======================================================== -->
+            <!-- SECTION 1: DASHBOARD                                    -->
+            <!-- ======================================================== -->
+            <div id="dashboardSection">
+                <header class="topbar">
+                    <div>
+                        <h2 id="pageTitle">Your Glasses Dashboard</h2>
+                        <p>Track appointments, orders, and shopping activity from one professional workspace.</p>
+                    </div>
+                    <div class="topbar-side">
+                        <div class="status-chip"><i class="fas fa-signal"></i><span id="accountHealth">Syncing account</span></div>
+                    </div>
+                </header>
+
+                <section class="hero">
+                    <div>
+                        <div class="eyebrow"><i class="fas fa-star-of-life"></i><span>Professional overview</span></div>
+                        <h3 id="heroHeading">Care planning built for every visit.</h3>
+                        <p id="heroText">Review your upcoming consultations, stay on top of order fulfillment, and move quickly between shopping and appointment workflows.</p>
+                        <div class="hero-actions">
+                            <button type="button" class="hero-btn border-0" onclick="loadSection('appointments')"><i class="fas fa-calendar-plus"></i><span>Manage appointments</span></button>
+                            <button type="button" class="ghost-btn border-0" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Browse products</span></button>
+                        </div>
+                    </div>
+
+                    <div class="hero-side">
+                        <div class="spotlight-card">
+                            <h4>Next priority</h4>
+                            <p id="nextPriorityText">Loading your nearest appointment or open order.</p>
+                            <div class="spotlight-number" id="nextPriorityValue">--</div>
+                        </div>
+                        <div class="spotlight-card">
+                            <h4>Account activity</h4>
+                            <p id="activitySummary">Preparing your recent account summary.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="kpi-grid">
+                    <article class="kpi-card" onclick="loadSection('orders')" style="cursor: pointer;">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Total orders</span>
+                            <div class="kpi-icon"><i class="fas fa-box-archive"></i></div>
+                        </div>
+                        <div class="kpi-value" id="stat-orders">0</div>
+                        <div class="kpi-note">Completed and active purchase history in one view.</div>
+                    </article>
+
+                    <article class="kpi-card" onclick="loadSection('appointments')" style="cursor: pointer;">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Upcoming visits</span>
+                            <div class="kpi-icon"><i class="fas fa-calendar-day"></i></div>
+                        </div>
+                        <div class="kpi-value" id="stat-appointments">0</div>
+                        <div class="kpi-note">Scheduled consultations and in-clinic checkups ahead.</div>
+                    </article>
+
+                    <article class="kpi-card" onclick="loadSection('orders')" style="cursor: pointer;">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Pending orders</span>
+                            <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+                        </div>
+                        <div class="kpi-value" id="stat-pending">0</div>
+                        <div class="kpi-note">Orders that still need fulfillment, preparation, or pickup.</div>
+                    </article>
+
+                    <article class="kpi-card" onclick="loadSection('cart')" style="cursor: pointer;">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Cart items</span>
+                            <div class="kpi-icon"><i class="fas fa-cart-shopping"></i></div>
+                        </div>
+                        <div class="kpi-value" id="stat-cart">0</div>
+                        <div class="kpi-note">Products currently staged before checkout.</div>
+                    </article>
+                </section>
+
+                <section class="section-grid">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h4>Upcoming appointments</h4>
+                                <p>Your next confirmed or pending visits with service details and verification status.</p>
+                            </div>
+                            <button type="button" class="panel-link btn btn-link p-0 text-decoration-none" onclick="loadSection('appointments')">Open all</button>
+                        </div>
+                        <div class="timeline" id="appointmentsPreview"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h4>Quick actions</h4>
+                                <p>Shortcuts to the most common customer workflows.</p>
+                            </div>
+                        </div>
+                        <div class="action-grid">
+                            <div class="action-card" onclick="loadSection('products')" style="cursor: pointer;">
+                                <div class="action-icon"><i class="fas fa-magnifying-glass"></i></div>
+                                <h5>Browse glasses</h5>
+                                <p>Explore available glasses and compare your options.</p>
+                            </div>
+                            <div class="action-card" onclick="loadSection('cart')" style="cursor: pointer;">
+                                <div class="action-icon"><i class="fas fa-credit-card"></i></div>
+                                <h5>Review cart</h5>
+                                <p>Check selected items and move faster to checkout.</p>
+                            </div>
+                            <div class="action-card" onclick="loadSection('appointments')" style="cursor: pointer;">
+                                <div class="action-icon"><i class="fas fa-qrcode"></i></div>
+                                <h5>Open QR access</h5>
+                                <p>Pull up appointment verification QR codes before your visit.</p>
+                            </div>
+                            <div class="action-card" onclick="loadSection('orders')" style="cursor: pointer;">
+                                <div class="action-icon"><i class="fas fa-truck-fast"></i></div>
+                                <h5>Track orders</h5>
+                                <p>Check the latest preparation and fulfillment progress.</p>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="section-grid">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h4>Recent order activity</h4>
+                                <p>Latest orders, current status, and fulfillment totals.</p>
+                            </div>
+                            <button type="button" class="panel-link btn btn-link p-0 text-decoration-none" onclick="loadSection('orders')">View orders</button>
+                        </div>
+                        <div class="order-list" id="ordersPreview"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h4>Focus summary</h4>
+                                <p>Professional snapshot of your account health and shopping readiness.</p>
+                            </div>
+                        </div>
+                        <div class="focus-list" id="focusSummary"></div>
+                    </section>
+                </section>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SECTION 2: PRODUCTS / SHOP CATALOG                      -->
+            <!-- ======================================================== -->
+            <div id="productsSection" style="display: none;">
+                <section class="page-hero">
+                    <div class="page-kicker"><i class="fas fa-bag-shopping"></i><span>Curated catalog</span></div>
+                    <h2>Shop premium glasses.</h2>
+                    <p>Browse our full glasses collection in a cleaner merchandising view designed for faster comparison and purchase decisions.</p>
+                    <div class="page-hero-actions">
+                        <button type="button" class="page-btn border-0" onclick="loadSection('cart')"><i class="fas fa-cart-shopping"></i><span>Review cart</span></button>
+                        <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>Track orders</span></button>
+                    </div>
+                </section>
+
+                <div class="shop-summary">
+                    <div class="summary-card">
+                        <div class="summary-label">Visible Products</div>
+                        <div class="summary-value" id="visibleProductsCount">0</div>
+                        <div class="summary-note">Products matching your current filters</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Low Stock</div>
+                        <div class="summary-value" id="lowStockCount">0</div>
+                        <div class="summary-note">Items that may sell out soon</div>
+                    </div>
+                    <div class="summary-card" onclick="loadSection('cart')" style="cursor: pointer;">
+                        <div class="summary-label">Cart Items</div>
+                        <div class="summary-value" id="cartItemsCount">0</div>
+                        <div class="summary-note">Current quantity saved in your cart</div>
+                    </div>
+                </div>
+
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <div class="filter-title">
+                        <i class="fas fa-filter"></i> Find Products Faster
+                    </div>
+                    <div class="shop-tools">
+                        <div class="shop-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="shop-input" id="productSearch" placeholder="Search glasses by name, supplier, or category" oninput="handleSearch(this.value)">
+                        </div>
+                        <select class="shop-select" id="sortSelect" onchange="handleSortChange(this.value)">
+                            <option value="featured">Sort: Featured</option>
+                            <option value="price-asc">Price: Low to High</option>
+                            <option value="price-desc">Price: High to Low</option>
+                            <option value="name-asc">Name: A to Z</option>
+                            <option value="stock-desc">Stock: Most Available</option>
+                        </select>
+                        <label class="stock-toggle" for="stockOnlyToggle">
+                            <input type="checkbox" id="stockOnlyToggle" onchange="toggleStockOnly(this.checked)">
+                            In-stock only
+                        </label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">
+                            <i class="fas fa-rotate-left"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results-row">
+                    <div class="results-count" id="resultsCount">Showing 0 products</div>
+                    <div class="results-hint" id="resultsHint">Use search, price, and stock filters to find glasses.</div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid" id="productsGrid">
+                    <div class="text-center text-muted py-5">Loading products...</div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SECTION 3: CART & CHECKOUT                              -->
+            <!-- ======================================================== -->
+            <div id="cartSection" style="display: none;">
+                <section class="page-hero">
+                    <div class="page-kicker"><i class="fas fa-cart-shopping"></i><span>Purchase staging</span></div>
+                    <h2>Review your selected items before checkout.</h2>
+                    <p>Use this workspace to confirm quantities, refine product choices, and keep your order basket ready for final confirmation.</p>
+                    <div class="page-hero-actions">
+                        <button type="button" class="page-btn border-0" onclick="loadSection('products')"><i class="fas fa-store"></i><span>Continue shopping</span></button>
+                        <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>View order history</span></button>
+                    </div>
+                </section>
+
+                <section class="page-mini-stats" id="cartStats">
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Items</div>
+                        <div class="mini-stat-value" id="cartStatsItems">0</div>
+                        <div class="mini-stat-note">Products currently saved to your basket.</div>
+                    </article>
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Subtotal</div>
+                        <div class="mini-stat-value" id="cartStatsSubtotal">₱0.00</div>
+                        <div class="mini-stat-note">Order subtotal based on current cart selections.</div>
+                    </article>
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Estimated total</div>
+                        <div class="mini-stat-value" id="cartStatsTotal">₱0.00</div>
+                        <div class="mini-stat-note">Projected final payment based on current selections.</div>
+                    </article>
+                </section>
+
+                <div id="cartContent">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SECTION 4: APPOINTMENTS                                  -->
+            <!-- ======================================================== -->
+            <div id="appointmentsSection" style="display: none;">
+                <section class="page-hero">
+                    <div class="page-kicker"><i class="fas fa-calendar-check"></i><span>Visit planning</span></div>
+                    <h2>Stay ahead of your appointments and check-ins.</h2>
+                    <p>Keep a clear record of upcoming services, view verification QR codes, and monitor the status of every scheduled clinic visit.</p>
+                    <div class="page-hero-actions">
+                        <button class="page-btn border-0" type="button" id="openAppointmentButton" onclick="openAppointmentModal()"><i class="fas fa-plus"></i><span>Book appointment</span></button>
+                        <button class="page-btn border-0" type="button" onclick="loadSection('dashboard')"><i class="fas fa-chart-pie"></i><span>Back to dashboard</span></button>
+                        <button class="page-btn-secondary border-0" type="button" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>Review orders</span></button>
+                    </div>
+                </section>
+
+                <section class="page-mini-stats" id="appointmentsStats">
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Total visits</div>
+                        <div class="mini-stat-value" id="appointmentsStatTotal">0</div>
+                        <div class="mini-stat-note">All appointments associated with this customer account.</div>
+                    </article>
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Upcoming</div>
+                        <div class="mini-stat-value" id="appointmentsStatUpcoming">0</div>
+                        <div class="mini-stat-note">Future appointments still waiting to happen.</div>
+                    </article>
+                    <article class="mini-stat">
+                        <div class="mini-stat-label">Verified</div>
+                        <div class="mini-stat-value" id="appointmentsStatVerified">0</div>
+                        <div class="mini-stat-note">Visits already checked by staff through the QR workflow.</div>
+                    </article>
+                </section>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Service</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTable">
+                                <tr><td colspan="5" class="text-center text-muted py-4">Loading appointments...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SECTION 5: ORDERS                                       -->
+            <!-- ======================================================== -->
+            <div id="ordersSection" style="display: none;">
+                <header class="topbar">
+                    <div>
+                        <h2>Orders workspace</h2>
+                        <p>Monitor fulfillment progress and review every purchase from a single dashboard.</p>
+                    </div>
+                    <div class="topbar-side">
+                        <div class="status-chip"><i class="fas fa-signal"></i><span>Order monitoring</span></div>
+                    </div>
+                </header>
+
+                <section class="hero">
+                    <div>
+                        <div class="eyebrow"><i class="fas fa-receipt"></i><span>Order intelligence</span></div>
+                        <h3>View every order in one professional view.</h3>
+                        <p>Monitor current fulfillment, review previous purchases, and keep an eye on total spend without leaving the customer workspace.</p>
+                        <div class="hero-actions">
+                            <button type="button" class="hero-btn border-0" onclick="loadSection('products')"><i class="fas fa-store"></i><span>Shop again</span></button>
+                            <button type="button" class="ghost-btn border-0" onclick="loadSection('cart')"><i class="fas fa-cart-shopping"></i><span>Open cart</span></button>
+                        </div>
+                    </div>
+                    <div class="hero-side">
+                        <div class="spotlight-card">
+                            <h4>Order focus</h4>
+                            <p>See open and completed purchases at a glance.</p>
+                            <div class="spotlight-number">Tracked</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="kpi-grid" id="ordersStats">
+                    <article class="kpi-card">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Total orders</span>
+                            <div class="kpi-icon"><i class="fas fa-box-archive"></i></div>
+                        </div>
+                        <div class="kpi-value" id="ordersStatTotal">0</div>
+                        <div class="kpi-note">Combined completed and active purchase records.</div>
+                    </article>
+                    <article class="kpi-card">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Open orders</span>
+                            <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+                        </div>
+                        <div class="kpi-value" id="ordersStatOpen">0</div>
+                        <div class="kpi-note">Orders still in progress, pending, or ready for pickup.</div>
+                    </article>
+                    <article class="kpi-card">
+                        <div class="kpi-head">
+                            <span class="kpi-label">Total spend</span>
+                            <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
+                        </div>
+                        <div class="kpi-value" id="ordersStatSpend">₱0.00</div>
+                        <div class="kpi-note">Gross value of all recorded customer orders.</div>
+                    </article>
+                </section>
+
+                <div class="orders-container" id="ordersContainer">
+                    <div class="empty-message">
+                        <i class="fas fa-box-open"></i>
+                        <div>No orders yet</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODALS & OVERLAYS                                            -->
+    <!-- ============================================================ -->
+
+    <!-- 1. Profile Edit Modal -->
+    <div id="profileModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="profileEditError" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none;">
+                        <span id="profileEditErrorMsg"></span>
+                        <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+                    </div>
+                    <form id="profileForm">
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="editFullName">
+                                <i class="fas fa-user text-primary"></i> Full Name
+                            </label>
+                            <input type="text" class="form-control rounded-3" id="editFullName" name="full_name" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="editEmail">
+                                <i class="fas fa-envelope text-primary"></i> Email Address
+                            </label>
+                            <input type="email" class="form-control rounded-3" id="editEmail" name="email" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="editPhone">
+                                <i class="fas fa-phone text-primary"></i> Phone Number
+                            </label>
+                            <input type="tel" class="form-control rounded-3" id="editPhone" name="phone" inputmode="numeric" pattern="\+?[0-9]{7,15}" title="Enter 7 to 15 digits, optionally starting with +" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="discountCardImage">
+                                <i class="fas fa-id-card text-primary"></i> Discount Card Image (Optional)
+                            </label>
+                            <input type="file" class="form-control rounded-3" id="discountCardImage" name="discount_card_image" accept="image/png,image/jpeg,image/webp,image/gif">
+                            <small class="text-muted">Upload your senior/PWD card so it can be saved to your profile.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary rounded-3" onclick="saveProfile()">
+                        <i class="fas fa-check"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Product Preview Modal -->
+    <div class="modal fade" id="productPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered product-preview-dialog">
+            <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 pb-4 pt-0">
+                    <div class="product-image mb-4 text-center" id="modalProductIcon" style="min-height: 180px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 16px;">
+                        <i class="fas fa-glasses fa-3x text-muted"></i>
+                    </div>
+                    <div class="product-category mb-2 text-uppercase fw-bold text-primary" id="modalProductCategory" style="font-size: 0.82rem; letter-spacing: 0.5px;">Category</div>
+                    <div class="modal-product-title mb-2 fw-bold" id="modalProductName" style="font-size: 1.4rem;">Product Name</div>
+                    <div class="product-detail mb-1 text-muted" id="modalProductColor">Color: N/A</div>
+                    <div class="product-detail mb-1 text-muted" id="modalProductMaterial">Material: N/A</div>
+                    <div class="product-detail mb-1 text-muted" id="modalProductLensType">Lens Type: N/A</div>
+                    <div class="product-detail mb-3 text-muted" id="modalProductShape">Shape: N/A</div>
+                    <div class="modal-price mb-2 fw-bold text-success" id="modalProductPrice" style="font-size: 1.6rem;">₱0.00</div>
+                    <div class="text-muted mb-3" id="modalPriceOptionNote" style="font-size: 0.92rem;">Select the option to see its price.</div>
+                    <p class="product-description mb-3" id="modalProductDescription">Product description goes here.</p>
+                    <div class="product-tags mb-3" id="modalProductTags"></div>
+                    <div class="modal-details mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8fafc; padding: 12px 16px; border-radius: 12px;">
+                        <div class="modal-detail">
+                            <div class="modal-detail-label text-muted" style="font-size: 0.8rem;">Availability</div>
+                            <div class="modal-detail-value fw-bold" id="modalProductStock">In Stock</div>
+                        </div>
+                        <div class="modal-detail">
+                            <div class="modal-detail-label text-muted" style="font-size: 0.8rem;">Supplier</div>
+                            <div class="modal-detail-value fw-bold" id="modalProductSupplier">Ortiz Optical</div>
+                        </div>
+                    </div>
+                    <div class="modal-detail purchase-option-group mt-3">
+                        <div class="modal-detail-label mb-2 fw-semibold">Purchase Option</div>
+                        <div class="purchase-option-list d-flex gap-2 flex-column">
+                            <label class="form-check option-card p-2 border rounded-3" style="cursor: pointer;">
+                                <input class="form-check-input" type="radio" name="lensOption" value="frame-only" id="lensFrameOnly">
+                                <span class="form-check-label fw-bold">Frame Only</span>
+                                <div class="text-muted small" style="margin-left: 26px;">Purchase the frame without prescription lenses.</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-detail lens-options-group mt-2">
+                        <div class="modal-detail-label mb-2 fw-semibold">Lens Options</div>
+                        <div class="lens-option-list d-flex gap-2">
+                            <label class="form-check option-card p-2 border rounded-3 flex-fill" style="cursor: pointer;">
+                                <input class="form-check-input" type="radio" name="lensOption" value="regular-lens" id="lensRegular" checked>
+                                <span class="form-check-label fw-bold">Regular Lens</span>
+                            </label>
+                            <label class="form-check option-card p-2 border rounded-3 flex-fill" style="cursor: pointer;">
+                                <input class="form-check-input" type="radio" name="lensOption" value="photochromic" id="lensPhotochromic">
+                                <span class="form-check-label fw-bold">Photochromic</span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary w-100 mt-4 py-2 rounded-3 fw-bold" id="modalAddToCartBtn" onclick="addToCartFromModal()">
+                        <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Checkout Modal -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="checkoutModalLabel">Proceed to Checkout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="checkoutForm">
+                        <div class="mb-3">
+                            <label for="orderNotes" class="form-label fw-semibold">Pickup instructions / Notes</label>
+                            <textarea id="orderNotes" class="form-control rounded-3" rows="3" placeholder="Optional notes for your order (e.g. pickup day, questions)"></textarea>
+                            <div class="form-text text-muted mt-2">
+                                <i class="fas fa-info-circle text-primary"></i> Orders are for in-clinic pickup and fulfillment at Ortiz Optical.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-bold">
+                            <i class="fas fa-credit-card me-2"></i> Place Order Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Appointment Form Modal -->
+    <div class="modal fade" id="appointmentFormModal" tabindex="-1" aria-labelledby="appointmentFormModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="appointmentFormModalLabel">Book Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="appointmentForm" novalidate>
+                        <input type="hidden" id="appointmentId">
+                        <div id="appointmentFormAlert" class="alert alert-danger d-none" role="alert"></div>
+                        <div class="mb-3">
+                            <label for="appointmentDate" class="form-label fw-semibold">Appointment Date</label>
+                            <input type="date" id="appointmentDate" name="appointment_date" class="form-control rounded-3" required min="">
+                        </div>
+                        <div class="mb-3">
+                            <label for="appointmentTime" class="form-label fw-semibold">Appointment Time</label>
+                            <select id="appointmentTime" name="appointment_time" class="form-control rounded-3" required>
+                                <option value="">Select a date first</option>
+                            </select>
+                            <div id="appointmentTimeStatus" class="form-text text-danger mt-2 d-none" style="font-weight: 600;"></div>
+                            <div id="appointmentTimeHint" class="form-text text-muted">Choose a time based on available clinic slots.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="appointmentService" class="form-label fw-semibold">Service Type</label>
+                            <select id="appointmentService" name="service_type" class="form-control rounded-3" required>
+                                <option value="Eye Checkup">Eye Checkup</option>
+                                <option value="Lens Fitting">Lens Fitting</option>
+                                <option value="Frame Adjustment">Frame Adjustment</option>
+                                <option value="General Consultation">General Consultation</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-bold" id="appointmentSubmitButton">Book Appointment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Appointment QR Modal -->
+    <div class="modal fade" id="appointmentQrModal" tabindex="-1" aria-labelledby="appointmentQrModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="appointmentQrModalLabel">Appointment Confirmation QR</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="mb-1"><strong>Appointment ID:</strong> <span id="qrAppointmentId">-</span></p>
+                    <p class="text-muted small" id="qrAppointmentSummary">-</p>
+                    <div class="my-3">
+                        <img id="appointmentQrImage" src="" alt="Appointment QR code" class="img-fluid rounded-3 border p-2 bg-white shadow-sm" style="max-width: 220px; display: none;">
+                        <div id="appointmentQrMissing" class="alert alert-warning mb-0 d-none">This appointment does not have a QR code yet.</div>
+                    </div>
+                    <p class="mb-2"><strong>Confirmation Status:</strong> <span id="qrAppointmentVerification" class="badge bg-secondary">Pending</span></p>
+                    <div class="mt-3 text-start">
+                        <label for="qrAppointmentPayload" class="form-label fw-semibold small">Backup Confirmation Code</label>
+                        <textarea id="qrAppointmentPayload" class="form-control small rounded-3" rows="3" readonly style="font-size: 0.85rem; background: #f8fafc;"></textarea>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.75rem;">Present this QR or code during your visit so clinic staff can confirm your appointment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Customer Order Detail Modal -->
+    <div id="customerOrderDetailModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Order Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="customerOrderDetailBody"></div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Toast Notification -->
+    <div class="cart-toast" id="cartToast"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/disable-transitions.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <script>
+        /* ======================================================== */
+        /* GLOBAL STATE & HELPERS                                  */
+        /* ======================================================== */
+        let dashboardState = {
+            user: null,
+            stats: null,
+            appointments: [],
+            orders: [],
+            cart: []
+        };
+
+        // Products State
+        let allProducts = [];
+        let selectedCategory = 'all';
+        let searchQuery = '';
+        let sortOption = 'featured';
+        let inStockOnly = false;
+        let cartItemCount = 0;
+        let productQuantities = {};
+        let modalSelectedProductId = null;
+        let currentModalProduct = null;
+
+        // Cart State
+        let cartItems = [];
+        let checkoutModalInstance = null;
+
+        // Appointments State
+        let appointmentsById = new Map();
+        let appointmentFormModalInstance = null;
+        let appointmentQrModalInstance = null;
+
+        // Orders State
+        let customerOrders = [];
+
+        // Modals
+        let profileModalInstance = null;
+        let productPreviewModalInstance = null;
+        let customerOrderDetailModalInstance = null;
+
+        function getCustomerDisplayName(user) {
+            if (!user || typeof user !== 'object') {
+                return 'Customer';
+            }
+            return user.full_name || user.name || user.email || 'Customer';
+        }
+
+        function loadUserInfo() {
+            let user = JSON.parse(localStorage.getItem('user'));
+
+            if (!user || user.role !== 'customer') {
+                window.location.href = '../index.html';
+                return null;
+            }
+
+            dashboardState.user = user;
+            const displayName = getCustomerDisplayName(user);
+
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) userNameEl.textContent = displayName;
+
+            const heroHeading = document.getElementById('heroHeading');
+            if (heroHeading) heroHeading.textContent = `Welcome back, ${displayName.split(' ')[0]}.`;
+
+            document.body.classList.add('profile-ready');
+            return user;
+        }
+
+        function logout() {
+            confirmLogout('../index.html');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar || !overlay) return;
+            const isOpen = sidebar.classList.toggle('show');
+            overlay.classList.toggle('show', isOpen);
+        }
+
+        function formatDate(value) {
+            if (!value) return 'TBD';
+            return new Date(value).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatTime(value) {
+            const safeValue = typeof value === 'string' ? value.slice(0, 5) : value;
+            if (!safeValue) return value || 'TBD';
+            const parsed = new Date(`1970-01-01T${safeValue}`);
+            if (Number.isNaN(parsed.getTime())) return value || 'TBD';
+            return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        function normalizeStatus(status) {
+            return (status || 'pending').toString().trim().toLowerCase();
+        }
+
+        function statusClass(status) {
+            const normalized = normalizeStatus(status);
+            if (normalized.includes('confirm') || normalized.includes('complete') || normalized.includes('picked up')) {
+                return 'status-confirmed';
+            }
+            if (normalized.includes('ready')) {
+                return 'status-ready';
+            }
+            if (normalized.includes('cancel')) {
+                return 'status-cancelled';
+            }
+            return 'status-pending';
+        }
+
+        function formatStatus(status) {
+            const normalized = (status || 'pending').toString().trim().replace(/_/g, ' ');
+            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+        }
+
+        function sortUpcomingAppointments(appointments) {
+            return [...appointments]
+                .filter((appointment) => new Date(appointment.appointment_date) >= new Date(new Date().setHours(0, 0, 0, 0)))
+                .sort((left, right) => new Date(left.appointment_date) - new Date(right.appointment_date));
+        }
+
+        function sortRecentOrders(orders) {
+            return [...orders].sort((left, right) => {
+                const leftDate = new Date(left.created_at || left.order_date || 0);
+                const rightDate = new Date(right.created_at || right.order_date || 0);
+                return rightDate - leftDate;
+            });
+        }
+
+        /* ======================================================== */
+        /* SECTION ROUTER (loadSection)                            */
+        /* ======================================================== */
+        function loadSection(section, event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('show');
+                if (overlay) overlay.classList.remove('show');
+            }
+
+            const sections = ['dashboard', 'products', 'cart', 'appointments', 'orders'];
+            const targetSection = sections.includes(section) ? section : 'dashboard';
+
+            // Hide all sections
+            sections.forEach(s => {
+                const el = document.getElementById(`${s}Section`);
+                if (el) el.style.display = 'none';
+            });
+
+            // Remove active class from nav links
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+
+            // Show selected section
+            const activeSectionEl = document.getElementById(`${targetSection}Section`);
+            if (activeSectionEl) activeSectionEl.style.display = 'flex';
+
+            // Set active nav link
+            const activeNavLink = document.getElementById(`nav-${targetSection}`);
+            if (activeNavLink) activeNavLink.classList.add('active');
+
+            // Update hash without triggering reload
+            if (window.location.hash !== `#${targetSection}`) {
+                history.pushState(null, '', `#${targetSection}`);
+            }
+
+            // Trigger loaders based on section
+            switch (targetSection) {
+                case 'dashboard':
+                    document.title = 'Customer Dashboard - Ortiz Optical';
+                    loadDashboard();
+                    break;
+                case 'products':
+                    document.title = 'Shop Glasses - Ortiz Optical';
+                    loadProducts();
+                    loadCartCount();
+                    break;
+                case 'cart':
+                    document.title = 'My Cart - Ortiz Optical';
+                    loadCart();
+                    break;
+                case 'appointments':
+                    document.title = 'My Appointments - Ortiz Optical';
+                    loadAppointments();
+                    break;
+                case 'orders':
+                    document.title = 'My Orders - Ortiz Optical';
+                    loadOrders();
+                    break;
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return false;
+        }
+
+        /* ======================================================== */
+        /* 1. DASHBOARD LOGIC                                       */
+        /* ======================================================== */
+        function renderDashboardStats(stats) {
+            const elOrders = document.getElementById('stat-orders');
+            const elAppointments = document.getElementById('stat-appointments');
+            const elPending = document.getElementById('stat-pending');
+            const elCart = document.getElementById('stat-cart');
+
+            if (elOrders) elOrders.textContent = stats.total_orders || 0;
+            if (elAppointments) elAppointments.textContent = stats.upcoming_appointments || 0;
+            if (elPending) elPending.textContent = stats.pending_orders || 0;
+            if (elCart) elCart.textContent = stats.cart_items || 0;
+        }
+
+        function renderHero() {
+            const upcomingAppointments = sortUpcomingAppointments(dashboardState.appointments);
+            const openOrders = dashboardState.orders.filter((order) => !['completed', 'cancelled'].includes(normalizeStatus(order.status)));
+
+            const nextPriorityText = document.getElementById('nextPriorityText');
+            const nextPriorityValue = document.getElementById('nextPriorityValue');
+            const activitySummary = document.getElementById('activitySummary');
+            const accountHealth = document.getElementById('accountHealth');
+
+            if (upcomingAppointments.length > 0) {
+                const nextAppointment = upcomingAppointments[0];
+                if (nextPriorityText) nextPriorityText.textContent = `${nextAppointment.service_type || 'Consultation'} on ${formatDate(nextAppointment.appointment_date)} at ${formatTime(nextAppointment.appointment_time)}.`;
+                if (nextPriorityValue) nextPriorityValue.textContent = formatDate(nextAppointment.appointment_date);
+            } else if (openOrders.length > 0) {
+                const nextOrder = openOrders[0];
+                if (nextPriorityText) nextPriorityText.textContent = `Your order #${nextOrder.order_id} is still active and currently marked as ${formatStatus(nextOrder.status)}.`;
+                if (nextPriorityValue) nextPriorityValue.textContent = `#${nextOrder.order_id}`;
+            } else {
+                if (nextPriorityText) nextPriorityText.textContent = 'No urgent account activity right now. This is a good time to browse new products or schedule a visit.';
+                if (nextPriorityValue) nextPriorityValue.textContent = 'Clear';
+            }
+
+            if (activitySummary) activitySummary.textContent = `${dashboardState.stats.total_orders || 0} total orders, ${dashboardState.stats.upcoming_appointments || 0} upcoming appointments, and ${dashboardState.stats.cart_items || 0} items waiting in cart.`;
+            if (accountHealth) accountHealth.textContent = openOrders.length > 0 || upcomingAppointments.length > 0 ? 'Account active' : 'All clear';
+        }
+
+        function renderDashboardAppointments(appointments) {
+            const container = document.getElementById('appointmentsPreview');
+            if (!container) return;
+            const upcoming = sortUpcomingAppointments(appointments).slice(0, 3);
+
+            if (upcoming.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-plus"></i>
+                        <div>No upcoming appointments yet. Book your next visit when you're ready.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = upcoming.map((appointment) => `
+                <article class="timeline-item" onclick="loadSection('appointments')" style="cursor: pointer;">
+                    <div class="timeline-accent"></div>
+                    <div>
+                        <div class="timeline-title">${appointment.service_type || 'Consultation'}</div>
+                        <div class="timeline-meta">${formatDate(appointment.appointment_date)} at ${formatTime(appointment.appointment_time)}${appointment.qr_verified ? ' • Verified QR' : ''}</div>
+                    </div>
+                    <span class="timeline-status ${statusClass(appointment.status)}">${formatStatus(appointment.status)}</span>
+                </article>
+            `).join('');
+        }
+
+        function renderDashboardOrders(orders) {
+            const container = document.getElementById('ordersPreview');
+            if (!container) return;
+            const recentOrders = sortRecentOrders(orders).slice(0, 3);
+
+            if (recentOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bag-shopping"></i>
+                        <div>No recent orders yet. Browse products to start building your order history.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recentOrders.map((order) => `
+                <article class="order-item">
+                    <div class="order-top">
+                        <strong>Order #${order.order_id}</strong>
+                        <span class="order-status ${statusClass(order.status)}">${formatStatus(order.status)}</span>
+                    </div>
+                    <div class="order-meta">Placed on ${formatDate(order.created_at || order.order_date)}${order.OrderItems?.length ? ` • ${order.OrderItems.length} item(s)` : ''}</div>
+                    <div class="order-foot">
+                        <div class="order-total">₱${Number(order.total_amount || 0).toFixed(2)}</div>
+                        <button type="button" class="mini-btn border-0" onclick="loadSection('orders')"><i class="fas fa-arrow-right"></i><span>View details</span></button>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function renderFocusSummary() {
+            const openOrders = dashboardState.orders.filter((order) => !['completed', 'cancelled'].includes(normalizeStatus(order.status))).length;
+            const verifiedAppointments = dashboardState.appointments.filter((appointment) => appointment.qr_verified).length;
+            const nextVisit = sortUpcomingAppointments(dashboardState.appointments)[0];
+
+            const summaryEl = document.getElementById('focusSummary');
+            if (!summaryEl) return;
+
+            summaryEl.innerHTML = `
+                <article class="focus-item">
+                    <div>
+                        <div class="focus-label">Next visit</div>
+                        <div class="focus-text">${nextVisit ? `${formatDate(nextVisit.appointment_date)} at ${formatTime(nextVisit.appointment_time)}` : 'No visit scheduled yet'}</div>
+                    </div>
+                    <div class="focus-value">${nextVisit ? 'Ready' : 'Open'}</div>
+                </article>
+                <article class="focus-item">
+                    <div>
+                        <div class="focus-label">Orders in motion</div>
+                        <div class="focus-text">Active orders still being prepared or fulfilled.</div>
+                    </div>
+                    <div class="focus-value">${openOrders}</div>
+                </article>
+                <article class="focus-item">
+                    <div>
+                        <div class="focus-label">Verified appointments</div>
+                        <div class="focus-text">Visits already validated through the QR workflow.</div>
+                    </div>
+                    <div class="focus-value">${verifiedAppointments}</div>
+                </article>
+                <article class="focus-item">
+                    <div>
+                        <div class="focus-label">Cart readiness</div>
+                        <div class="focus-text">Products waiting for checkout and final review.</div>
+                    </div>
+                    <div class="focus-value">${dashboardState.stats.cart_items || 0}</div>
+                </article>
+            `;
+        }
+
+        async function loadDashboard() {
+            try {
+                const [statsResult, appointmentsResult, ordersResult, cartResult] = await Promise.all([
+                    apiCall('/customer/dashboard-stats'),
+                    apiCall('/customer/appointments'),
+                    apiCall('/customer/orders'),
+                    apiCall('/customer/cart')
+                ]);
+
+                dashboardState.stats = statsResult?.stats || {
+                    total_orders: 0,
+                    upcoming_appointments: 0,
+                    pending_orders: 0,
+                    cart_items: 0
+                };
+                dashboardState.appointments = appointmentsResult?.appointments || [];
+                dashboardState.orders = ordersResult?.orders || [];
+                dashboardState.cart = cartResult?.cart || [];
+
+                if (!dashboardState.stats.cart_items && dashboardState.cart.length) {
+                    dashboardState.stats.cart_items = dashboardState.cart.length;
+                }
+
+                // Update sidebar cart badge
+                updateSidebarCartBadge(dashboardState.stats.cart_items);
+
+                renderDashboardStats(dashboardState.stats);
+                renderHero();
+                renderDashboardAppointments(dashboardState.appointments);
+                renderDashboardOrders(dashboardState.orders);
+                renderFocusSummary();
+            } catch (error) {
+                console.error('Dashboard error:', error);
+                const healthEl = document.getElementById('accountHealth');
+                if (healthEl) healthEl.textContent = 'Unable to sync';
+            }
+        }
+
+        function updateSidebarCartBadge(count) {
+            const badge = document.getElementById('sidebarCartBadge');
+            if (!badge) return;
+            const num = Number(count || 0);
+            if (num > 0) {
+                badge.textContent = num;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        }
+
+        /* ======================================================== */
+        /* 2. PRODUCTS / SHOP CATALOG LOGIC                         */
+        /* ======================================================== */
+        async function loadProducts() {
+            try {
+                const result = await apiCall('/customer/products');
+                if (result && result.success && result.products) {
+                    allProducts = result.products;
+                    initializeProductQuantities();
+                    applyFilters();
+                } else {
+                    document.getElementById('productsGrid').innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i><div>No products available</div></div>';
+                }
+            } catch (error) {
+                console.error('Products error:', error);
+                document.getElementById('productsGrid').innerHTML = '<div class="text-center text-danger py-5">Failed to load products. Error: ' + error.message + '</div>';
+            }
+        }
+
+        function initializeProductQuantities() {
+            productQuantities = {};
+            allProducts.forEach(product => {
+                productQuantities[product.product_id] = 1;
+            });
+            updateSummaryCards(allProducts);
+        }
+
+        function normalizeText(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function getProductDescription(product) {
+            return product.description || 'Clear product details will appear here once added by the store.';
+        }
+
+        function getProductIcon(product) {
+            const category = normalizeText(product.category);
+            if (category.includes('contact')) return 'fa-eye';
+            if (category.includes('care')) return 'fa-droplet';
+            if (category.includes('access')) return 'fa-briefcase';
+            return 'fa-glasses';
+        }
+
+        function getProductImageSrc(product) {
+            if (!product?.image_url) return '';
+            if (/^(?:https?:|data:)/i.test(product.image_url)) return product.image_url;
+            return `../${product.image_url.replace(/^\/+/, '')}`;
+        }
+
+        function getProductImageMarkup(product) {
+            const imageSrc = getProductImageSrc(product);
+            if (!imageSrc) {
+                return `<i class="fas ${getProductIcon(product)}"></i>`;
+            }
+            return `<img src="${imageSrc}" alt="${product.product_name}">`;
+        }
+
+        async function fetchProductDetails(productId) {
+            try {
+                const result = await apiCall(`/customer/products/${productId}`);
+                if (result && result.success && result.product) {
+                    const index = allProducts.findIndex(item => item.product_id === result.product.product_id);
+                    if (index !== -1) {
+                        allProducts[index] = result.product;
+                    }
+                    return result.product;
+                }
+            } catch (error) {
+                console.error('Failed to refresh product details:', error);
+            }
+            return null;
+        }
+
+        function getStockClass(product) {
+            if (product.stock_quantity === 0) return 'out-stock';
+            if (product.stock_quantity <= (product.min_stock_level || 5)) return 'low-stock';
+            return 'in-stock';
+        }
+
+        function getStockLabel(product) {
+            if (product.stock_quantity === 0) return 'Out of Stock';
+            if (product.stock_quantity <= (product.min_stock_level || 5)) return 'Low Stock';
+            return 'Ready to Ship';
+        }
+
+        function updateSummaryCards(filteredProducts) {
+            const lowStockCount = allProducts.filter(product => product.stock_quantity > 0 && product.stock_quantity <= (product.min_stock_level || 5)).length;
+
+            const vp = document.getElementById('visibleProductsCount');
+            const ls = document.getElementById('lowStockCount');
+            const ci = document.getElementById('cartItemsCount');
+
+            if (vp) vp.textContent = filteredProducts.length;
+            if (ls) ls.textContent = lowStockCount;
+            if (ci) ci.textContent = cartItemCount;
+        }
+
+        async function loadCartCount() {
+            const result = await apiCall('/customer/cart');
+            if (!result.success) {
+                cartItemCount = 0;
+                updateSummaryCards(sortProducts(allProducts));
+                updateSidebarCartBadge(0);
+                return;
+            }
+
+            cartItemCount = (result.cart || []).reduce((total, item) => total + Number(item.quantity || 0), 0);
+            updateSummaryCards(sortProducts(allProducts));
+            updateSidebarCartBadge(cartItemCount);
+        }
+
+        function updateResultsMeta(filteredProducts) {
+            const hasSearch = searchQuery.length > 0;
+            const hintParts = [];
+
+            if (selectedCategory !== 'all') hintParts.push('Category filtered');
+            if (hasSearch) hintParts.push('Search active');
+            if (inStockOnly) hintParts.push('In-stock only');
+
+            const rc = document.getElementById('resultsCount');
+            const rh = document.getElementById('resultsHint');
+
+            if (rc) rc.textContent = `Showing ${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'}`;
+            if (rh) {
+                rh.textContent = hintParts.length > 0
+                    ? hintParts.join(' | ')
+                    : 'Use search, category, and stock filters to narrow the catalog.';
+            }
+        }
+
+        function sortProducts(products) {
+            const sorted = [...products];
+            switch (sortOption) {
+                case 'price-asc':
+                    sorted.sort((a, b) => Number(a.price) - Number(b.price));
+                    break;
+                case 'price-desc':
+                    sorted.sort((a, b) => Number(b.price) - Number(a.price));
+                    break;
+                case 'name-asc':
+                    sorted.sort((a, b) => a.product_name.localeCompare(b.product_name));
+                    break;
+                case 'stock-desc':
+                    sorted.sort((a, b) => Number(b.stock_quantity) - Number(a.stock_quantity));
+                    break;
+                default:
+                    sorted.sort((a, b) => {
+                        const stockDelta = Number(b.stock_quantity) - Number(a.stock_quantity);
+                        if (stockDelta !== 0) return stockDelta;
+                        return Number(a.price) - Number(b.price);
+                    });
+            }
+            return sorted;
+        }
+
+        function applyFilters() {
+            let filteredProducts = [...allProducts];
+
+            if (selectedCategory !== 'all') {
+                filteredProducts = filteredProducts.filter(product => normalizeText(product.category).includes(selectedCategory));
+            }
+
+            if (searchQuery) {
+                filteredProducts = filteredProducts.filter(product => {
+                    const haystack = [product.product_name, product.category, product.supplier, product.description]
+                        .map(normalizeText)
+                        .join(' ');
+                    return haystack.includes(searchQuery);
+                });
+            }
+
+            if (inStockOnly) {
+                filteredProducts = filteredProducts.filter(product => Number(product.stock_quantity) > 0);
+            }
+
+            filteredProducts = sortProducts(filteredProducts);
+            updateSummaryCards(filteredProducts);
+            updateResultsMeta(filteredProducts);
+            displayProducts(filteredProducts);
+        }
+
+        function displayProducts(products) {
+            const grid = document.getElementById('productsGrid');
+            if (!grid) return;
+            
+            if (!products || products.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><div>No products matched your filters</div><div class="summary-note">Try a different search term, adjust price range, or reset your filters.</div></div>';
+                return;
+            }
+
+            grid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-image">
+                        ${getProductImageMarkup(product)}
+                    </div>
+                    <div class="product-body">
+                        <div class="product-name">${product.product_name}</div>
+                        <div class="product-category">${product.category}</div>
+                        <div class="product-detail">Color: ${product.color_name ? `${product.color_name}${product.color_hex ? ` (${product.color_hex})` : ''}` : (product.color_hex ? product.color_hex : (product.color_int != null ? product.color_int : 'N/A'))}</div>
+                        <div class="product-detail">Material: ${product.frame_material || 'N/A'}</div>
+                        <div class="product-detail">Lens: ${product.lens_type || 'N/A'}</div>
+                        <div class="product-detail">Shape: ${product.frame_shape || 'N/A'}</div>
+                        <div class="product-description">${getProductDescription(product)}</div>
+                        <div class="product-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                        <div class="product-meta">
+                            <div class="stock-badge ${getStockClass(product)}">
+                                <i class="fas ${product.stock_quantity > 0 ? 'fa-box-open' : 'fa-ban'}"></i>
+                                ${getStockLabel(product)} (${product.stock_quantity})
+                            </div>
+                            <div class="product-tags">
+                                <span class="product-tag">${product.supplier || 'Ortiz Optical'}</span>
+                            </div>
+                        </div>
+                        <div class="quantity-row">
+                            <div class="quantity-control">
+                                <button type="button" class="quantity-btn" onclick="changeQuantity(${product.product_id}, -1)" ${product.stock_quantity === 0 ? 'disabled' : ''}>-</button>
+                                <span class="quantity-value" id="qty-${product.product_id}">${productQuantities[product.product_id] || 1}</span>
+                                <button type="button" class="quantity-btn" onclick="changeQuantity(${product.product_id}, 1)" ${product.stock_quantity === 0 ? 'disabled' : ''}>+</button>
+                            </div>
+                            <div class="product-stock">Min stock level: ${product.min_stock_level || 0}</div>
+                        </div>
+                        <div class="product-actions">
+                            <button type="button" class="btn-view-product" onclick="openProductPreview(${product.product_id})">
+                                <i class="fas fa-expand"></i> Quick View
+                            </button>
+                            <button type="button" class="btn-add-cart" onclick="addToCart(${product.product_id})" ${product.stock_quantity === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus"></i> Add ${productQuantities[product.product_id] || 1} to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function handleSearch(value) {
+            searchQuery = normalizeText(value);
+            applyFilters();
+        }
+
+        function handleSortChange(value) {
+            sortOption = value;
+            applyFilters();
+        }
+
+        function toggleStockOnly(checked) {
+            inStockOnly = checked;
+            applyFilters();
+        }
+
+        function resetFilters() {
+            selectedCategory = 'all';
+            searchQuery = '';
+            sortOption = 'featured';
+            inStockOnly = false;
+
+            const ps = document.getElementById('productSearch');
+            const ss = document.getElementById('sortSelect');
+            const st = document.getElementById('stockOnlyToggle');
+
+            if (ps) ps.value = '';
+            if (ss) ss.value = 'featured';
+            if (st) st.checked = false;
+
+            applyFilters();
+        }
+
+        function changeQuantity(productId, delta) {
+            const product = allProducts.find(item => item.product_id === productId);
+            if (!product || product.stock_quantity === 0) return;
+
+            const currentValue = productQuantities[productId] || 1;
+            const nextValue = Math.min(product.stock_quantity, Math.max(1, currentValue + delta));
+            productQuantities[productId] = nextValue;
+
+            const quantityEl = document.getElementById(`qty-${productId}`);
+            if (quantityEl) quantityEl.textContent = nextValue;
+
+            const button = document.querySelector(`button.btn-add-cart[onclick="addToCart(${productId})"]`);
+            if (button) button.innerHTML = `<i class="fas fa-cart-plus"></i> Add ${nextValue} to Cart`;
+        }
+
+        function getPriceByLensOption(product, lensOption = 'regular-lens') {
+            if (!product) return 0;
+            if (lensOption === 'frame-only' && product.frame_only_price) {
+                return Number(product.frame_only_price);
+            } else if (lensOption === 'photochromic' && product.photochromic_price) {
+                return Number(product.photochromic_price);
+            } else if (lensOption === 'regular-lens' && product.regular_lens_price) {
+                return Number(product.regular_lens_price);
+            }
+            return Number(product.price);
+        }
+
+        function updateModalPrice() {
+            if (!currentModalProduct) return;
+            const selectedLensOption = document.querySelector('input[name="lensOption"]:checked')?.value || 'regular-lens';
+            const price = getPriceByLensOption(currentModalProduct, selectedLensOption);
+            document.getElementById('modalProductPrice').textContent = `₱${price.toFixed(2)}`;
+
+            const optionLabel = {
+                'frame-only': 'Frame Only (no lenses)',
+                'regular-lens': 'Regular Lens',
+                'photochromic': 'Photochromic'
+            }[selectedLensOption] || 'Regular Lens';
+
+            document.getElementById('modalPriceOptionNote').textContent = `Selected option: ${optionLabel}`;
+        }
+
+        async function openProductPreview(productId) {
+            let product = allProducts.find(item => item.product_id === productId);
+            if (!product) return;
+
+            const latestProduct = await fetchProductDetails(productId);
+            if (latestProduct) {
+                product = latestProduct;
+                applyFilters();
+            }
+
+            modalSelectedProductId = productId;
+            currentModalProduct = product;
+            document.getElementById('modalProductName').textContent = product.product_name;
+            document.getElementById('modalProductCategory').textContent = product.category;
+            document.getElementById('modalProductColor').textContent = `Color: ${product.color_name ? `${product.color_name}${product.color_hex ? ` (${product.color_hex})` : ''}` : (product.color_hex ? product.color_hex : (product.color_int != null ? product.color_int : 'N/A'))}`;
+            document.getElementById('modalProductMaterial').textContent = `Material: ${product.frame_material || 'N/A'}`;
+            document.getElementById('modalProductLensType').textContent = `Lens Type: ${product.lens_type || 'N/A'}`;
+            document.getElementById('modalProductShape').textContent = `Shape: ${product.frame_shape || 'N/A'}`;
+            document.getElementById('modalProductDescription').textContent = getProductDescription(product);
+            document.getElementById('modalProductStock').textContent = `${getStockLabel(product)} (${product.stock_quantity} available)`;
+            document.getElementById('modalProductSupplier').textContent = product.supplier || 'Ortiz Optical';
+            document.getElementById('modalProductIcon').innerHTML = getProductImageMarkup(product);
+            document.getElementById('modalProductTags').innerHTML = `
+                <span class="product-tag">${product.supplier || 'Ortiz Optical'}</span>
+                <span class="product-tag">${product.category}</span>
+            `;
+
+            document.getElementById('lensRegular').checked = true;
+            updateModalPrice();
+
+            if (!productPreviewModalInstance) {
+                productPreviewModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('productPreviewModal'));
+            }
+            productPreviewModalInstance.show();
+        }
+
+        function showCartToast(message) {
+            const toast = document.getElementById('cartToast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            window.clearTimeout(showCartToast.timeoutId);
+            showCartToast.timeoutId = window.setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+        async function addToCart(productId, lensOption = 'regular-lens') {
+            try {
+                const product = allProducts.find(p => p.product_id === productId);
+                if (!product) return;
+                const quantity = productQuantities[productId] || 1;
+
+                const result = await apiCall('/customer/cart/add', 'POST', {
+                    product_id: productId,
+                    quantity,
+                    lens_option: lensOption
+                });
+
+                if (!result.success) {
+                    showCartToast(result.message || 'Failed to add item to cart');
+                    return;
+                }
+
+                await loadCartCount();
+                await loadProducts();
+                const lensLabel = {
+                    'frame-only': 'Frame Only',
+                    'regular-lens': 'Regular Lens',
+                    'photochromic': 'Photochromic'
+                }[lensOption] || lensOption;
+                showCartToast(`${quantity} x ${product.product_name} (${lensLabel}) added to cart`);
+            } catch (error) {
+                console.error('Add to cart error:', error);
+            }
+        }
+
+        async function addToCartFromModal() {
+            if (!modalSelectedProductId) return;
+            const selectedLensOption = document.querySelector('input[name="lensOption"]:checked')?.value || 'regular-lens';
+            await addToCart(modalSelectedProductId, selectedLensOption);
+            if (productPreviewModalInstance) {
+                productPreviewModalInstance.hide();
+            }
+        }
+
+        /* ======================================================== */
+        /* 3. CART & CHECKOUT LOGIC                                 */
+        /* ======================================================== */
+        function updateCartStats(cart, subtotal, total) {
+            const itemCount = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            const ci = document.getElementById('cartStatsItems');
+            const cs = document.getElementById('cartStatsSubtotal');
+            const ct = document.getElementById('cartStatsTotal');
+
+            if (ci) ci.textContent = itemCount;
+            if (cs) cs.textContent = `₱${subtotal.toFixed(2)}`;
+            if (ct) ct.textContent = `₱${total.toFixed(2)}`;
+
+            updateSidebarCartBadge(itemCount);
+        }
+
+        async function loadCart() {
+            const result = await apiCall('/customer/cart');
+            const container = document.getElementById('cartContent');
+            if (!container) return;
+
+            if (!result.success) {
+                container.innerHTML = '<div class="empty-cart"><div class="empty-cart-text">Failed to load your cart.</div></div>';
+                updateCartStats([], 0, 0);
+                return;
+            }
+
+            const cart = result.cart || [];
+            cartItems = cart;
+
+            if (cart.length === 0) {
+                updateCartStats([], 0, 0);
+                container.innerHTML = `
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="empty-cart-text">Your cart is empty</div>
+                        <button type="button" class="shop-btn border-0" onclick="loadSection('products')">
+                            <i class="fas fa-store"></i> Continue Shopping
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = subtotal;
+            updateCartStats(cart, subtotal, total);
+
+            function getCartItemImageMarkup(item) {
+                const imageSrc = getProductImageSrc(item);
+                if (!imageSrc) return `<i class="fas fa-glasses"></i>`;
+                return `<img src="${imageSrc}" alt="${item.product_name}">`;
+            }
+
+            const cartItemsHtml = cart.map((item, index) => {
+                const lensLabel = {
+                    'frame-only': 'Frame Only',
+                    'regular-lens': 'Regular Lens',
+                    'photochromic': 'Photochromic'
+                }[item.lens_option] || 'Regular Lens';
+                
+                return `
+                <div class="cart-item">
+                    <div class="item-image">
+                        ${getCartItemImageMarkup(item)}
+                    </div>
+                    <div class="item-details">
+                        <div class="item-name">${item.product_name}</div>
+                        <div class="item-price">₱${parseFloat(item.price).toFixed(2)}</div>
+                        <div class="item-detail-small" style="color: #666; font-size: 0.85rem; margin-top: 4px;">Lens: ${lensLabel}</div>
+                        <div class="item-quantity">
+                            <button type="button" class="qty-btn" onclick="updateQuantity(${item.cart_id}, ${Math.max(1, item.quantity - 1)})">−</button>
+                            <span id="qty-${index}">${item.quantity}</span>
+                            <button type="button" class="qty-btn" onclick="updateQuantity(${item.cart_id}, ${item.quantity + 1})">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="item-total">₱${(item.price * item.quantity).toFixed(2)}</div>
+                        <button type="button" class="remove-btn" onclick="removeFromCart(${item.cart_id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+
+            container.innerHTML = `
+                <div class="cart-container">
+                    <div class="cart-items">
+                        ${cartItemsHtml}
+                    </div>
+                    <div class="cart-summary">
+                        <div class="summary-title">Order Summary</div>
+                        <div class="summary-row">
+                            <span class="summary-label">Subtotal</span>
+                            <span class="summary-value">₱${subtotal.toFixed(2)}</span>
+                        </div>
+                        <div class="total-row">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Total</span>
+                                <span style="font-size: 1.3rem;">₱${total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="checkout-btn" onclick="openCheckoutModal()">
+                            <i class="fas fa-credit-card"></i> Proceed to Checkout
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateQuantity(cartId, quantity) {
+            const result = await apiCall(`/customer/cart/${cartId}`, 'PUT', { quantity });
+            if (!result.success) {
+                alert(result.message || 'Failed to update quantity.');
+                return;
+            }
+            await loadCart();
+        }
+
+        async function removeFromCart(cartId) {
+            const result = await apiCall(`/customer/cart/${cartId}`, 'DELETE');
+            if (!result.success) {
+                alert(result.message || 'Failed to remove item.');
+                return;
+            }
+            await loadCart();
+        }
+
+        function openCheckoutModal() {
+            if (cartItems.length === 0) return;
+            if (!checkoutModalInstance) {
+                checkoutModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('checkoutModal'));
+            }
+            document.getElementById('checkoutForm').reset();
+            checkoutModalInstance.show();
+        }
+
+        async function submitCheckout(event) {
+            event.preventDefault();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            const notes = document.getElementById('orderNotes').value.trim();
+
+            const result = await apiCall('/customer/orders/checkout', 'POST', {
+                notes
+            });
+
+            submitButton.disabled = false;
+
+            if (!result.success) {
+                alert(result.message || 'Checkout failed.');
+                return;
+            }
+
+            if (checkoutModalInstance) checkoutModalInstance.hide();
+            alert(`Order #${result.order.order_id} placed successfully.`);
+            loadSection('orders');
+        }
+
+        /* ======================================================== */
+        /* 4. APPOINTMENTS LOGIC                                    */
+        /* ======================================================== */
+        function getAppointmentStatusBadge(status) {
+            switch ((status || '').toLowerCase()) {
+                case 'confirmed':
+                    return 'bg-success';
+                case 'completed':
+                    return 'bg-primary';
+                case 'cancelled':
+                    return 'bg-danger';
+                default:
+                    return 'bg-info';
+            }
+        }
+
+        function renderAppointmentStats(appointments) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const upcomingCount = appointments.filter(appointment => new Date(appointment.appointment_date) >= today).length;
+            const verifiedCount = appointments.filter(appointment => appointment.qr_verified).length;
+
+            const tot = document.getElementById('appointmentsStatTotal');
+            const upc = document.getElementById('appointmentsStatUpcoming');
+            const ver = document.getElementById('appointmentsStatVerified');
+
+            if (tot) tot.textContent = appointments.length;
+            if (upc) upc.textContent = upcomingCount;
+            if (ver) ver.textContent = verifiedCount;
+        }
+
+        function showQrModal(appointmentId) {
+            const appointment = appointmentsById.get(String(appointmentId));
+            if (!appointment) return;
+
+            document.getElementById('qrAppointmentId').textContent = `#${appointment.appointment_id}`;
+            document.getElementById('qrAppointmentSummary').textContent = `${appointment.service_type || 'General Checkup'} on ${formatDate(appointment.appointment_date)} at ${formatTime(appointment.appointment_time)}`;
+            
+            const verEl = document.getElementById('qrAppointmentVerification');
+            if (verEl) {
+                verEl.textContent = appointment.qr_verified ? 'Confirmed by staff' : 'Pending confirmation';
+                verEl.className = `badge ${appointment.qr_verified ? 'bg-success' : 'bg-secondary'}`;
+            }
+
+            document.getElementById('qrAppointmentPayload').value = appointment.qr_payload || '';
+
+            const qrImage = document.getElementById('appointmentQrImage');
+            const qrMissing = document.getElementById('appointmentQrMissing');
+
+            if (appointment.qr_code) {
+                qrImage.src = appointment.qr_code;
+                qrImage.style.display = 'inline-block';
+                qrMissing.classList.add('d-none');
+            } else {
+                qrImage.removeAttribute('src');
+                qrImage.style.display = 'none';
+                qrMissing.classList.remove('d-none');
+            }
+
+            if (!appointmentQrModalInstance) {
+                appointmentQrModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentQrModal'));
+            }
+            appointmentQrModalInstance.show();
+        }
+
+        function setAppointmentDateMin() {
+            const dateInput = document.getElementById('appointmentDate');
+            if (!dateInput) return;
+            const today = new Date();
+            const minDate = today.toISOString().split('T')[0];
+            const maxDate = new Date(today);
+            maxDate.setFullYear(maxDate.getFullYear() + 1);
+            dateInput.setAttribute('min', minDate);
+            dateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+        }
+
+        async function loadAvailableAppointmentTimes() {
+            const dateInput = document.getElementById('appointmentDate');
+            const timeSelect = document.getElementById('appointmentTime');
+            const timeHint = document.getElementById('appointmentTimeHint');
+            const timeStatus = document.getElementById('appointmentTimeStatus');
+
+            if (!dateInput || !timeSelect) return;
+
+            timeSelect.innerHTML = '';
+            if (timeStatus) {
+                timeStatus.classList.add('d-none');
+                timeStatus.textContent = '';
+            }
+
+            if (!dateInput.value) {
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Select a date first';
+                timeSelect.appendChild(placeholderOption);
+                timeSelect.disabled = true;
+                if (timeHint) timeHint.textContent = 'Choose a date to see available appointment times.';
+                return;
+            }
+
+            const loadingOption = document.createElement('option');
+            loadingOption.value = '';
+            loadingOption.textContent = 'Loading available times...';
+            timeSelect.appendChild(loadingOption);
+            timeSelect.disabled = true;
+            if (timeHint) timeHint.textContent = 'Loading available times...';
+
+            try {
+                const result = await apiCall(`/customer/available-slots?date=${dateInput.value}`);
+                timeSelect.innerHTML = '';
+
+                if (result && result.success && result.slots && result.slots.length > 0) {
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = 'Select a time';
+                    timeSelect.appendChild(placeholderOption);
+
+                    const unavailableSlots = [];
+
+                    result.slots.forEach(slot => {
+                        const label = formatTime(slot.start_time);
+                        const option = document.createElement('option');
+                        option.value = slot.start_time;
+
+                        const isUnavailable = !slot.available || slot.reason === 'Booked' || slot.reason === 'Blocked' || slot.reason === 'Lunch break';
+                        const displayText = isUnavailable
+                            ? `${label} - unavailable`
+                            : label;
+
+                        option.textContent = displayText;
+
+                        if (isUnavailable) {
+                            option.disabled = true;
+                            option.classList.add('unavailable-slot');
+                            unavailableSlots.push(`${label} - unavailable`);
+                        }
+
+                        timeSelect.appendChild(option);
+                    });
+
+                    if (timeStatus && unavailableSlots.length > 0) {
+                        timeStatus.textContent = unavailableSlots.join(', ');
+                        timeStatus.classList.remove('d-none');
+                    }
+
+                    timeSelect.disabled = false;
+                    if (timeHint) {
+                        timeHint.textContent = result.available
+                            ? 'Choose one of the available times below.'
+                            : (result.reason || 'All times are unavailable for this date.');
+                    }
+                } else {
+                    const noTimeOption = document.createElement('option');
+                    noTimeOption.value = '';
+                    noTimeOption.textContent = 'No available times';
+                    timeSelect.appendChild(noTimeOption);
+                    timeSelect.disabled = true;
+                    if (timeHint) timeHint.textContent = result?.reason || 'No appointment slots are available for this date.';
+                }
+            } catch (error) {
+                console.error('Failed to load available times:', error);
+                timeSelect.innerHTML = '<option value="">Unable to load times</option>';
+                timeSelect.disabled = true;
+                if (timeHint) timeHint.textContent = 'Unable to load available times right now.';
+            }
+        }
+
+        function showAppointmentFormAlert(message, type = 'danger') {
+            const alertEl = document.getElementById('appointmentFormAlert');
+            if (!alertEl) return;
+            alertEl.className = `alert alert-${type} mt-2`;
+            alertEl.textContent = message;
+            alertEl.classList.remove('d-none');
+        }
+
+        function clearAppointmentFormAlert() {
+            const alertEl = document.getElementById('appointmentFormAlert');
+            if (!alertEl) return;
+            alertEl.textContent = '';
+            alertEl.classList.add('d-none');
+        }
+
+        function openAppointmentModal(appointmentId = null) {
+            const appointment = appointmentId ? appointmentsById.get(String(appointmentId)) : null;
+            const appointmentForm = document.getElementById('appointmentForm');
+            appointmentForm.reset();
+            appointmentForm.classList.remove('was-validated');
+            clearAppointmentFormAlert();
+            setAppointmentDateMin();
+
+            document.getElementById('appointmentId').value = appointment?.appointment_id || '';
+            document.getElementById('appointmentDate').value = appointment ? String(appointment.appointment_date).slice(0, 10) : '';
+
+            const timeSelect = document.getElementById('appointmentTime');
+            timeSelect.innerHTML = '<option value="">Select a date first</option>';
+            timeSelect.disabled = true;
+            document.getElementById('appointmentTimeHint').textContent = 'Choose a date to see available appointment times.';
+
+            if (appointment) {
+                const appointmentTime = String(appointment.appointment_time || '').slice(0, 5);
+                const appointmentDate = String(appointment.appointment_date || '').slice(0, 10);
+                document.getElementById('appointmentDate').value = appointmentDate;
+                document.getElementById('appointmentService').value = appointment?.service_type || 'Eye Checkup';
+                loadAvailableAppointmentTimes().then(() => {
+                    if (appointmentTime) {
+                        const currentValue = document.getElementById('appointmentTime').value;
+                        if (!currentValue) {
+                            document.getElementById('appointmentTime').innerHTML = `<option value="${appointmentTime}">${formatTime(appointmentTime)}</option>`;
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('appointmentService').value = 'Eye Checkup';
+            }
+
+            document.getElementById('appointmentFormModalLabel').textContent = appointment ? 'Edit Appointment' : 'Book Appointment';
+            document.getElementById('appointmentSubmitButton').textContent = appointment ? 'Save Changes' : 'Book Appointment';
+
+            if (!appointmentFormModalInstance) {
+                appointmentFormModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentFormModal'));
+            }
+            appointmentFormModalInstance.show();
+        }
+
+        async function submitAppointmentForm(event) {
+            event.preventDefault();
+            const appointmentForm = document.getElementById('appointmentForm');
+            const submitButton = document.getElementById('appointmentSubmitButton');
+            clearAppointmentFormAlert();
+            submitButton.disabled = true;
+            const originalButtonText = submitButton.textContent;
+            submitButton.textContent = 'Processing...';
+
+            if (!appointmentForm.checkValidity()) {
+                appointmentForm.classList.add('was-validated');
+                showAppointmentFormAlert('Please complete all required appointment fields before submitting.', 'warning');
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            const appointmentId = document.getElementById('appointmentId').value;
+            const payload = {
+                appointment_date: document.getElementById('appointmentDate').value.trim(),
+                appointment_time: document.getElementById('appointmentTime').value.trim(),
+                service_type: document.getElementById('appointmentService').value.trim()
+            };
+
+            if (!payload.appointment_date || !payload.appointment_time || !payload.service_type) {
+                showAppointmentFormAlert('Please complete all appointment fields.', 'warning');
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            const result = appointmentId
+                ? await apiCall(`/customer/appointments/${appointmentId}`, 'PUT', payload)
+                : await apiCall('/customer/appointments/book', 'POST', payload);
+
+            if (!result.success) {
+                const errorMessage = result.message || (result.status === 409 ? 'Sorry this schedule is not available' : 'Failed to save appointment.');
+                showAppointmentFormAlert(errorMessage, 'danger');
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            if (appointmentFormModalInstance) appointmentFormModalInstance.hide();
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+            appointmentForm.reset();
+
+            await loadAppointments();
+        }
+
+        async function cancelAppointment(appointmentId) {
+            const appointment = appointmentsById.get(String(appointmentId));
+            if (!appointment || !confirm(`Cancel appointment #${appointment.appointment_id}?`)) {
+                return;
+            }
+
+            const result = await apiCall(`/customer/appointments/${appointmentId}/cancel`, 'PATCH');
+            if (!result.success) {
+                alert(result.message || 'Failed to cancel appointment.');
+                return;
+            }
+
+            await loadAppointments();
+        }
+
+        async function loadAppointments() {
+            try {
+                const result = await apiCall('/customer/appointments');
+                const tbody = document.getElementById('appointmentsTable');
+                if (!tbody) return;
+
+                if (result && result.success && result.appointments && result.appointments.length > 0) {
+                    renderAppointmentStats(result.appointments);
+                    appointmentsById = new Map(result.appointments.map(apt => [String(apt.appointment_id), apt]));
+                    tbody.innerHTML = result.appointments.map(apt => `
+                        <tr>
+                            <td>${formatDate(apt.appointment_date)}</td>
+                            <td>${formatTime(apt.appointment_time)}</td>
+                            <td>${apt.service_type || 'General Checkup'}</td>
+                            <td><span class="badge ${getAppointmentStatusBadge(apt.status)}">${apt.status || 'Scheduled'}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" ${apt.qr_ready ? `onclick="showQrModal(${apt.appointment_id})"` : 'disabled'}>
+                                    <i class="fas fa-qrcode"></i> View QR
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="openAppointmentModal(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="cancelAppointment(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
+                                    <i class="fas fa-ban"></i> Cancel
+                                </button>
+                                <div class="small mt-2 ${apt.qr_verified ? 'text-success fw-bold' : 'text-muted'}">
+                                    ${apt.qr_verified ? '<i class="fas fa-check-circle"></i> Confirmed by staff' : 'Awaiting confirmation'}
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    renderAppointmentStats([]);
+                    appointmentsById = new Map();
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-message">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <div>No appointments scheduled</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Appointments error:', error);
+                renderAppointmentStats([]);
+                const tbody = document.getElementById('appointmentsTable');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Failed to load appointments</td></tr>`;
+                }
+            }
+        }
+
+        /* ======================================================== */
+        /* 5. ORDERS LOGIC                                          */
+        /* ======================================================== */
+        const statusBadges = {
+            'Pending': 'warning',
+            'Processing': 'info',
+            'Ready for pickup': 'info',
+            'Picked up': 'success',
+            'Completed': 'success',
+            'Cancelled': 'danger'
+        };
+
+        function getOrderStatusBadgeClass(status) {
+            const normalizedStatus = (status || 'pending').toString().trim().replace(/_/g, ' ');
+            const formattedStatus = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1).toLowerCase();
+            return statusBadges[formattedStatus] || 'secondary';
+        }
+
+        function getOrderItems(order) {
+            return order.items || order.OrderItems || [];
+        }
+
+        function renderOrderStats(orders) {
+            const totalOrders = orders.length;
+            const openOrders = orders.filter(order => !['completed', 'cancelled', 'picked up', 'picked-up'].includes((order.status || '').toLowerCase())).length;
+            const totalSpend = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+            const tot = document.getElementById('ordersStatTotal');
+            const opn = document.getElementById('ordersStatOpen');
+            const spd = document.getElementById('ordersStatSpend');
+
+            if (tot) tot.textContent = totalOrders;
+            if (opn) opn.textContent = openOrders;
+            if (spd) spd.textContent = `₱${totalSpend.toFixed(2)}`;
+        }
+
+        function viewCustomerOrder(orderId) {
+            const order = customerOrders.find(o => Number(o.order_id) === Number(orderId));
+            if (!order) return;
+
+            const modalEl = document.getElementById('customerOrderDetailModal');
+            const body = document.getElementById('customerOrderDetailBody');
+            if (!customerOrderDetailModalInstance) {
+                customerOrderDetailModalInstance = new bootstrap.Modal(modalEl);
+            }
+
+            const items = getOrderItems(order);
+            const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || item.price || 0), 0);
+            const discountLabel = order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None';
+
+            body.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Order #${order.order_id}</h5>
+                    <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${formatStatus(order.status)}</span>
+                </div>
+                <p class="text-muted small mb-3"><strong>Order Date:</strong> ${formatDate(order.order_date || order.created_at)}</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => {
+                                const lensLabel = {
+                                    'frame-only': 'Frame Only',
+                                    'regular-lens': 'Regular Lens',
+                                    'photochromic': 'Photochromic'
+                                }[item.lens_option] || 'Regular Lens';
+                                return `
+                                    <tr>
+                                        <td><strong>${item.product_name || item.Product?.product_name || 'Product'}</strong><br><small class="text-muted">Lens: ${lensLabel}</small></td>
+                                        <td>${item.quantity || 1}</td>
+                                        <td>₱${Number(item.price || item.subtotal || 0).toFixed(2)}</td>
+                                        <td>₱${Number(item.subtotal || item.price || 0).toFixed(2)}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 p-3 bg-light rounded-3">
+                    <div class="d-flex justify-content-between mb-1"><span>Subtotal:</span> <strong>₱${Number(subtotal).toFixed(2)}</strong></div>
+                    <div class="d-flex justify-content-between mb-1"><span>Discount:</span> <span>${discountLabel}</span></div>
+                    <div class="d-flex justify-content-between border-top pt-2 mt-2" style="font-size: 1.15rem;"><span>Total:</span> <strong class="text-primary">₱${Number(order.total_amount || 0).toFixed(2)}</strong></div>
+                </div>
+            `;
+
+            customerOrderDetailModalInstance.show();
+        }
+
+        async function loadOrders() {
+            try {
+                const result = await apiCall('/customer/orders');
+                const container = document.getElementById('ordersContainer');
+                if (!container) return;
+
+                if (result && result.success && result.orders && result.orders.length > 0) {
+                    customerOrders = result.orders || [];
+                    renderOrderStats(result.orders);
+                    container.innerHTML = result.orders.map(order => {
+                        return `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <div class="order-header-item">
+                                    <div class="order-header-label">Order #</div>
+                                    <div class="order-header-value">#${order.order_id}</div>
+                                </div>
+                                <div class="order-header-item">
+                                    <div class="order-header-label">Order Date</div>
+                                    <div class="order-header-value">${formatDate(order.order_date || order.created_at)}</div>
+                                </div>
+                                <div class="order-header-item">
+                                    <div class="order-header-label">Status</div>
+                                    <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${formatStatus(order.status)}</span>
+                                </div>
+                            </div>
+                            <div class="order-items">
+                                ${getOrderItems(order).map(item => {
+                                    const lensLabel = {
+                                        'frame-only': 'Frame Only',
+                                        'regular-lens': 'Regular Lens',
+                                        'photochromic': 'Photochromic'
+                                    }[item.lens_option] || 'Regular Lens';
+                                    return `
+                                    <div class="order-item">
+                                        <div style="flex: 1;">
+                                            <span class="order-item-name">${item.product_name || item.Product?.product_name || 'Product'} <small class="text-muted">(${item.quantity || 1}x)</small></span>
+                                            <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>
+                                        </div>
+                                        <span class="order-item-price">₱${Number(item.subtotal || item.price || 0).toFixed(2)}</span>
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div class="order-footer">
+                                <div class="order-actions">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="viewCustomerOrder(${order.order_id})">View Order</button>
+                                </div>
+                                <div class="order-total">
+                                    <div class="order-subtotal">Subtotal: <strong>₱${Number(order.total_amount || 0).toFixed(2)}</strong></div>
+                                    <div class="order-grand-total">Total: ₱${Number(order.total_amount || 0).toFixed(2)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    renderOrderStats([]);
+                    container.innerHTML = `
+                        <div class="empty-message">
+                            <i class="fas fa-box-open"></i>
+                            <div>No orders yet</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Orders error:', error);
+                renderOrderStats([]);
+                const container = document.getElementById('ordersContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="empty-message">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <div>Failed to load orders</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        /* ======================================================== */
+        /* 6. PROFILE MODAL LOGIC                                   */
+        /* ======================================================== */
+        async function openProfileModal() {
+            const result = await apiCall('/customer/profile');
+            const user = result.success ? result.user : JSON.parse(localStorage.getItem('user')) || {};
+            const customer = result.success ? result.customer : JSON.parse(localStorage.getItem('customer')) || {};
+
+            document.getElementById('editFullName').value = user.full_name || '';
+            document.getElementById('editEmail').value = user.email || '';
+            document.getElementById('editPhone').value = customer.phone || '';
+            const cardInput = document.getElementById('discountCardImage');
+            if (cardInput) cardInput.value = '';
+            document.getElementById('profileEditError').style.display = 'none';
+
+            if (!profileModalInstance) {
+                profileModalInstance = new bootstrap.Modal(document.getElementById('profileModal'));
+            }
+            profileModalInstance.show();
+        }
+
+        async function saveProfile() {
+            const full_name = document.getElementById('editFullName').value.trim();
+            const email = document.getElementById('editEmail').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const discountCardFile = document.getElementById('discountCardImage')?.files[0];
+
+            if (!full_name || !email || !phone) {
+                showProfileError('Please fill in all fields');
+                return;
+            }
+
+            if (!/^\+?\d{7,15}$/.test(phone)) {
+                showProfileError('Phone number must contain 7 to 15 digits and may start with +');
+                return;
+            }
+
+            const payload = { full_name, email, phone };
+
+            if (discountCardFile) {
+                const reader = new FileReader();
+                const fileData = await new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read the selected discount card image.'));
+                    reader.readAsDataURL(discountCardFile);
+                });
+                payload.discount_card_image_data = fileData;
+                payload.discount_card_image_name = discountCardFile.name;
+            }
+
+            const result = await apiCall('/customer/profile', 'PUT', payload);
+
+            if (result.success) {
+                const user = JSON.parse(localStorage.getItem('user')) || {};
+                user.full_name = full_name;
+                user.email = email;
+                localStorage.setItem('user', JSON.stringify(user));
+
+                const customer = JSON.parse(localStorage.getItem('customer')) || {};
+                customer.phone = phone;
+                if (result.customer && result.customer.discount_card_image_url) {
+                    customer.discount_card_image_url = result.customer.discount_card_image_url;
+                }
+                localStorage.setItem('customer', JSON.stringify(customer));
+
+                if (profileModalInstance) profileModalInstance.hide();
+                loadUserInfo();
+                alert('Profile updated successfully!');
+            } else {
+                showProfileError(result.message || 'Failed to update profile');
+            }
+        }
+
+        function showProfileError(message) {
+            const errorEl = document.getElementById('profileEditError');
+            const errorMsg = document.getElementById('profileEditErrorMsg');
+            if (errorMsg) errorMsg.textContent = message;
+            if (errorEl) errorEl.style.display = 'block';
+        }
+
+        /* ======================================================== */
+        /* INITIALIZATION                                           */
+        /* ======================================================== */
+        async function initializeCustomerPortal() {
+            const user = await restoreSession();
+            if (!user || user.role !== 'customer') {
+                window.location.href = '../index.html';
+                return;
+            }
+            loadUserInfo();
+
+            // Set up date listener for appointments
+            const appointmentDateInput = document.getElementById('appointmentDate');
+            if (appointmentDateInput) {
+                appointmentDateInput.addEventListener('change', loadAvailableAppointmentTimes);
+            }
+
+            // Set up form submission handlers
+            const appointmentForm = document.getElementById('appointmentForm');
+            if (appointmentForm) {
+                appointmentForm.addEventListener('submit', submitAppointmentForm);
+            }
+
+            const checkoutForm = document.getElementById('checkoutForm');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', submitCheckout);
+            }
+
+            // Event listener for lens option radio changes in product preview modal
+            document.addEventListener('change', function(e) {
+                if (e.target.name === 'lensOption') {
+                    updateModalPrice();
+                }
+            });
+
+            // Route to initial section from hash or default to dashboard
+            const hash = (window.location.hash || '#dashboard').replace('#', '').toLowerCase();
+            loadSection(hash);
+        }
+
+        // Listen for browser back/forward buttons
+        window.addEventListener('hashchange', function() {
+            const hash = (window.location.hash || '#dashboard').replace('#', '').toLowerCase();
+            loadSection(hash);
+        });
+
+        window.customerPageInit = async function() {
+            if (typeof restoreSession === 'undefined') {
+                setTimeout(window.customerPageInit, 100);
+                return;
+            }
+            initializeCustomerPortal();
+        };
+
+        if (document.readyState !== 'loading') {
+            setTimeout(window.customerPageInit, 50);
+        } else {
+            window.addEventListener('DOMContentLoaded', function() {
+                setTimeout(window.customerPageInit, 50);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+/* Customer layout fixes: unify sizes and smooth transitions */
+:root {
+  --customer-sidebar-width: 280px;
+  --customer-main-margin: calc(var(--customer-sidebar-width) + 24px);
+  --customer-navbar-brand-size: 2.2rem;
+  --customer-navbar-user-size: 1.3rem;
+  --transition-fast: 180ms;
+}
+
+/* Normalize navbar sizes */
+.navbar-brand {
+  font-size: var(--customer-navbar-brand-size) !important;
+}
+.navbar-user-name {
+  font-size: var(--customer-navbar-user-size) !important;
+}
+
+/* Sidebar and main content sizing */
+body.customer-professional .sidebar {
+  position: fixed !important;
+  top: 100px !important;
+  left: 24px !important;
+  width: var(--customer-sidebar-width) !important;
+  min-width: var(--customer-sidebar-width) !important;
+  height: calc(100vh - 124px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 1000 !important;
+}
+body.customer-professional .main-content {
+  margin-left: calc(var(--customer-sidebar-width) + 24px) !important;
+  max-width: calc(100% - var(--customer-sidebar-width) - 24px) !important;
+}
+
+@media (max-width: 768px) {
+  body.customer-professional .sidebar {
+    left: 0 !important;
+    top: 100px !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    height: calc(100vh - 100px) !important;
+  }
+
+  body.customer-professional .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Smooth transitions for panels and main content */
+body.customer-professional .navbar {
+  transition:
+    opacity var(--transition-fast) ease,
+    background-color var(--transition-fast) ease !important;
+}
+
+body.customer-professional .sidebar,
+body.customer-professional .main-content {
+  transition:
+    opacity var(--transition-fast) ease,
+    background-color var(--transition-fast) ease !important;
+}
+
+/* Reduce sudden box-shadow jumps */
+.stat-card,
+.product-card,
+.chart-card,
+.table-container {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.2, 0, 0.2, 1) !important;
+}
+
+/* Prevent layout shift during content toggles */
+.auth-container,
+.auth-left,
+.auth-right {
+  will-change: opacity, transform;
+}
+
+/* Gentle hover effects */
+.product-card:hover,
+.stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Force consistent box-sizing */
+* {
+  box-sizing: border-box !important;
+}
+
+/* Reduce flicker: normalize transitions and disable view-transition animations */
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Disable view-transition animations which may cause flicker in some browsers */
+* {
+  view-transition-name: none !important;
+}
+
+/* Safer customer shell transitions */
+body.customer-professional .navbar {
+  transition: opacity 120ms ease !important;
+  transition-property: opacity, background-color !important;
+  transition-duration: 120ms !important;
+  will-change: opacity !important;
+  -webkit-backface-visibility: hidden !important;
+  backface-visibility: hidden !important;
+}
+
+/* Tone down heavy shadows that jump on hover */
+.stat-card,
+.product-card,
+.chart-card,
+.table-container {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Sidebar and main content sizing enforcement */
+body.customer-professional .sidebar {
+  left: 24px !important;
+  top: 100px !important;
+}
+body.customer-professional .main-content {
+  margin-left: var(--customer-main-margin) !important;
+}
+
+/* Provide a fallback neutral background when panels transition */
+body.customer-professional .main-content,
+body.customer-professional .sidebar {
+  background-clip: padding-box !important;
+}
+
+/* Optional class to temporarily disable transitions if needed */
+.no-transitions * {
+  transition: none !important;
+}

@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Ortiz Optical</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../css/professional-shell.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #2c3e50;
+            min-height: 100vh;
+            padding-top: 100px;
+        }
+
+        .modal-backdrop {
+            backdrop-filter: none !important;
+            background-color: rgba(0, 0, 0, 0.30) !important;
+            z-index: 9999 !important;
+            pointer-events: auto !important;
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.3 !important;
+        }
+
+        .modal {
+            z-index: 10000 !important;
+            position: fixed !important;
+            pointer-events: auto !important;
+            top: 5% !important;
+            left: 0;
+            right: 0;
+            margin: 0 auto !important;
+        }
+
+        .modal-dialog {
+            max-width: min(850px, 90vw) !important;
+            margin: 0 auto !important;
+            z-index: 10001 !important;
+        }
+
+        .modal-dialog.modal-lg {
+            max-width: min(850px, 90vw) !important;
+        }
+
+        .modal-body {
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            filter: none !important;
+            pointer-events: auto !important;
+        }
+        
+        .navbar {
+            background: linear-gradient(90deg, #2c3e50 0%, #3d5970 100%);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+            border-bottom: 4px solid #00a8ff;
+            padding: 1.5rem 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1100;
+            width: 100%;
+        }
+
+        .navbar-brand {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .navbar-brand i {
+            font-size: 2.8rem;
+            color: #00a8ff;
+            filter: drop-shadow(0 3px 6px rgba(0,168,255,0.4));
+        }
+
+        .navbar .container-fluid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2.5rem;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .navbar-user-name {
+            color: rgba(255,255,255,0.95);
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-outline-light {
+            border: 2.5px solid rgba(255,255,255,0.7);
+            color: rgba(255,255,255,0.95);
+            font-weight: 700;
+            transition: all 0.3s ease;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-outline-light:hover {
+            background-color: #ff4757;
+            border-color: #ff4757;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 71, 87, 0.4);
+        }
+
+        .btn-outline-light i {
+            font-size: 1.2rem;
+        }
+        
+        @media (min-width: 821px) {
+            .sidebar {
+                background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+                width: 252px !important;
+                min-width: 252px !important;
+                height: calc(100vh - 124px) !important;
+                position: fixed !important;
+                top: 100px !important;
+                left: 24px !important;
+                border-radius: 32px;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+                overflow-y: auto;
+                overflow-x: hidden;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.2) transparent;
+                flex-shrink: 0;
+                display: flex;
+                flex-direction: column;
+                z-index: 1000;
+            }
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .sidebar-header {
+            padding: 35px 20px;
+            background: rgba(0,168,255,0.1);
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            color: white;
+        }
+
+        .sidebar-user-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #00a8ff 0%, #0088cc 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.6rem;
+            box-shadow: 0 4px 12px rgba(0,168,255,0.4);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .sidebar-user-info h6 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .sidebar-user-info p {
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.75);
+            border-left: 4px solid transparent;
+            margin: 8px 10px;
+            padding: 16px 20px;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            position: relative;
+            font-size: 1.05rem;
+        }
+
+        .sidebar .nav-link i {
+            width: 24px;
+            text-align: center;
+            font-size: 1.3rem;
+            transition: all 0.25s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(0,168,255,0.15);
+            color: #fff;
+            padding-left: 23px;
+            border-left-color: #00a8ff;
+            transform: translateX(2px);
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0,168,255,0.3) 0%, rgba(0,168,255,0.1) 100%);
+            border-left-color: #00a8ff;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: inset 0 0 10px rgba(0,168,255,0.2);
+            border-left: 4px solid #00a8ff;
+        }
+
+        .sidebar .nav-link.active i {
+            color: #00a8ff;
+            transform: scale(1.1);
+        }
+
+        .sidebar > .nav {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            margin: 0;
+            padding: 10px 0;
+        }
+
+        .sidebar .nav-item {
+            list-style: none;
+        }
+        
+        @media (min-width: 821px) {
+            .main-content {
+                padding: 28px 24px !important;
+                overflow-y: auto;
+                overflow-x: hidden;
+                flex: 1;
+                background: rgba(255,255,255,0.5) !important;
+                max-width: calc(100% - 340px);
+                display: flex;
+                flex-direction: column;
+                margin-left: 340px !important;
+                min-height: calc(100vh - 100px);
+            }
+        }
+
+        .main-content h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 35px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .main-content h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 5px;
+            background: linear-gradient(90deg, #00a8ff 0%, #0088cc 100%);
+            border-radius: 3px;
+        }
+
+        .main-content h4 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+
+        #content > div {
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 28px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: none;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 0;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: rgba(0,168,255,0.08);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #00a8ff, transparent);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        #statsContainer {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .stat-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card:nth-child(1) .stat-icon {
+            background: linear-gradient(135deg, #00a8ff 0%, #0088cc 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(2) .stat-icon {
+            background: linear-gradient(135deg, #20c997 0%, #12a876 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(3) .stat-icon {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9c00 100%);
+            color: white;
+        }
+
+        .stat-content {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card h6 {
+            color: #95a5a6;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .stat-card .value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #2c3e50 0%, #000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .table-container h5 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .table {
+            font-size: 0.95rem;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 3px solid #00a8ff;
+        }
+
+        .table thead th {
+            font-weight: 800;
+            color: white;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 18px 16px;
+            border: none;
+        }
+
+        .table-light {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            border-bottom: 3px solid #00a8ff;
+        }
+
+        .table-light th {
+            color: #e0f2fe !important;
+            font-weight: 800 !important;
+            background: transparent !important;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 18px 16px !important;
+            border: none !important;
+            border-bottom: 3px solid #00a8ff !important;
+        }
+
+        .table-hover tbody tr {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .table-hover tbody tr:hover {
+            background: linear-gradient(90deg, rgba(0,168,255,0.08) 0%, rgba(0,88,204,0.04) 100%);
+            transform: scale(1.015);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .table tbody td {
+            padding: 16px 16px;
+            vertical-align: middle;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .table tbody td:first-child {
+            font-weight: 700;
+            color: #00a8ff;
+        }
+
+        .badge {
+            padding: 8px 14px !important;
+            font-weight: 700 !important;
+            border-radius: 20px !important;
+            font-size: 0.85rem !important;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00a8ff 0%, #0088cc 100%);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,168,255,0.3);
+            color: white !important;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0088cc 0%, #006699 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,168,255,0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9c00 100%);
+            color: white !important;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #ff9c00 0%, #ff7c00 100%);
+            transform: translateY(-3px);
+        }
+
+        .d-flex.w-100 {
+            display: flex;
+            width: 100%;
+            gap: 0;
+        }
+
+        .d-flex.w-100 > nav {
+            flex-shrink: 0;
+        }
+
+        .d-flex.w-100 > main {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .row.mb-4 {
+            gap: 20px;
+            margin-bottom: 30px !important;
+        }
+
+        .col-md-6.col-lg-3 {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 100px;
+                z-index: 999;
+                width: 250px;
+                height: calc(100vh - 100px);
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 100px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 998;
+                backdrop-filter: blur(2px);
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 25px;
+                width: 100%;
+            }
+
+            .stat-card {
+                padding: 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .stat-card .value {
+                font-size: 2rem;
+            }
+
+            .main-content h2 {
+                font-size: 1.8rem;
+            }
+
+            .main-content h4 {
+                font-size: 1.3rem;
+            }
+
+            .navbar-brand {
+                font-size: 1.5rem;
+            }
+
+            .navbar .container-fluid {
+                padding: 0 1rem;
+            }
+
+            .navbar-right {
+                gap: 12px;
+            }
+
+            .navbar-user-name {
+                font-size: 0.9rem;
+            }
+
+            .btn-outline-light {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+
+            .table tbody td {
+                padding: 12px 10px;
+                font-size: 0.9rem;
+            }
+
+            .btn-sm {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+
+        .mobile-menu-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            padding: 8px 12px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        .mobile-menu-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* Action button groups in tables */
+        .action-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .action-btns .btn-sm {
+            white-space: nowrap;
+            font-size: 0.82rem;
+            padding: 6px 12px;
+        }
+
+        /* Input group styling */
+        .input-group-text {
+            background: transparent;
+            border-right: none;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+        }
+
+        .input-group .form-control:focus {
+            box-shadow: none;
+        }
+
+        /* Empty state styling */
+        .text-muted.py-4 {
+            padding: 2rem 0 !important;
+        }
+
+        @media (max-width: 576px) {
+            #statsContainer {
+                grid-template-columns: 1fr !important;
+            }
+
+            .action-btns {
+                flex-direction: column;
+            }
+
+            .action-btns .btn-sm {
+                width: 100%;
+                text-align: center;
+            }
+
+            .table-container {
+                margin-left: -10px;
+                margin-right: -10px;
+                border-radius: 8px;
+            }
+
+            .main-content {
+                padding: 15px !important;
+            }
+        }
+    </style>
+</head>
+<body class="role-professional role-staff">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn d-md-none mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="navbar-brand mb-0">
+                    <i class="fas fa-glasses"></i>
+                    <span>Ortiz Optical</span>
+                </span>
+            </div>
+            <div class="navbar-right">
+                <span class="navbar-user-name" id="userName">Staff Member</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout Container -->
+    <div class="d-flex" style="width: 100%;">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="brand">
+                <div class="brand-badge"><i class="fas fa-glasses"></i></div>
+                <div>
+                    <h1>Ortiz Optical</h1>
+                    <p>Staff service desk</p>
+                </div>
+            </div>
+
+            <ul class="nav-list">
+                <li><a class="nav-link active" href="#" onclick="return loadSection('dashboard', event)"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a></li>
+                <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
+                <li><a class="nav-link" href="#" onclick="return loadSection('qr', event)"><i class="fas fa-qrcode"></i><span>QR Verification</span></a></li>
+                <li><a class="nav-link" href="#" onclick="return loadSection('customers', event)"><i class="fas fa-user-friends"></i><span>Customers</span></a></li>
+                <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-bag-shopping"></i><span>Orders</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div style="padding-bottom: 10px;">
+                <h2 class="mb-0" id="pageTitle" style="margin-bottom: 0;">Dashboard</h2>
+            </div>
+
+            <div id="content" style="flex: 1; overflow-y: auto;">
+                <!-- Dashboard Section -->
+                <div id="dashboardSection">
+                    <!-- Stats Cards -->
+                    <div id="statsContainer">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h6>Today's Appointments</h6>
+                                <div class="value" id="stat-appointments">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h6>Pending Orders</h6>
+                                <div class="value" id="stat-orders">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h6>Completed Today</h6>
+                                <div class="value" id="stat-completed">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Appointments Table -->
+                    <div class="table-container">
+                        <div class="p-4">
+                            <h5>Today's Appointments</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Customer</th>
+                                            <th>Service</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="appointmentsTable">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-4">Loading...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointments Section -->
+                <div id="appointmentsSection" style="display: none;">
+                    <h4 class="mb-4">Appointment Management</h4>
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>Service Type</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="allAppointmentsTable">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers Section -->
+                <div id="customersSection" style="display: none;">
+                    <h4 class="mb-4">Customer Records</h4>
+                    <div class="table-container mb-4">
+                        <div class="p-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="customerSearchInput" class="form-control" placeholder="Search by name, email, or phone..." oninput="filterCustomers()">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Card</th>
+                                        <th>Appointments</th>
+                                        <th>Orders</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customersTable">
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Detail Modal -->
+                <div class="modal fade" id="customerDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Customer Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="customerDetailBody">
+                                <p class="text-center text-muted">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="qrSection" style="display: none;">
+                    <div class="table-container mb-4">
+                        <div class="p-4">
+                            <h5 class="mb-1">Appointment QR Confirmation</h5>
+                            <p class="text-muted mb-3">Paste the scanned appointment QR payload to confirm that this is the correct patient for the scheduled time.</p>
+                            <div class="input-group">
+                                <input type="text" id="qrCodeInput" class="form-control" placeholder="Paste scanned appointment QR payload">
+                                <button class="btn btn-primary" type="button" id="verifyQrButton" onclick="verifyAppointmentQr()">
+                                    <i class="fas fa-qrcode"></i> Confirm Appointment
+                                </button>
+                            </div>
+                            <div id="verificationResult" class="alert mt-3 mb-0 d-none"></div>
+                            <div id="verificationDetails" class="card mt-3 d-none">
+                                <div class="card-body">
+                                    <h5 class="card-title">Appointment & Customer Details</h5>
+                                    <div id="verificationDetailsBody">&nbsp;</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Section -->
+                <div id="ordersSection" style="display: none;">
+                    <h4 class="mb-4">Order Management</h4>
+                    <div class="table-container">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersTable">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/qr-scanner.js"></script>
+    <script>
+        function loadUserInfo() {
+            let user = JSON.parse(localStorage.getItem('user'));
+            
+            if (!user) {
+                user = {
+                    user_id: 1,
+                    full_name: 'Staff Member',
+                    email: 'staff@ortizoptical.com',
+                    role: 'staff'
+                };
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+            
+            const userNameEl = document.getElementById('userName');
+            const sidebarUserNameEl = document.getElementById('sidebarUserName');
+            const userInitialEl = document.getElementById('userInitial');
+            
+            if (userNameEl) userNameEl.textContent = user.full_name || 'Staff';
+            if (sidebarUserNameEl) sidebarUserNameEl.textContent = user.full_name || 'Staff';
+            if (userInitialEl) userInitialEl.textContent = (user.full_name || 'Staff').charAt(0).toUpperCase();
+            
+            return user;
+        }
+
+        function logout() {
+            confirmLogout('../index.html');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        function getAppointmentStatusClass(status) {
+            switch ((status || '').toLowerCase()) {
+                case 'confirmed':
+                    return 'bg-success';
+                case 'completed':
+                    return 'bg-primary';
+                case 'cancelled':
+                    return 'bg-danger';
+                default:
+                    return 'bg-info';
+            }
+        }
+
+        function formatAppointmentDate(value) {
+            return new Date(value).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatAppointmentTime(value) {
+            const safeValue = typeof value === 'string' ? value.slice(0, 5) : value;
+            if (!safeValue) return value || 'TBD';
+            const date = new Date(`1970-01-01T${safeValue}`);
+            return Number.isNaN(date.getTime())
+                ? value
+                : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        function formatOrderDate(value) {
+            return new Date(value).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        let allCustomersData = [];
+
+        function getOrderStatusClass(status) {
+            switch ((status || '').toLowerCase()) {
+                case 'picked up':
+                case 'picked-up':
+                    return 'bg-success';
+                case 'ready for pickup':
+                case 'ready-for-pickup':
+                    return 'bg-info';
+                case 'processing':
+                    return 'bg-primary';
+                case 'cancelled':
+                    return 'bg-danger';
+                default:
+                    return 'bg-warning';
+            }
+        }
+
+
+        async function updateAppointmentStatus(appointmentId, status) {
+            console.log('updateAppointmentStatus called', { appointmentId, status });
+            const payload = { status };
+            if ((status || '').toLowerCase() === 'confirmed') {
+                payload.staff_confirm = true;
+            }
+            const result = await apiCall(`/staff/appointments/${appointmentId}`, 'PUT', payload);
+            if (!result.success) {
+                alert(result.message || 'Failed to update appointment.');
+                return;
+            }
+
+            // Refresh only the visible section to avoid switching views
+            // Update dashboard stats in background without reloading appointments list
+            updateDashboardStats().catch(() => {});
+
+            if (document.getElementById('appointmentsSection').style.display !== 'none') {
+                await loadAllAppointments();
+            } else {
+                // If user is on dashboard or other section, update the appointments shown there
+                await loadAppointments();
+            }
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            console.log('updateOrderStatus called', { orderId, status });
+            const result = await apiCall(`/staff/orders/${orderId}`, 'PUT', { status });
+            if (!result.success) {
+                alert(result.message || 'Failed to update order.');
+                return;
+            }
+
+            // Refresh only the visible section to avoid switching views
+            updateDashboardStats().catch(() => {});
+            if (document.getElementById('ordersSection').style.display !== 'none') {
+                await loadOrders();
+            }
+        }
+
+        function loadSection(section, event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('appointmentsSection').style.display = 'none';
+            document.getElementById('customersSection').style.display = 'none';
+            document.getElementById('qrSection').style.display = 'none';
+            document.getElementById('ordersSection').style.display = 'none';
+
+            document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
+            if (event && event.target) {
+                const navLink = event.target.closest('.nav-link');
+                if (navLink) navLink.classList.add('active');
+            }
+            
+            switch(section) {
+                case 'dashboard':
+                    document.getElementById('pageTitle').textContent = 'Dashboard';
+                    document.getElementById('dashboardSection').style.display = 'block';
+                    loadDashboard();
+                    break;
+                case 'appointments':
+                    document.getElementById('pageTitle').textContent = 'Appointments';
+                    document.getElementById('appointmentsSection').style.display = 'block';
+                    loadAllAppointments();
+                    break;
+                case 'customers':
+                    document.getElementById('pageTitle').textContent = 'Customers';
+                    document.getElementById('customersSection').style.display = 'block';
+                    loadCustomers();
+                    break;
+                case 'orders':
+                    document.getElementById('pageTitle').textContent = 'Orders';
+                    document.getElementById('ordersSection').style.display = 'block';
+                    loadOrders();
+                    break;
+                case 'qr':
+                    document.getElementById('pageTitle').textContent = 'QR Confirmation';
+                    document.getElementById('qrSection').style.display = 'block';
+                    break;
+            }
+            return false;
+        }
+
+        async function loadDashboard() {
+            try {
+                const result = await apiCall('/staff/dashboard-stats');
+                console.log('Dashboard result:', result);
+                
+                if (result && result.success && result.stats) {
+                    document.getElementById('stat-appointments').textContent = result.stats.todays_appointments || 0;
+                    document.getElementById('stat-orders').textContent = result.stats.pending_orders || 0;
+                    document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
+                    await loadAppointments();
+                }
+            } catch (error) {
+                console.error('Dashboard error:', error);
+            }
+        }
+
+        // Lightweight stats updater that does NOT reload appointments list or change the visible section
+        async function updateDashboardStats() {
+            try {
+                const result = await apiCall('/staff/dashboard-stats');
+                if (result && result.success && result.stats) {
+                    document.getElementById('stat-appointments').textContent = result.stats.todays_appointments || 0;
+                    document.getElementById('stat-orders').textContent = result.stats.pending_orders || 0;
+                    document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
+                }
+            } catch (err) {
+                console.warn('Failed to update dashboard stats', err);
+            }
+        }
+
+        async function loadAppointments() {
+            try {
+                const result = await apiCall('/staff/appointments/today');
+                const tbody = document.getElementById('appointmentsTable');
+
+                if (result && result.success && result.appointments && result.appointments.length > 0) {
+                    tbody.innerHTML = result.appointments.map(apt => `
+                        <tr>
+                            <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
+                            <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${apt.service_type || 'N/A'}</td>
+                            <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
+                            <td>
+                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
+                                <div class="action-btns mt-2">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No appointments scheduled for today.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Appointments error:', error);
+                document.getElementById('appointmentsTable').innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load appointments.</td></tr>';
+            }
+        }
+
+        async function loadAllAppointments() {
+            try {
+                const result = await apiCall('/staff/appointments');
+                const tbody = document.getElementById('allAppointmentsTable');
+
+                if (result && result.success && result.appointments && result.appointments.length > 0) {
+                    tbody.innerHTML = result.appointments.map(apt => `
+                        <tr>
+                            <td>${formatAppointmentDate(apt.appointment_date || 'N/A')}</td>
+                            <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${apt.service_type || 'N/A'}</td>
+                            <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
+                            <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
+                            <td>
+                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
+                                <div class="small text-muted mt-2">${apt.qr_scanned_at ? `Scanned ${new Date(apt.qr_scanned_at).toLocaleString()}` : 'Awaiting scan'}</div>
+                                <div class="action-btns mt-2">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No appointments found.</td></tr>';
+                }
+            } catch (error) {
+                console.error('All appointments error:', error);
+                document.getElementById('allAppointmentsTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load appointments.</td></tr>';
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const result = await apiCall('/staff/orders');
+                const tbody = document.getElementById('ordersTable');
+
+                if (result && result.success && result.orders && result.orders.length > 0) {
+                    tbody.innerHTML = result.orders.map(order => `
+                        <tr>
+                            <td>#${order.order_id || 'N/A'}</td>
+                            <td>${order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                            <td><span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span></td>
+                            <td>${formatOrderDate(order.order_date || order.created_at)}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateOrderStatus(${order.order_id}, 'processing'); })()" ${['processing', 'ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}>Process</button>
+                                    <button type="button" class="btn btn-sm btn-info" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateOrderStatus(${order.order_id}, 'ready for pickup'); })()" ${['ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}>Ready for Pickup</button>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } openStaffPickupModal(${order.order_id}); })()" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}>Mark Picked Up</button>
+                                    <button type="button" class="btn btn-sm btn-info" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } viewStaffOrder(${order.order_id}); })()">View</button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateOrderStatus(${order.order_id}, 'cancelled'); })()" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No orders found.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Orders error:', error);
+                document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load orders.</td></tr>';
+            }
+        }
+
+        async function loadCustomers() {
+            try {
+                const result = await apiCall('/staff/customers');
+                const tbody = document.getElementById('customersTable');
+
+                if (result && result.success && result.customers && result.customers.length > 0) {
+                    allCustomersData = result.customers;
+                    renderCustomers(allCustomersData);
+                } else {
+                    allCustomersData = [];
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No customers found.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Customers error:', error);
+                document.getElementById('customersTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load customers.</td></tr>';
+            }
+        }
+
+        function renderCustomers(customers) {
+            const tbody = document.getElementById('customersTable');
+            if (!customers || customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No customers found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = customers.map(customer => `
+                <tr>
+                    <td>${customer.User?.full_name || 'N/A'}</td>
+                    <td>${customer.User?.email || 'N/A'}</td>
+                    <td>${customer.User?.phone || 'N/A'}</td>
+                    <td>${customer.discount_card_image_url ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+                    <td><span class="badge bg-info">${customer.appointment_count || 0}</span></td>
+                    <td><span class="badge bg-warning">${customer.order_count || 0}</span></td>
+                    <td>${new Date(customer.created_at).toLocaleDateString()}</td>
+                    <td><button type="button" class="btn btn-sm btn-primary" onclick="viewCustomerDetails(${customer.customer_id})"><i class="fas fa-eye"></i> View</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterCustomers() {
+            const query = (document.getElementById('customerSearchInput').value || '').toLowerCase();
+            if (!query) {
+                renderCustomers(allCustomersData);
+                return;
+            }
+
+            const filtered = allCustomersData.filter(customer => {
+                const name = (customer.User?.full_name || '').toLowerCase();
+                const email = (customer.User?.email || '').toLowerCase();
+                const phone = (customer.User?.phone || '').toLowerCase();
+                return name.includes(query) || email.includes(query) || phone.includes(query);
+            });
+            renderCustomers(filtered);
+        }
+
+        async function viewCustomerDetails(customerId) {
+            const modal = new bootstrap.Modal(document.getElementById('customerDetailModal'));
+            const body = document.getElementById('customerDetailBody');
+            body.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+            modal.show();
+
+            try {
+                const result = await apiCall(`/staff/customers/${customerId}`);
+                if (!result || !result.success) {
+                    body.innerHTML = `<p class="text-center text-danger">${result?.message || 'Failed to load customer details.'}</p>`;
+                    return;
+                }
+
+                const c = result.customer;
+                const appointments = result.appointments || [];
+                const orders = result.orders || [];
+                const discountCardImageUrl = c.discount_card_image_url ? `${API_URL.replace('/api', '')}/${c.discount_card_image_url}` : null;
+
+                body.innerHTML = `
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold"><i class="fas fa-user me-2"></i>Customer Info</h6>
+                            <table class="table table-sm">
+                                <tr><td class="text-muted">Name</td><td><strong>${c.User?.full_name || 'N/A'}</strong></td></tr>
+                                <tr><td class="text-muted">Email</td><td>${c.User?.email || 'N/A'}</td></tr>
+                                <tr><td class="text-muted">Phone</td><td>${c.User?.phone || 'N/A'}</td></tr>
+                                <tr><td class="text-muted">Joined</td><td>${new Date(c.created_at).toLocaleDateString()}</td></tr>
+                                <tr><td class="text-muted">Discount Card</td><td>${discountCardImageUrl ? 'Uploaded' : 'No card uploaded'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold"><i class="fas fa-history me-2"></i>Activity Summary</h6>
+                            <table class="table table-sm">
+                                <tr><td class="text-muted">Appointments</td><td><strong>${appointments.length}</strong></td></tr>
+                                <tr><td class="text-muted">Orders</td><td><strong>${orders.length}</strong></td></tr>
+                            </table>
+                            ${discountCardImageUrl ? `
+                                <div class="mt-3">
+                                    <h6 class="fw-bold"><i class="fas fa-id-card me-2"></i>Discount Card Preview</h6>
+                                    <div class="border rounded p-2 bg-light text-center">
+                                        <img src="${discountCardImageUrl}" alt="Discount card" class="img-fluid rounded" style="max-height: 260px; object-fit: contain;">
+                                    </div>
+                                </div>
+                            ` : '<div class="mt-3"><div class="alert alert-secondary mb-0">No discount card uploaded yet.</div></div>'}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold"><i class="fas fa-calendar-check me-2"></i>Recent Appointments</h6>
+                        ${appointments.length > 0 ? `
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead><tr><th>Date</th><th>Time</th><th>Service</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        ${appointments.map(apt => `
+                                            <tr>
+                                                <td>${apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : 'N/A'}</td>
+                                                <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
+                                                <td>${apt.service_type || 'N/A'}</td>
+                                                <td><span class="badge ${apt.status === 'completed' ? 'bg-success' : apt.status === 'confirmed' ? 'bg-primary' : apt.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}">${apt.status || 'Pending'}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : '<p class="text-muted">No recent appointments yet.</p>'}
+                    </div>
+
+                    <div>
+                        <h6 class="fw-bold"><i class="fas fa-shopping-bag me-2"></i>Recent Orders</h6>
+                        ${orders.length > 0 ? `
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead><tr><th>Order #</th><th>Date</th><th>Total</th><th>Items</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        ${orders.map(order => `
+                                            <tr>
+                                                <td>#${order.order_id}</td>
+                                                <td>${order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td>
+                                                <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                                                <td>${(order.OrderItems || []).map(item => item.Product?.product_name || 'Item').join(', ')}</td>
+                                                <td><span class="badge ${order.status === 'completed' ? 'bg-success' : order.status === 'cancelled' ? 'bg-danger' : 'bg-warning'}">${order.status || 'Pending'}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : '<p class="text-muted">No recent orders yet.</p>'}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Customer detail error:', error);
+                body.innerHTML = '<p class="text-center text-danger">Failed to load customer details.</p>';
+            }
+        }
+
+        // -- New: staff order view helper --
+        async function viewStaffOrder(orderId) {
+            if (!orderId) return;
+            const modalEl = document.getElementById('staffOrderDetailModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const body = document.getElementById('staffOrderDetailBody');
+            body.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading order...</p>';
+            modal.show();
+            try {
+                const result = await apiCall(`/staff/orders/${orderId}`);
+                if (!result || !result.success) {
+                    body.innerHTML = `<p class="text-center text-danger">${result?.message || 'Failed to load order.'}</p>`;
+                    return;
+                }
+                const order = result.order;
+                // attach order id to modal for footer actions
+                modalEl.dataset.orderId = order.order_id;
+                const items = order.OrderItems || [];
+                const currentDiscountType = order.discount_type || null;
+                body.innerHTML = `
+                    <h5>Order #${order.order_id}</h5>
+                    <p><strong>Customer:</strong> ${order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
+                    <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+                            <tbody>
+                                ${items.map(it => `<tr><td>${it.Product?.product_name || it.product_name || 'Item'}</td><td>${it.quantity}</td><td>₱${Number(it.price||0).toFixed(2)}</td><td>₱${Number(it.subtotal||0).toFixed(2)}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3"><strong>Subtotal:</strong> ₱${Number((order.discount_amount ? Number(order.total_amount) + Number(order.discount_amount) : order.total_amount) || 0).toFixed(2)}</div>
+                    <div class="mt-1"><strong>Current Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount||0).toFixed(2)})` : 'None'}</div>
+                    <div class="mt-1"><strong>Total:</strong> ₱${Number(order.total_amount||0).toFixed(2)}</div>
+                    <hr />
+                    <div>
+                      <label class="form-label">Apply Discount (staff only)</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountNone" value="none" ${!currentDiscountType ? 'checked' : ''}>
+                        <label class="form-check-label" for="discountNone">None</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountSenior" value="senior" ${currentDiscountType === 'senior' ? 'checked' : ''}>
+                        <label class="form-check-label" for="discountSenior">Senior (20%)</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountPwd" value="pwd" ${currentDiscountType === 'pwd' ? 'checked' : ''}>
+                        <label class="form-check-label" for="discountPwd">PWD (20%)</label>
+                      </div>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('Order view error', e);
+                body.innerHTML = '<p class="text-center text-danger">Failed to load order details.</p>';
+            }
+        }
+
+        async function applyOrderDiscount(orderId) {
+            if (!orderId) return;
+            const selected = document.querySelector('input[name="staffDiscountOption"]:checked');
+            const value = selected ? selected.value : 'none';
+            const discount_type = value === 'none' ? null : value;
+            const result = await apiCall(`/staff/orders/${orderId}/discount`, 'PUT', { discount_type });
+            if (!result || !result.success) {
+                alert(result?.message || 'Failed to apply discount');
+                return;
+            }
+            // refresh modal view
+            await viewStaffOrder(orderId);
+            // refresh orders list
+            if (document.getElementById('ordersSection').style.display !== 'none') {
+                await loadOrders();
+            }
+        }
+
+        async function confirmStaffPickup(orderId) {
+            if (!orderId) return;
+            const selected = document.querySelector('input[name="staffDiscountOption"]:checked');
+            const value = selected ? selected.value : 'none';
+            const discount_type = value === 'none' ? null : value;
+
+            // Apply selected discount first
+            const discountResult = await apiCall(`/staff/orders/${orderId}/discount`, 'PUT', { discount_type });
+            if (!discountResult || !discountResult.success) {
+                alert(discountResult?.message || 'Failed to apply discount');
+                return;
+            }
+
+            const pickupResult = await apiCall(`/staff/orders/${orderId}`, 'PUT', { status: 'picked up' });
+            if (!pickupResult || !pickupResult.success) {
+                alert(pickupResult?.message || 'Failed to mark order as picked up');
+                return;
+            }
+
+            const modalEl = document.getElementById('staffOrderDetailModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+
+            updateDashboardStats().catch(() => {});
+            if (document.getElementById('ordersSection').style.display !== 'none') {
+                await loadOrders();
+            }
+        }
+
+        function openStaffPickupModal(orderId) {
+            if (!orderId) return;
+            viewStaffOrder(orderId);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo();
+            loadDashboard();
+        });
+    </script>
+
+
+<!-- Staff Order Detail Modal -->
+<div class="modal fade" id="staffOrderDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Order Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="staffOrderDetailBody"> </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
+                <button type="button" class="btn btn-primary" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) applyOrderDiscount(id); })()">Apply Discount</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register - Ortiz Optical</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .auth-container {
+            display: flex;
+            width: 100%;
+            max-width: 920px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            min-height: min(700px, calc(100vh - 32px));
+            max-height: calc(100vh - 32px);
+            margin: 16px;
+            align-items: stretch;
+        }
+
+        .auth-side {
+            position: relative;
+            width: 50%;
+            min-height: 100%;
+            background: white;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Keep panels stacked but hidden with opacity to avoid reflow/flicker */
+        .auth-left {
+            background: white;
+            padding: 40px 32px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease-in-out;
+            z-index: 2;
+            overflow-y: auto;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        .auth-left.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .auth-right {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 32px;
+            width: 50%;
+            min-height: 100%;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .auth-subtitle {
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #667085;
+            padding: 0;
+        }
+
+        .password-toggle:hover {
+            color: #333;
+        }
+
+        .password-toggle:focus {
+            outline: none;
+            color: #333;
+        }
+
+        .password-field .form-control {
+            padding-right: 44px;
+        }
+
+        .btn-auth {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .auth-toggle a {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .auth-toggle a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                margin: 20px;
+                max-width: 100%;
+            }
+
+            .auth-side,
+            .auth-right {
+                width: 100%;
+            }
+
+            .auth-right {
+                display: none;
+            }
+
+            .auth-left {
+                /* On small screens, revert to normal flow to stack correctly */
+                position: relative;
+                width: 100%;
+                padding: 40px 30px;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                transition: none;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-side">
+            <!-- Left Side - Login Form -->
+            <div class="auth-left active" id="login-section">
+                <div>
+                    <h2 class="auth-title">Welcome Back</h2>
+                    <p class="auth-subtitle">Sign in to your Ortiz Optical account</p>
+
+                    <div class="alert alert-danger alert-dismissible fade" id="loginError" role="alert">
+                        <span id="loginErrorMsg"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label class="form-label" for="loginEmail">
+                                <i class="fas fa-envelope"></i> Email Address
+                            </label>
+                            <input type="email" class="form-control" id="loginEmail" name="email" placeholder="your@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="loginPassword">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <div class="password-field">
+                                <input type="password" class="form-control" id="loginPassword" name="password" placeholder="••••••••" required>
+                                <button type="button" class="password-toggle" data-target="loginPassword" aria-label="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-auth w-100">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                    </form>
+
+                    <div class="auth-toggle">
+                        Don't have an account? <a onclick="toggleForms()">Create one</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Side - Register Form -->
+            <div class="auth-left" id="register-section">
+                <div>
+                    <h2 class="auth-title">Create Account</h2>
+                    <p class="auth-subtitle">Join Ortiz Optical today</p>
+
+                    <div class="alert alert-danger alert-dismissible fade" id="registerError" role="alert">
+                        <span id="registerErrorMsg"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label class="form-label" for="registerName">
+                                <i class="fas fa-user"></i> Full Name
+                            </label>
+                            <input type="text" class="form-control" id="registerName" name="full_name" placeholder="John Doe" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="registerEmail">
+                                <i class="fas fa-envelope"></i> Email Address
+                            </label>
+                            <input type="email" class="form-control" id="registerEmail" name="email" placeholder="your@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="registerPhone">
+                                <i class="fas fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="registerPhone" name="phone" placeholder="09XXXXXXXXX" inputmode="numeric" pattern="\+?[0-9]{7,15}" title="Enter 7 to 15 digits, optionally starting with +" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="registerBirthday">
+                                <i class="fas fa-birthday-cake"></i> Birthday
+                            </label>
+                            <input type="date" class="form-control" id="registerBirthday" name="birthday" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="registerPassword">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <div class="password-field">
+                                <input type="password" class="form-control" id="registerPassword" name="password" placeholder="••••••••" required>
+                                <button type="button" class="password-toggle" data-target="registerPassword" aria-label="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="registerConfirm">
+                                <i class="fas fa-lock"></i> Confirm Password
+                            </label>
+                            <div class="password-field">
+                                <input type="password" class="form-control" id="registerConfirm" name="confirm_password" placeholder="••••••••" required>
+                                <button type="button" class="password-toggle" data-target="registerConfirm" aria-label="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-auth w-100">
+                            <i class="fas fa-user-plus"></i> Create Account
+                        </button>
+                    </form>
+
+                    <div class="auth-toggle">
+                        Already have an account? <a onclick="toggleForms()">Sign in</a>
+                    </div>
+                </div>
+                </div>
+        </div>
+
+        <!-- Right Side - Brand Information -->
+        <div class="auth-right">
+            <div>
+                <div class="logo">
+                    <i class="fas fa-glasses"></i>
+                </div>
+                <h2 class="auth-title">Ortiz Optical</h2>
+                <p class="auth-subtitle">Your Vision, Our Priority</p>
+                <p style="font-size: 0.9rem; margin-top: 30px; opacity: 0.8;">
+                    Welcome to your one-stop optometry platform. Manage appointments, shop for glasses, and track your orders all in one place.
+                </p>
+                <div style="margin-top: 40px; font-size: 2rem; opacity: 0.6;">
+                    <i class="fas fa-eye"></i>
+                    <i class="fas fa-comments mx-3"></i>
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        function toggleForms() {
+            const loginSection = document.getElementById('login-section');
+            const registerSection = document.getElementById('register-section');
+
+            loginSection.classList.toggle('active');
+            registerSection.classList.toggle('active');
+            loginSection.scrollTop = 0;
+            registerSection.scrollTop = 0;
+
+            document.getElementById('loginError').classList.remove('show');
+            document.getElementById('registerError').classList.remove('show');
+        }
+
+        function showError(formType, message) {
+            const errorEl = document.getElementById(formType + 'Error');
+            const errorMsg = document.getElementById(formType + 'ErrorMsg');
+            errorMsg.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function togglePasswordVisibility(button) {
+            const input = document.getElementById(button.dataset.target);
+            const icon = button.querySelector('i');
+            const isPassword = input.type === 'password';
+
+            input.type = isPassword ? 'text' : 'password';
+            icon.classList.toggle('fa-eye', !isPassword);
+            icon.classList.toggle('fa-eye-slash', isPassword);
+            button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showError('login', 'Please fill in all fields');
+                return;
+            }
+
+            const result = await apiCall('/auth/login', 'POST', {
+                email,
+                password
+            });
+
+            if (result.success) {
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+                
+                // Redirect based on role
+                const role = result.user.role;
+                if (role === 'admin') {
+                    window.location.href = 'pages/admin-dashboard.html';
+                } else if (role === 'customer') {
+                    window.location.href = 'pages/customer-dashboard.html';
+                } else if (role === 'staff') {
+                    window.location.href = 'pages/staff-dashboard.html';
+                }
+            } else {
+                showError('login', result.message || 'Login failed. Please try again.');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            const full_name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value.trim();
+            const birthday = document.getElementById('registerBirthday').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm_password = document.getElementById('registerConfirm').value;
+
+            if (!full_name || !email || !phone || !birthday || !password || !confirm_password) {
+                showError('register', 'Please fill in all fields');
+                return;
+            }
+
+            if (!/^\+?\d{7,15}$/.test(phone)) {
+                showError('register', 'Phone number must contain 7 to 15 digits and may start with +');
+                return;
+            }
+
+            if (password !== confirm_password) {
+                showError('register', 'Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('register', 'Password must be at least 6 characters');
+                return;
+            }
+
+            const result = await apiCall('/auth/register', 'POST', {
+                full_name,
+                email,
+                phone,
+                birthday,
+                password,
+                confirm_password
+            });
+
+            if (result.success) {
+                alert('Account created successfully! Please login.');
+                toggleForms();
+                document.getElementById('loginEmail').value = email;
+            } else {
+                showError('register', result.message || 'Registration failed. Please try again.');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.querySelectorAll('.password-toggle').forEach((button) => {
+            button.addEventListener('click', () => togglePasswordVisibility(button));
+        });
+    </script>
+</body>
+</html>
