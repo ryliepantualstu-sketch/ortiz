@@ -1,0 +1,12 @@
+{
+  "name": "ortiz-optical",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "npm test --workspace backend"
+  }
+}
