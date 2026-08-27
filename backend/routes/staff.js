@@ -11,6 +11,17 @@ const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { Op } = require('sequelize');
 
+function normalizeAppointmentDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+function normalizeAppointmentTime(value) {
+  if (!value) return '';
+  return String(value).slice(0, 5);
+}
+
 async function attachAppointmentVerificationDetails(appointments) {
   if (appointments.length === 0) {
     return [];
