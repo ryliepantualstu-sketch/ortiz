@@ -2,6 +2,7 @@
 
 let qrCameraStream = null;
 let qrScanFrame = null;
+let pendingQrAppointment = null;
 
 function setQrCameraMessage(message, type = 'muted') {
     const messageEl = document.getElementById('qrCameraMessage');
@@ -146,15 +147,16 @@ async function verifyAppointmentQr() {
 
     try {
         const result = await apiCall('/staff/appointments/verify', 'POST', {
-            qr_code_data: qrCodeData
+            qr_code_data: qrCodeData,
+            confirm: false
         });
 
         if (result && result.success && result.appointment) {
-            setVerificationResult('success', 'Appointment confirmed successfully');
+            pendingQrAppointment = result.appointment;
+            setVerificationResult('info', 'Appointment found. Review the customer details, then confirm.');
             showVerificationDetails(result.appointment);
-            if (input) input.value = '';
-            await loadDashboard();
-            await loadAllAppointments();
+            const confirmButton = document.getElementById('confirmScannedAppointmentButton');
+            if (confirmButton) confirmButton.classList.remove('d-none');
         } else {
             setVerificationResult('danger', result.message || 'Appointment confirmation failed.');
             hideVerificationDetails();
@@ -166,6 +168,46 @@ async function verifyAppointmentQr() {
         if (button) {
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-qrcode"></i> Confirm Appointment';
+        }
+    }
+}
+
+async function confirmScannedAppointment() {
+    const input = document.getElementById('qrCodeInput');
+    const button = document.getElementById('confirmScannedAppointmentButton');
+    const qrCodeData = input?.value.trim();
+    if (!pendingQrAppointment || !qrCodeData) {
+        setVerificationResult('warning', 'Scan an appointment QR code first.');
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirming';
+    }
+    try {
+        const result = await apiCall('/staff/appointments/verify', 'POST', {
+            qr_code_data: qrCodeData,
+            confirm: true
+        });
+        if (result && result.success) {
+            setVerificationResult('success', 'Appointment confirmed successfully.');
+            pendingQrAppointment = null;
+            if (input) input.value = '';
+            if (button) button.classList.add('d-none');
+            showVerificationDetails(result.appointment);
+            await loadDashboard();
+            await loadAllAppointments();
+        } else {
+            setVerificationResult('danger', result?.message || 'Appointment confirmation failed.');
+        }
+    } catch (error) {
+        console.error('Appointment confirmation error:', error);
+        setVerificationResult('danger', 'Appointment confirmation failed.');
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-check"></i> Confirm Scanned Appointment';
         }
     }
 }

@@ -158,8 +158,8 @@ router.get('/appointments', authMiddleware, requireRole('staff'), async (req, re
   }
 });
 
-// Confirm appointment from QR code
-router.post('/appointments/verify', authMiddleware, requireRole('staff'), async (req, res) => {
+// Preview or confirm an appointment from its QR code
+router.post('/appointments/verify', authMiddleware, requireRole('staff', 'admin'), async (req, res) => {
   try {
     const qrCodeData = req.body?.qr_code_data?.trim();
 
@@ -232,6 +232,20 @@ router.post('/appointments/verify', authMiddleware, requireRole('staff'), async 
       return res.status(400).json({
         success: false,
         message: 'Cancelled appointments cannot be verified'
+      });
+    }
+
+    if (req.body?.confirm !== true) {
+      return res.json({
+        success: true,
+        confirmed: false,
+        message: 'Appointment QR code verified. Review the customer details before confirming.',
+        appointment: {
+          ...appointment.toJSON(),
+          qr_verified: false,
+          qr_scanned_at: null
+        },
+        verified_schedule: `${appointment.appointment_date} ${appointment.appointment_time}`
       });
     }
 

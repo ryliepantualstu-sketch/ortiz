@@ -978,9 +978,12 @@
                             <div class="input-group">
                                 <input type="text" id="qrCodeInput" class="form-control" placeholder="Paste scanned appointment QR payload">
                                 <button class="btn btn-primary" type="button" id="verifyQrButton" onclick="verifyAppointmentQr()">
-                                    <i class="fas fa-qrcode"></i> Confirm Appointment
+                                    <i class="fas fa-search"></i> Find Appointment
                                 </button>
                             </div>
+                            <button class="btn btn-success w-100 mt-3 d-none" type="button" id="confirmScannedAppointmentButton" onclick="confirmScannedAppointment()">
+                                <i class="fas fa-check"></i> Confirm Scanned Appointment
+                            </button>
                             <div id="verificationResult" class="alert mt-3 mb-0 d-none"></div>
                             <div id="verificationDetails" class="card mt-3 d-none">
                                 <div class="card-body">
