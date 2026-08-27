@@ -1,5 +1,90 @@
 // QR verification module for staff dashboard
 
+let qrCameraStream = null;
+let qrScanFrame = null;
+
+function setQrCameraMessage(message, type = 'muted') {
+    const messageEl = document.getElementById('qrCameraMessage');
+    if (!messageEl) return;
+    messageEl.textContent = message;
+    messageEl.className = `qr-camera-message text-${type}`;
+}
+
+function stopQrScanner() {
+    if (qrScanFrame) {
+        cancelAnimationFrame(qrScanFrame);
+        qrScanFrame = null;
+    }
+
+    if (qrCameraStream) {
+        qrCameraStream.getTracks().forEach((track) => track.stop());
+        qrCameraStream = null;
+    }
+
+    const video = document.getElementById('qrVideo');
+    const startButton = document.getElementById('startQrScannerButton');
+    const stopButton = document.getElementById('stopQrScannerButton');
+    if (video) video.srcObject = null;
+    if (startButton) startButton.classList.remove('d-none');
+    if (stopButton) stopButton.classList.add('d-none');
+    setQrCameraMessage('Camera is off.');
+}
+
+async function startQrScanner() {
+    const video = document.getElementById('qrVideo');
+    const canvas = document.getElementById('qrCanvas');
+    const startButton = document.getElementById('startQrScannerButton');
+    const stopButton = document.getElementById('stopQrScannerButton');
+
+    if (!video || !canvas) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+        setQrCameraMessage('Camera access is not supported by this browser.', 'danger');
+        return;
+    }
+    if (typeof jsQR !== 'function') {
+        setQrCameraMessage('QR scanner library could not be loaded. Paste the QR payload instead.', 'danger');
+        return;
+    }
+
+    stopQrScanner();
+    try {
+        qrCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+        });
+        video.srcObject = qrCameraStream;
+        await video.play();
+        if (startButton) startButton.classList.add('d-none');
+        if (stopButton) stopButton.classList.remove('d-none');
+        setQrCameraMessage('Point the camera at the appointment QR code.');
+        scanQrFrame(video, canvas);
+    } catch (error) {
+        console.error('QR camera error:', error);
+        stopQrScanner();
+        setQrCameraMessage('Camera permission was denied or the camera is unavailable.', 'danger');
+    }
+}
+
+function scanQrFrame(video, canvas) {
+    if (!qrCameraStream || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(image.data, image.width, image.height, { inversionAttempts: 'dontInvert' });
+
+    if (code?.data) {
+        const input = document.getElementById('qrCodeInput');
+        if (input) input.value = code.data;
+        stopQrScanner();
+        setVerificationResult('info', 'QR code scanned. Confirm the appointment below.');
+        return;
+    }
+
+    qrScanFrame = requestAnimationFrame(() => scanQrFrame(video, canvas));
+}
+
 function setVerificationResult(type, message) {
     const resultEl = document.getElementById('verificationResult');
     if (!resultEl) return;

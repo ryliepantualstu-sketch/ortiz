@@ -717,6 +717,37 @@
             padding: 2rem 0 !important;
         }
 
+        .qr-camera-panel {
+            position: relative;
+            max-width: 520px;
+            overflow: hidden;
+            border: 1px solid #dce5ee;
+            border-radius: 12px;
+            background: #172121;
+        }
+
+        .qr-video {
+            display: block;
+            width: 100%;
+            min-height: 220px;
+            max-height: 360px;
+            object-fit: cover;
+        }
+
+        .qr-camera-message {
+            padding: 12px;
+            color: white;
+            text-align: center;
+            background: rgba(23, 33, 33, 0.86);
+        }
+
+        .qr-camera-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: white;
+        }
+
         @media (max-width: 576px) {
             #statsContainer {
                 grid-template-columns: 1fr !important;
@@ -930,7 +961,20 @@
                     <div class="table-container mb-4">
                         <div class="p-4">
                             <h5 class="mb-1">Appointment QR Confirmation</h5>
-                            <p class="text-muted mb-3">Paste the scanned appointment QR payload to confirm that this is the correct patient for the scheduled time.</p>
+                            <p class="text-muted mb-3">Scan the appointment QR code with your camera or paste its payload below.</p>
+                            <div class="qr-camera-panel mb-3">
+                                <video id="qrVideo" class="qr-video" playsinline muted></video>
+                                <canvas id="qrCanvas" class="d-none"></canvas>
+                                <div id="qrCameraMessage" class="qr-camera-message">Camera is off.</div>
+                                <div class="qr-camera-actions">
+                                    <button class="btn btn-outline-primary" type="button" id="startQrScannerButton" onclick="startQrScanner()">
+                                        <i class="fas fa-camera"></i> Scan with Camera
+                                    </button>
+                                    <button class="btn btn-outline-secondary d-none" type="button" id="stopQrScannerButton" onclick="stopQrScanner()">
+                                        <i class="fas fa-stop"></i> Stop Camera
+                                    </button>
+                                </div>
+                            </div>
                             <div class="input-group">
                                 <input type="text" id="qrCodeInput" class="form-control" placeholder="Paste scanned appointment QR payload">
                                 <button class="btn btn-primary" type="button" id="verifyQrButton" onclick="verifyAppointmentQr()">
@@ -979,6 +1023,7 @@
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="../js/qr-scanner.js"></script>
     <script>
         function loadUserInfo() {
