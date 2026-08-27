@@ -170,12 +170,28 @@ router.post('/appointments/verify', authMiddleware, requireRole('staff', 'admin'
       });
     }
 
-    const qrCode = await QRCode.findOne({
+    let decodedQrPayload = null;
+    try {
+      decodedQrPayload = JSON.parse(qrCodeData);
+    } catch (error) {
+      decodedQrPayload = null;
+    }
+
+    let qrCode = await QRCode.findOne({
       where: {
         code_type: 'Appointment',
         qr_code_data: qrCodeData
       }
     });
+
+    if (!qrCode && decodedQrPayload?.appointment_id) {
+      qrCode = await QRCode.findOne({
+        where: {
+          code_type: 'Appointment',
+          reference_id: decodedQrPayload.appointment_id
+        }
+      });
+    }
 
     if (!qrCode) {
       return res.status(404).json({
@@ -189,13 +205,6 @@ router.post('/appointments/verify', authMiddleware, requireRole('staff', 'admin'
         success: false,
         message: 'This appointment QR code has already been confirmed by staff'
       });
-    }
-
-    let decodedQrPayload = null;
-    try {
-      decodedQrPayload = JSON.parse(qrCodeData);
-    } catch (error) {
-      decodedQrPayload = null;
     }
 
     const appointment = await Appointment.findByPk(qrCode.reference_id, {
