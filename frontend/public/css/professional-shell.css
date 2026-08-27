@@ -756,20 +756,16 @@ body.role-professional .modal-footer {
   }
 
   body.role-professional.role-staff .navbar {
-    height: auto !important;
-    bottom: 0 !important;
+    padding: 0.7rem 0 !important;
   }
 
   body.role-professional.role-staff .navbar .container-fluid {
     padding: 0 0.75rem !important;
-    position: absolute !important;
-    left: 8px;
-    right: 8px;
-    bottom: 12px;
+    gap: 8px !important;
   }
 
-    margin: 0 !important;
-    border-radius: 14px;
+  body.role-professional.role-staff .navbar-brand {
+    min-width: 0;
     font-size: 1.25rem !important;
     gap: 8px !important;
     white-space: nowrap;
