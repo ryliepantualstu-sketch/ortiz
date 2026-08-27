@@ -830,6 +830,9 @@ body.role-professional .modal-footer {
     min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   body.role-professional.role-staff .sidebar-footer {
