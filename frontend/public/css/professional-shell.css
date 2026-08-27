@@ -811,7 +811,11 @@ body.role-professional .modal-footer {
     z-index: 200001 !important;
     display: flex !important;
     flex-direction: column !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   body.role-professional.role-staff .sidebar.show {
@@ -826,13 +830,10 @@ body.role-professional .modal-footer {
 
   body.role-professional.role-staff .sidebar .nav-list,
   body.role-professional.role-staff .sidebar > .nav {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
     overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
   }
 
   body.role-professional.role-staff .sidebar-footer {
@@ -840,7 +841,8 @@ body.role-professional .modal-footer {
     margin-top: auto !important;
     padding: 12px 8px 16px !important;
     background: var(--shell-sidebar-end);
-    position: relative;
+    position: sticky;
+    bottom: 0;
     z-index: 2;
   }
 
