@@ -706,3 +706,153 @@ body.role-professional .modal-footer {
     padding: 0 !important;
   }
 }
+
+@media (max-width: 768px) {
+  html,
+  body.role-professional.role-staff {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  body.role-professional.role-staff {
+    padding-top: 78px !important;
+  }
+
+  body.role-professional.role-staff .navbar {
+    padding: 0.7rem 0 !important;
+  }
+
+  body.role-professional.role-staff .navbar .container-fluid {
+    padding: 0 0.75rem !important;
+    gap: 8px !important;
+  }
+
+  body.role-professional.role-staff .navbar-brand {
+    min-width: 0;
+    font-size: 1.25rem !important;
+    gap: 8px !important;
+    white-space: nowrap;
+  }
+
+  body.role-professional.role-staff .navbar-brand i {
+    font-size: 1.55rem !important;
+  }
+
+  body.role-professional.role-staff .navbar-user-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82rem !important;
+  }
+
+  body.role-professional.role-staff .mobile-menu-btn {
+    flex: 0 0 40px;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    background: var(--shell-accent) !important;
+    color: white !important;
+  }
+
+  body.role-professional.role-staff > .d-flex {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  body.role-professional.role-staff .sidebar {
+    position: fixed !important;
+    top: 78px !important;
+    left: 0 !important;
+    width: min(280px, 88vw) !important;
+    min-width: 0 !important;
+    height: calc(100vh - 78px) !important;
+    margin: 0 !important;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease !important;
+    z-index: 200001 !important;
+  }
+
+  body.role-professional.role-staff .sidebar.show {
+    transform: translateX(0);
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.25);
+  }
+
+  body.role-professional.role-staff .sidebar-overlay {
+    top: 78px !important;
+    z-index: 200000 !important;
+  }
+
+  body.role-professional.role-staff .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 16px 12px 28px !important;
+    overflow: visible !important;
+  }
+
+  body.role-professional.role-staff .main-content > div:first-child {
+    margin-bottom: 16px;
+  }
+
+  body.role-professional.role-staff .main-content h2 {
+    font-size: 1.55rem !important;
+    line-height: 1.2;
+  }
+
+  body.role-professional.role-staff #content {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  body.role-professional.role-staff #statsContainer {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body.role-professional.role-staff .stat-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+    flex-direction: row !important;
+    text-align: left !important;
+  }
+
+  body.role-professional.role-staff .table-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.role-professional.role-staff .table-container table {
+    min-width: 620px;
+  }
+
+  body.role-professional.role-staff .action-btns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.role-professional.role-staff .action-btns .btn-sm {
+    width: 100%;
+  }
+
+  body.role-professional.role-staff .modal-dialog {
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+    margin: 12px auto !important;
+  }
+
+  body.role-professional.role-staff .modal-body {
+    max-height: calc(100dvh - 190px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
