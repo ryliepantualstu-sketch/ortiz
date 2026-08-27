@@ -2870,6 +2870,23 @@
             if (ver) ver.textContent = verifiedCount;
         }
 
+        function getCustomerAppointmentNotice(appointment) {
+            const status = (appointment.status || '').toLowerCase();
+            if (appointment.qr_verified) {
+                return '<i class="fas fa-check-circle"></i> Checked in by staff';
+            }
+            if (status === 'confirmed') {
+                return '<i class="fas fa-calendar-check"></i> Confirmed - awaiting appointment time';
+            }
+            if (status === 'completed') {
+                return '<i class="fas fa-check"></i> Appointment completed';
+            }
+            if (status === 'cancelled') {
+                return '<i class="fas fa-ban"></i> Appointment cancelled';
+            }
+            return '<i class="fas fa-clock"></i> Awaiting confirmation';
+        }
+
         function showQrModal(appointmentId) {
             const appointment = appointmentsById.get(String(appointmentId));
             if (!appointment) return;
@@ -3160,7 +3177,7 @@
                                     <i class="fas fa-ban"></i> Cancel
                                 </button>
                                 <div class="small mt-2 ${apt.qr_verified ? 'text-success fw-bold' : 'text-muted'}">
-                                    ${apt.qr_verified ? '<i class="fas fa-check-circle"></i> Confirmed by staff' : 'Awaiting confirmation'}
+                                    ${getCustomerAppointmentNotice(apt)}
                                 </div>
                             </td>
                         </tr>
