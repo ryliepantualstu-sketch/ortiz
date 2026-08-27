@@ -789,6 +789,9 @@
             </div>
             <div class="navbar-right">
                 <span class="navbar-user-name" id="userName">Staff Member</span>
+                <button class="btn btn-outline-light btn-sm navbar-logout" type="button" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -815,9 +818,6 @@
                 <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-bag-shopping"></i><span>Orders</span></a></li>
             </ul>
 
-            <div class="sidebar-footer">
-                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
-            </div>
         </nav>
 
         <!-- Main Content -->

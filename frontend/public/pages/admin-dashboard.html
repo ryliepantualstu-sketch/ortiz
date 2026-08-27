@@ -847,6 +847,9 @@
             </span>
             <div class="navbar-right">
                 <span class="navbar-user-name" id="userName">Admin User</span>
+                <button class="btn btn-outline-light btn-sm navbar-logout" type="button" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -877,9 +880,6 @@
                     <li><a class="nav-link" href="#" onclick="return loadSection('archived', event)"><i class="fas fa-archive"></i><span>Archived</span></a></li>
                 </ul>
 
-                <div class="sidebar-footer">
-                    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
-                </div>
             </nav>
 
             <!-- Main Content -->

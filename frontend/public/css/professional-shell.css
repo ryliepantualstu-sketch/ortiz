@@ -102,6 +102,14 @@ body.role-professional .btn-outline-light:hover {
   color: white !important;
 }
 
+body.role-professional .navbar-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 body.role-professional .d-flex[style*="height: calc(100vh - 100px)"] {
   height: auto !important;
   min-height: calc(100vh - 110px);
@@ -781,6 +789,16 @@ body.role-professional .modal-footer {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 0.82rem !important;
+  }
+
+  body.role-professional .navbar-logout {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  body.role-professional .navbar-logout span {
+    display: none;
   }
 
   body.role-professional.role-staff .mobile-menu-btn {
