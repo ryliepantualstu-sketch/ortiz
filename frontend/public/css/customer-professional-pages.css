@@ -849,6 +849,31 @@ body.customer-professional .modal-content {
   backdrop-filter: none !important;
 }
 
+body.customer-professional #appointmentQrModal,
+body.customer-professional #appointmentFormModal {
+  z-index: 2147483646 !important;
+  isolation: isolate;
+}
+
+body.customer-professional #appointmentQrModal .modal-content,
+body.customer-professional #appointmentFormModal .modal-content {
+  position: relative;
+  z-index: 2147483647 !important;
+  background: #fffdf8 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.customer-professional > .modal-backdrop {
+  z-index: 2147483645 !important;
+  background-color: rgba(14, 25, 48, 0.42) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 body.customer-professional .modal.show .modal-content,
 body.customer-professional .modal.fade.show .modal-content {
   pointer-events: auto !important;
