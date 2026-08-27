@@ -1418,6 +1418,40 @@ body.customer-professional .modal-body table tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+  body.customer-professional.appointment-modal-open {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: none !important;
+  }
+
+  body.customer-professional.appointment-modal-open .modal-backdrop {
+    touch-action: none !important;
+  }
+
+  body.customer-professional #appointmentFormModal {
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.customer-professional #appointmentFormModal .modal-dialog {
+    min-height: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+  }
+
+  body.customer-professional #appointmentFormModal .modal-content {
+    max-height: calc(100dvh - 24px);
+    overflow: hidden;
+  }
+
+  body.customer-professional #appointmentFormModal .modal-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   html,
   body.customer-professional {
     width: 100%;

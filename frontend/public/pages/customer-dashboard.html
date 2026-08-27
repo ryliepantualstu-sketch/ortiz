@@ -3058,8 +3058,13 @@
             document.getElementById('appointmentSubmitButton').textContent = appointment ? 'Save Changes' : 'Book Appointment';
 
             if (!appointmentFormModalInstance) {
-                appointmentFormModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentFormModal'));
+                const appointmentModal = document.getElementById('appointmentFormModal');
+                appointmentFormModalInstance = bootstrap.Modal.getOrCreateInstance(appointmentModal);
+                appointmentModal.addEventListener('hidden.bs.modal', () => {
+                    document.body.classList.remove('appointment-modal-open');
+                });
             }
+            document.body.classList.add('appointment-modal-open');
             appointmentFormModalInstance.show();
         }
 
