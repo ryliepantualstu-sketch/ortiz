@@ -1094,6 +1094,15 @@
                 : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
         }
 
+        function getAppointmentQrMessage(appointment) {
+            const status = (appointment.status || '').toLowerCase();
+            if (appointment.qr_verified) return `Scanned ${new Date(appointment.qr_scanned_at).toLocaleString()}`;
+            if (status === 'confirmed') return 'Awaiting appointment time';
+            if (status === 'completed') return 'Appointment completed';
+            if (status === 'cancelled') return 'Appointment cancelled';
+            return appointment.qr_ready ? 'QR ready for check-in' : 'No QR code';
+        }
+
         function formatOrderDate(value) {
             return new Date(value).toLocaleDateString(undefined, {
                 year: 'numeric',
@@ -1258,7 +1267,7 @@
                             <td>${apt.service_type || 'N/A'}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
-                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
+                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
@@ -1290,8 +1299,8 @@
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
-                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
-                                <div class="small text-muted mt-2">${apt.qr_scanned_at ? `Scanned ${new Date(apt.qr_scanned_at).toLocaleString()}` : 'Awaiting scan'}</div>
+                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
+                                <div class="small text-muted mt-2">${getAppointmentQrMessage(apt)}</div>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
