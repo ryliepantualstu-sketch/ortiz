@@ -1265,6 +1265,20 @@ body.customer-professional .modal-body table {
   font-size: 0.9rem !important;
 }
 
+body.customer-professional .modal-body .customer-info-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+body.customer-professional .modal-body .customer-info-table td:first-child {
+  width: 34% !important;
+}
+
+body.customer-professional .modal-body .customer-info-table td:last-child {
+  width: 66% !important;
+  overflow-wrap: anywhere !important;
+}
+
 body.customer-professional .modal-body table thead {
   background: var(--cust-accent-soft) !important;
 }

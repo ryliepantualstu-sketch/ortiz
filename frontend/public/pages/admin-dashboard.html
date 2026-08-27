@@ -2613,9 +2613,9 @@ This will deactivate the account and keep the user record for history.`)) {
 
                 body.innerHTML = `
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <h6 class="fw-bold"><i class="fas fa-user me-2"></i>Customer Info</h6>
-                            <table class="table table-sm">
+                            <table class="table table-sm customer-info-table">
                                 <tr><td class="text-muted">Name</td><td><strong>${customer.User?.full_name || 'N/A'}</strong></td></tr>
                                 <tr><td class="text-muted">Email</td><td>${customer.User?.email || 'N/A'}</td></tr>
                                 <tr><td class="text-muted">Phone</td><td>${customer.User?.phone || 'N/A'}</td></tr>
