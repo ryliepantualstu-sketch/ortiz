@@ -211,10 +211,15 @@
                 position: relative;
                 width: 100%;
                 padding: 40px 30px;
-                opacity: 1 !important;
-                pointer-events: auto !important;
+                opacity: 0;
+                pointer-events: none;
                 transition: none;
                 max-height: none;
+            }
+
+            .auth-left.active {
+                opacity: 1;
+                pointer-events: auto;
             }
         }
     </style>
