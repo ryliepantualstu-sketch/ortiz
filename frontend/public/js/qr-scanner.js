@@ -79,7 +79,8 @@ function scanQrFrame(video, canvas) {
         const input = document.getElementById('qrCodeInput');
         if (input) input.value = code.data;
         stopQrScanner();
-        setVerificationResult('info', 'QR code scanned. Confirm the appointment below.');
+        setVerificationResult('info', 'QR code scanned. Finding the appointment...');
+        verifyAppointmentQr();
         return;
     }
 
