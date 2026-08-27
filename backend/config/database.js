@@ -7,7 +7,20 @@ const logging = process.env.NODE_ENV === 'development' ? console.log : false;
 
 let sequelize;
 
-if (DB_DIALECT === 'sqlite') {
+const databaseUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
+
+if (databaseUrl && DB_DIALECT !== 'sqlite') {
+  sequelize = new Sequelize(databaseUrl, {
+    dialect: 'mysql',
+    logging,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
+  });
+} else if (DB_DIALECT === 'sqlite') {
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: process.env.DB_STORAGE || './database.sqlite',
