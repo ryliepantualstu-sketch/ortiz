@@ -824,7 +824,7 @@ body.customer-professional .modal.fade.show {
 }
 
 body.customer-professional .modal-backdrop {
-  pointer-events: auto !important;
+  pointer-events: none !important;
   z-index: 200000 !important;
   filter: none !important;
   backdrop-filter: none !important;
@@ -838,6 +838,7 @@ body.customer-professional .modal-backdrop.show {
 body.customer-professional .modal-dialog {
   z-index: 200006 !important;
   pointer-events: auto !important;
+  position: relative !important;
 }
 
 body.customer-professional .modal-content {
@@ -847,6 +848,8 @@ body.customer-professional .modal-content {
   pointer-events: auto !important;
   filter: none !important;
   backdrop-filter: none !important;
+  position: relative !important;
+  z-index: 2147483647 !important;
 }
 
 body.customer-professional #appointmentQrModal,

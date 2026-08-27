@@ -567,6 +567,15 @@ body.role-professional .modal {
   inset: 0 !important;
 }
 
+body.role-professional .modal::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 25, 48, 0.42);
+  z-index: -1;
+  pointer-events: none;
+}
+
 body.role-professional .modal.show {
   display: block !important;
   opacity: 1 !important;

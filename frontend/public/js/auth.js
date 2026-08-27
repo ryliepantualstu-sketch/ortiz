@@ -75,8 +75,8 @@ function confirmLogout(redirectUrl = '../index.html') {
     modalEl.style.pointerEvents = 'auto';
 
     const modalDialog = bootstrap.Modal.getOrCreateInstance(modalEl, {
-        backdrop: 'static',
-        keyboard: false
+        backdrop: false,
+        keyboard: true
     });
     modalDialog.show();
 }
