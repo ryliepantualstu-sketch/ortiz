@@ -68,12 +68,16 @@ function confirmLogout(redirectUrl = '../index.html') {
     const confirmButton = modalEl.querySelector('#logoutConfirmButton');
     confirmButton.dataset.redirectUrl = redirectUrl;
 
+    document.body.appendChild(modalEl);
+    modalEl.style.zIndex = '2147483647';
+    modalEl.style.position = 'fixed';
+    modalEl.style.inset = '0';
+    modalEl.style.pointerEvents = 'auto';
+
     const modalDialog = bootstrap.Modal.getOrCreateInstance(modalEl, {
         backdrop: 'static',
         keyboard: false
     });
-    modalEl.style.zIndex = '2147483647';
-    modalEl.style.pointerEvents = 'auto';
     modalDialog.show();
 }
 

@@ -567,11 +567,22 @@ body.role-professional .modal {
   inset: 0 !important;
 }
 
+body.role-professional .modal.show {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 body.role-professional .modal .modal-dialog,
 body.role-professional .modal .modal-content {
   position: relative;
   z-index: 2147483647 !important;
   pointer-events: auto !important;
+}
+
+body.role-professional .modal-backdrop {
+  pointer-events: none !important;
+  z-index: 2147483640 !important;
 }
 
 body.role-professional .modal-dialog {
