@@ -42,6 +42,8 @@ function confirmLogout(redirectUrl = '../index.html') {
             </div>
         `;
         document.body.appendChild(modalEl);
+        modalEl.querySelector('.modal').style.zIndex = '2147483646';
+        modalEl.querySelector('.modal-content').style.pointerEvents = 'auto';
 
         const confirmButton = modalEl.querySelector('#logoutConfirmButton');
         confirmButton.addEventListener('click', () => {

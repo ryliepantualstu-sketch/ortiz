@@ -128,6 +128,10 @@ function showVerificationDetails(appointment) {
 
         body.innerHTML = html;
         panel.classList.remove('d-none');
+        if (panel.parentElement !== document.body) {
+            document.body.appendChild(panel);
+        }
+        panel.style.zIndex = '2147483646';
         verificationDetailsModal = bootstrap.Modal.getOrCreateInstance(panel);
         verificationDetailsModal.show();
     } catch (e) {
