@@ -552,10 +552,24 @@ body.role-professional .modal-body .small-text {
 body.role-professional .modal-backdrop {
   backdrop-filter: blur(10px) !important;
   background-color: rgba(14, 25, 48, 0.42) !important;
+  z-index: 2147483640 !important;
+  pointer-events: auto !important;
 }
 
 body.role-professional .modal-backdrop.show {
   opacity: 1 !important;
+}
+
+body.role-professional .modal {
+  z-index: 2147483646 !important;
+  pointer-events: auto !important;
+}
+
+body.role-professional .modal .modal-dialog,
+body.role-professional .modal .modal-content {
+  position: relative;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
 }
 
 body.role-professional .modal-dialog {

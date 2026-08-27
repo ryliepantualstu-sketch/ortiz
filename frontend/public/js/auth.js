@@ -42,14 +42,19 @@ function confirmLogout(redirectUrl = '../index.html') {
             </div>
         `;
         document.body.appendChild(modalEl);
-        modalEl.querySelector('.modal').style.zIndex = '2147483646';
-        modalEl.querySelector('.modal-content').style.pointerEvents = 'auto';
+        const modalNode = modalEl.querySelector('.modal');
+        modalNode.id = 'logoutConfirmModal';
+        modalNode.style.zIndex = '2147483647';
+        modalNode.style.pointerEvents = 'auto';
+        modalNode.querySelector('.modal-content').style.pointerEvents = 'auto';
+        modalEl.replaceWith(modalNode);
+        modalEl = modalNode;
 
         const confirmButton = modalEl.querySelector('#logoutConfirmButton');
         confirmButton.addEventListener('click', () => {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            const bsModal = bootstrap.Modal.getInstance(modalEl.querySelector('.modal'));
+            const bsModal = bootstrap.Modal.getInstance(modalEl);
             if (bsModal) {
                 bsModal.hide();
             }
@@ -61,7 +66,7 @@ function confirmLogout(redirectUrl = '../index.html') {
     const confirmButton = modalEl.querySelector('#logoutConfirmButton');
     confirmButton.dataset.redirectUrl = redirectUrl;
 
-    const modalDialog = new bootstrap.Modal(modalEl.querySelector('.modal'), {
+    const modalDialog = bootstrap.Modal.getOrCreateInstance(modalEl, {
         backdrop: 'static',
         keyboard: false
     });
