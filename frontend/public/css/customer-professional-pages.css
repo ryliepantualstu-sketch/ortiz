@@ -832,7 +832,7 @@ body.customer-professional .modal-backdrop {
 }
 
 body.customer-professional .modal-backdrop.show {
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 
 body.customer-professional .modal-dialog {
@@ -853,13 +853,15 @@ body.customer-professional .modal-content {
 }
 
 body.customer-professional #appointmentQrModal,
-body.customer-professional #appointmentFormModal {
+body.customer-professional #appointmentFormModal,
+body.customer-professional #profileModal {
   z-index: 2147483646 !important;
   isolation: isolate;
 }
 
 body.customer-professional #appointmentQrModal .modal-content,
-body.customer-professional #appointmentFormModal .modal-content {
+body.customer-professional #appointmentFormModal .modal-content,
+body.customer-professional #profileModal .modal-content {
   position: relative;
   z-index: 2147483647 !important;
   background: #fffdf8 !important;

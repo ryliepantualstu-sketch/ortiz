@@ -3394,7 +3394,14 @@
             document.getElementById('profileEditError').style.display = 'none';
 
             if (!profileModalInstance) {
-                profileModalInstance = new bootstrap.Modal(document.getElementById('profileModal'));
+                const profileModal = document.getElementById('profileModal');
+                if (profileModal.parentElement !== document.body) {
+                    document.body.appendChild(profileModal);
+                }
+                profileModal.style.zIndex = '2147483647';
+                profileModalInstance = bootstrap.Modal.getOrCreateInstance(profileModal);
+            } else {
+                document.body.appendChild(document.getElementById('profileModal'));
             }
             profileModalInstance.show();
         }
