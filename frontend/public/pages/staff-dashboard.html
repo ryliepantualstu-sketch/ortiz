@@ -981,14 +981,23 @@
                                     <i class="fas fa-search"></i> Find Appointment
                                 </button>
                             </div>
-                            <button class="btn btn-success w-100 mt-3 d-none" type="button" id="confirmScannedAppointmentButton" onclick="confirmScannedAppointment()">
-                                <i class="fas fa-check"></i> Confirm Scanned Appointment
-                            </button>
                             <div id="verificationResult" class="alert mt-3 mb-0 d-none"></div>
-                            <div id="verificationDetails" class="card mt-3 d-none">
-                                <div class="card-body">
-                                    <h5 class="card-title">Appointment & Customer Details</h5>
-                                    <div id="verificationDetailsBody">&nbsp;</div>
+                            <div class="modal fade" id="verificationDetails" tabindex="-1" aria-labelledby="verificationDetailsLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="verificationDetailsLabel">Appointment & Customer Details</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div id="verificationDetailsBody">&nbsp;</div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-success" type="button" id="confirmScannedAppointmentButton" onclick="confirmScannedAppointment()">
+                                                <i class="fas fa-check"></i> Confirm Appointment
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

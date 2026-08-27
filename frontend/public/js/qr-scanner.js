@@ -3,6 +3,7 @@
 let qrCameraStream = null;
 let qrScanFrame = null;
 let pendingQrAppointment = null;
+let verificationDetailsModal = null;
 
 function setQrCameraMessage(message, type = 'muted') {
     const messageEl = document.getElementById('qrCameraMessage');
@@ -100,6 +101,7 @@ function hideVerificationDetails() {
     const panel = document.getElementById('verificationDetails');
     const body = document.getElementById('verificationDetailsBody');
     if (panel) panel.classList.add('d-none');
+    if (verificationDetailsModal) verificationDetailsModal.hide();
     if (body) body.innerHTML = '&nbsp;';
 }
 
@@ -126,6 +128,8 @@ function showVerificationDetails(appointment) {
 
         body.innerHTML = html;
         panel.classList.remove('d-none');
+        verificationDetailsModal = bootstrap.Modal.getOrCreateInstance(panel);
+        verificationDetailsModal.show();
     } catch (e) {
         console.error('Show verification details error:', e);
     }
