@@ -45,6 +45,8 @@ function confirmLogout(redirectUrl = '../index.html') {
         const modalNode = modalEl.querySelector('.modal');
         modalNode.id = 'logoutConfirmModal';
         modalNode.style.zIndex = '2147483647';
+        modalNode.style.position = 'fixed';
+        modalNode.style.inset = '0';
         modalNode.style.pointerEvents = 'auto';
         modalNode.querySelector('.modal-content').style.pointerEvents = 'auto';
         modalEl.replaceWith(modalNode);
@@ -70,6 +72,8 @@ function confirmLogout(redirectUrl = '../index.html') {
         backdrop: 'static',
         keyboard: false
     });
+    modalEl.style.zIndex = '2147483647';
+    modalEl.style.pointerEvents = 'auto';
     modalDialog.show();
 }
 

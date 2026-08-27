@@ -440,7 +440,7 @@ body.role-professional .modal-backdrop {
   backdrop-filter: none !important;
   background-color: rgba(0, 0, 0, 0.3) !important;
   z-index: 2147483645 !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
   filter: none !important;
 }
 
@@ -563,6 +563,8 @@ body.role-professional .modal-backdrop.show {
 body.role-professional .modal {
   z-index: 2147483646 !important;
   pointer-events: auto !important;
+  position: fixed !important;
+  inset: 0 !important;
 }
 
 body.role-professional .modal .modal-dialog,
