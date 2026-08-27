@@ -127,4 +127,123 @@ body.role-professional.role-admin .sidebar.show {
     padding: 25px;
     width: 100%;
   }
+
+  html,
+  body.role-professional.role-admin {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  body.role-professional.role-admin {
+    padding-top: 78px !important;
+  }
+
+  body.role-professional.role-admin .navbar {
+    padding: 0.7rem 0 !important;
+  }
+
+  body.role-professional.role-admin .navbar .container-fluid {
+    padding: 0 0.75rem !important;
+    gap: 8px !important;
+  }
+
+  body.role-professional.role-admin .navbar-brand {
+    min-width: 0;
+    font-size: 1.25rem !important;
+    gap: 8px !important;
+    white-space: nowrap;
+  }
+
+  body.role-professional.role-admin .navbar-brand i {
+    font-size: 1.55rem !important;
+  }
+
+  body.role-professional.role-admin .navbar-right {
+    gap: 6px !important;
+    min-width: 0;
+  }
+
+  body.role-professional.role-admin .navbar-user-name {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.78rem !important;
+  }
+
+  body.role-professional.role-admin .navbar-logout {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  body.role-professional.role-admin .navbar-logout span {
+    display: none;
+  }
+
+  body.role-professional.role-admin > .d-flex {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  body.role-professional.role-admin .sidebar {
+    top: 78px !important;
+    width: min(280px, 88vw) !important;
+    min-width: 0 !important;
+    height: calc(100vh - 78px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  body.role-professional.role-admin .sidebar-overlay {
+    top: 78px !important;
+    z-index: 200000 !important;
+  }
+
+  body.role-professional.role-admin .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 16px 12px 28px !important;
+    overflow: visible !important;
+  }
+
+  body.role-professional.role-admin #content {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  body.role-professional.role-admin #statsContainer,
+  body.role-professional.role-admin #chartGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body.role-professional.role-admin .table-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.role-professional.role-admin .table-container table {
+    min-width: 680px;
+  }
+
+  body.role-professional.role-admin .modal-dialog {
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+    margin: 12px auto !important;
+  }
+
+  body.role-professional.role-admin .modal-body {
+    max-height: calc(100dvh - 190px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
 }
