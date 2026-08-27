@@ -191,15 +191,25 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                display: block;
+                padding: 16px 0;
+            }
+
             .auth-container {
                 flex-direction: column;
                 margin: 20px;
                 max-width: 100%;
+                min-height: 0;
+                max-height: none;
+                overflow: visible;
             }
 
-            .auth-side,
-            .auth-right {
+            .auth-side {
                 width: 100%;
+                min-height: 0;
+                height: auto;
+                overflow: visible;
             }
 
             .auth-right {
@@ -207,17 +217,18 @@
             }
 
             .auth-left {
-                /* On small screens, revert to normal flow to stack correctly */
-                position: relative;
+                position: absolute;
                 width: 100%;
                 padding: 40px 30px;
                 opacity: 0;
                 pointer-events: none;
                 transition: none;
-                max-height: none;
+                height: auto;
+                overflow: visible;
             }
 
             .auth-left.active {
+                position: relative;
                 opacity: 1;
                 pointer-events: auto;
             }
