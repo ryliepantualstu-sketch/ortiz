@@ -1196,7 +1196,7 @@
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
             <div class="d-flex align-items-center gap-3">
-                <button class="btn d-md-none mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <button class="btn d-md-none mobile-menu-btn" id="mobileMenuButton" type="button" onclick="toggleSidebar()" aria-label="Open menu" aria-expanded="false">
                     <i class="fas fa-bars"></i>
                 </button>
                 <span class="navbar-brand" onclick="loadSection('dashboard')">
@@ -1224,6 +1224,9 @@
                     <h1>Ortiz Optical</h1>
                     <p>Customer Portal</p>
                 </div>
+                <button class="sidebar-close-btn" type="button" onclick="toggleSidebar(false)" aria-label="Close menu">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
             <ul class="nav-list">
@@ -1952,12 +1955,21 @@
             confirmLogout('../index.html');
         }
 
-        function toggleSidebar() {
+        function toggleSidebar(forceOpen) {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            const menuButton = document.getElementById('mobileMenuButton');
             if (!sidebar || !overlay) return;
-            const isOpen = sidebar.classList.toggle('show');
+            const isOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : !sidebar.classList.contains('show');
+            sidebar.classList.toggle('show', isOpen);
             overlay.classList.toggle('show', isOpen);
+            if (menuButton) {
+                menuButton.setAttribute('aria-expanded', String(isOpen));
+                menuButton.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+                menuButton.innerHTML = `<i class="fas fa-${isOpen ? 'times' : 'bars'}"></i>`;
+            }
         }
 
         function formatDate(value) {
@@ -2024,10 +2036,7 @@
 
             // Close mobile sidebar if open
             if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebarOverlay');
-                if (sidebar) sidebar.classList.remove('show');
-                if (overlay) overlay.classList.remove('show');
+                toggleSidebar(false);
             }
 
             const sections = ['dashboard', 'products', 'cart', 'appointments', 'orders'];

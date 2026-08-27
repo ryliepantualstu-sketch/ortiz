@@ -1449,6 +1449,15 @@ body.customer-professional .modal-body table tbody tr:hover {
     font-size: 1.55rem !important;
   }
 
+  body.customer-professional .mobile-menu-btn {
+    flex: 0 0 40px;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    background: var(--cust-accent) !important;
+    color: white !important;
+  }
+
   body.customer-professional .navbar-right {
     gap: 6px !important;
     min-width: 0;
@@ -1486,6 +1495,24 @@ body.customer-professional .modal-body table tbody tr:hover {
     transform: translateX(-105%);
     transition: transform 0.2s ease !important;
     z-index: 200001 !important;
+  }
+
+  body.customer-professional .sidebar .brand {
+    display: flex;
+    align-items: center;
+  }
+
+  body.customer-professional .sidebar-close-btn {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
   }
 
   body.customer-professional .sidebar.show,
