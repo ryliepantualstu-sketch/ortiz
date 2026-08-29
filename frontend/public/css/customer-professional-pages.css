@@ -357,6 +357,10 @@ body.customer-professional .main-content {
   }
 }
 
+body.customer-professional .sidebar-close-btn {
+  display: none !important;
+}
+
 body.customer-professional .sidebar-header {
   padding: 14px 14px !important;
   background: rgba(0, 168, 255, 0.08) !important;
@@ -1568,7 +1572,7 @@ body.customer-professional .modal-body table tbody tr:hover {
   }
 
   body.customer-professional .sidebar-close-btn {
-    display: inline-grid;
+    display: inline-grid !important;
     place-items: center;
     flex: 0 0 40px;
     width: 40px;

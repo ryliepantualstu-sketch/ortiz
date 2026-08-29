@@ -131,6 +131,16 @@
             border-bottom: 1px solid rgba(255,255,255,0.12);
         }
 
+        .sidebar-close-btn {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-close-btn {
+                display: inline-grid !important;
+            }
+        }
+
         .brand-badge {
             width: 48px;
             height: 48px;
@@ -1227,7 +1237,7 @@
                     <h1>Ortiz Optical</h1>
                     <p>Customer Portal</p>
                 </div>
-                <button class="sidebar-close-btn" type="button" onclick="toggleSidebar(false)" aria-label="Close menu">
+                <button class="sidebar-close-btn d-md-none" type="button" onclick="toggleSidebar(false)" aria-label="Close menu">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
