@@ -3204,21 +3204,23 @@
                     appointmentsById = new Map(result.appointments.map(apt => [String(apt.appointment_id), apt]));
                     tbody.innerHTML = result.appointments.map(apt => `
                         <tr>
-                            <td>${formatDate(apt.appointment_date)}</td>
+                            <td class="fw-semibold">${formatDate(apt.appointment_date)}</td>
                             <td>${formatTime(apt.appointment_time)}</td>
-                            <td>${apt.service_type || 'General Checkup'}</td>
-                            <td><span class="badge ${getAppointmentStatusBadge(apt.status)}">${apt.status || 'Scheduled'}</span></td>
+                            <td><span class="fw-medium">${apt.service_type || 'General Checkup'}</span></td>
+                            <td><span class="badge ${getAppointmentStatusBadge(apt.status)} text-capitalize">${apt.status || 'Scheduled'}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-primary" ${apt.qr_ready ? `onclick="showQrModal(${apt.appointment_id})"` : 'disabled'}>
-                                    <i class="fas fa-qrcode"></i> View QR
-                                </button>
-                                <button class="btn btn-sm btn-warning" onclick="openAppointmentModal(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
-                                    <i class="fas fa-pen"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="cancelAppointment(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
-                                    <i class="fas fa-ban"></i> Cancel
-                                </button>
-                                <div class="small mt-2 ${apt.qr_verified ? 'text-success fw-bold' : 'text-muted'}">
+                                <div class="apt-actions">
+                                    <button type="button" class="apt-btn apt-btn-qr" ${apt.qr_ready ? `onclick="showQrModal(${apt.appointment_id})"` : 'disabled'}>
+                                        <i class="fas fa-qrcode"></i> View QR
+                                    </button>
+                                    <button type="button" class="apt-btn apt-btn-edit" onclick="openAppointmentModal(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
+                                        <i class="fas fa-pen"></i> Edit
+                                    </button>
+                                    <button type="button" class="apt-btn apt-btn-cancel" onclick="cancelAppointment(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
+                                        <i class="fas fa-ban"></i> Cancel
+                                    </button>
+                                </div>
+                                <div class="apt-notice ${apt.qr_verified ? 'verified' : ''}">
                                     ${getCustomerAppointmentNotice(apt)}
                                 </div>
                             </td>

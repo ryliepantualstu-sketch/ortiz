@@ -714,18 +714,42 @@ body.customer-professional .table-responsive {
 }
 
 body.customer-professional .table-light,
-body.customer-professional .table thead {
+body.customer-professional .table thead,
+body.customer-professional .table thead tr {
   background: linear-gradient(135deg, #17302d 0%, #21524b 100%) !important;
 }
 
 body.customer-professional .table-light th,
 body.customer-professional .table thead th {
-  color: #f2fbf9 !important;
+  color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  --bs-table-bg: transparent !important;
+  --bs-table-color: #ffffff !important;
   border-bottom: none !important;
+  padding: 14px 18px !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  vertical-align: middle !important;
+}
+
+body.customer-professional .table tbody tr {
+  transition: background-color 0.18s ease !important;
+}
+
+body.customer-professional .table tbody td {
+  vertical-align: middle !important;
+  padding: 16px 18px !important;
+  color: #2c3e50 !important;
+  font-size: 0.95rem !important;
+  border-bottom: 1px solid rgba(23, 33, 33, 0.07) !important;
 }
 
 body.customer-professional .table-hover tbody tr:hover {
-  background: rgba(13, 143, 131, 0.08) !important;
+  background: rgba(13, 143, 131, 0.06) !important;
   transform: none !important;
 }
 
@@ -733,6 +757,127 @@ body.customer-professional .badge,
 body.customer-professional .stock-badge,
 body.customer-professional .product-tag {
   border-radius: 999px !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  letter-spacing: 0.02em !important;
+}
+
+body.customer-professional .badge.bg-primary {
+  background: rgba(13, 143, 131, 0.15) !important;
+  color: #0d8f83 !important;
+  border: 1px solid rgba(13, 143, 131, 0.3) !important;
+}
+
+body.customer-professional .badge.bg-success {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+body.customer-professional .badge.bg-danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+body.customer-professional .badge.bg-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #2563eb !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+body.customer-professional .badge.bg-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+body.customer-professional .badge.bg-secondary {
+  background: rgba(100, 116, 139, 0.15) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(100, 116, 139, 0.3) !important;
+}
+
+/* Appointment table custom actions & notices */
+body.customer-professional .apt-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body.customer-professional .apt-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  border-radius: 10px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  border: 1px solid transparent !important;
+  transition: all 0.18s ease !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+body.customer-professional .apt-btn-qr {
+  background: rgba(13, 143, 131, 0.12) !important;
+  color: #0d8f83 !important;
+  border-color: rgba(13, 143, 131, 0.25) !important;
+}
+
+body.customer-professional .apt-btn-qr:hover:not(:disabled) {
+  background: #0d8f83 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(13, 143, 131, 0.25) !important;
+}
+
+body.customer-professional .apt-btn-edit {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+body.customer-professional .apt-btn-edit:hover:not(:disabled) {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25) !important;
+}
+
+body.customer-professional .apt-btn-cancel {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+body.customer-professional .apt-btn-cancel:hover:not(:disabled) {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+}
+
+body.customer-professional .apt-btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+body.customer-professional .apt-notice {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+}
+
+body.customer-professional .apt-notice.verified,
+body.customer-professional .apt-notice .fa-check-circle {
+  color: #059669 !important;
+  font-weight: 700 !important;
 }
 
 body.customer-professional .results-row {
