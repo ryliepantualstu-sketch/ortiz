@@ -2631,23 +2631,33 @@ This will deactivate the account and keep the user record for history.`)) {
                             <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
                                 <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-user me-2"></i>Customer Information</h6>
                                 <table class="table table-sm customer-info-table mb-0">
-                                    <tr><td class="text-muted">Name</td><td><strong>${customer.User?.full_name || 'N/A'}</strong></td></tr>
-                                    <tr><td class="text-muted">Email</td><td>${customer.User?.email || 'N/A'}</td></tr>
-                                    <tr><td class="text-muted">Phone</td><td>${customer.User?.phone || 'N/A'}</td></tr>
-                                    <tr><td class="text-muted">Birthday</td><td>${customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td></tr>
-                                    <tr><td class="text-muted">Address</td><td>${customer.address || 'N/A'}</td></tr>
-                                    <tr><td class="text-muted">Joined</td><td>${new Date(customer.created_at).toLocaleDateString()}</td></tr>
-                                    <tr><td class="text-muted">Discount Card</td><td>${discountCardImageUrl ? '<span class="badge bg-success">Uploaded</span>' : '<span class="badge bg-secondary">No card uploaded</span>'}</td></tr>
+                                    <tr><td class="info-label">Name</td><td class="info-value"><strong>${customer.User?.full_name || 'N/A'}</strong></td></tr>
+                                    <tr><td class="info-label">Email</td><td class="info-value">${customer.User?.email || 'N/A'}</td></tr>
+                                    <tr><td class="info-label">Phone</td><td class="info-value">${customer.User?.phone || 'N/A'}</td></tr>
+                                    <tr><td class="info-label">Birthday</td><td class="info-value">${customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td></tr>
+                                    <tr><td class="info-label">Address</td><td class="info-value">${customer.address || 'N/A'}</td></tr>
+                                    <tr><td class="info-label">Joined</td><td class="info-value">${new Date(customer.created_at).toLocaleDateString()}</td></tr>
+                                    <tr><td class="info-label">Discount Card</td><td class="info-value">${discountCardImageUrl ? '<span class="badge bg-success">Uploaded</span>' : '<span class="badge bg-secondary">No card uploaded</span>'}</td></tr>
                                 </table>
                             </div>
                         </div>
                         <div class="col-md-6 col-12">
                             <div class="border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-column">
                                 <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-history me-2"></i>Customer Activity</h6>
-                                <table class="table table-sm customer-info-table mb-3">
-                                    <tr><td class="text-muted">Appointments</td><td><strong>${appointments.length}</strong></td></tr>
-                                    <tr><td class="text-muted">Orders</td><td><strong>${orders.length}</strong></td></tr>
-                                </table>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="p-2 border rounded-3 bg-light text-center">
+                                            <div class="text-muted small fw-semibold">Appointments</div>
+                                            <div class="fs-4 fw-bold text-primary mb-0">${appointments.length}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-2 border rounded-3 bg-light text-center">
+                                            <div class="text-muted small fw-semibold">Orders</div>
+                                            <div class="fs-4 fw-bold text-primary mb-0">${orders.length}</div>
+                                        </div>
+                                    </div>
+                                </div>
                                 ${discountCardImageUrl ? `
                                     <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-id-card me-2"></i>Discount Card Preview</h6>
                                     <div class="border rounded-3 p-2 bg-light text-center flex-grow-1 d-flex align-items-center justify-content-center">
