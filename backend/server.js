@@ -257,6 +257,14 @@ const ensureSchemaColumns = async () => {
   };
 
   try {
+    await addColumnIfMissing('customers', 'address', {
+      type: DataTypes.TEXT,
+      allowNull: true
+    });
+    await addColumnIfMissing('customers', 'date_of_birth', {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    });
     await addColumnIfMissing('customers', 'phone', {
       type: DataTypes.STRING(15),
       allowNull: true

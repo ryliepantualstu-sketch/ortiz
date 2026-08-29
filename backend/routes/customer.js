@@ -1132,6 +1132,7 @@ router.get('/profile', authMiddleware, requireRole('customer'), async (req, res)
       customer: {
         phone: customer.phone || user.phone,
         date_of_birth: customer.date_of_birth,
+        address: customer.address || null,
         discount_card_image_url: customer.discount_card_image_url || null
       }
     });
@@ -1148,7 +1149,7 @@ router.get('/profile', authMiddleware, requireRole('customer'), async (req, res)
 router.put('/profile', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { full_name, email, phone, discount_card_image_data, discount_card_image_name } = req.body;
+    const { full_name, email, phone, birthday, address, discount_card_image_data, discount_card_image_name } = req.body;
 
     // Validate required fields
     if (!full_name || !email || !phone) {
@@ -1202,11 +1203,15 @@ router.put('/profile', authMiddleware, requireRole('customer'), async (req, res)
       discountCardImageUrl = await persistCustomerDiscountCardImage(discount_card_image_data, discount_card_image_name);
     }
 
+    const customerUpdates = {
+      phone: normalizedPhone,
+      discount_card_image_url: discountCardImageUrl
+    };
+    if (birthday) customerUpdates.date_of_birth = birthday;
+    if (typeof address !== 'undefined') customerUpdates.address = address;
+
     if (customerRecord && customerRecord.customer_id) {
-      await customerRecord.update({
-        phone: normalizedPhone,
-        discount_card_image_url: discountCardImageUrl
-      });
+      await customerRecord.update(customerUpdates);
     }
 
     // Fetch updated user
@@ -1223,6 +1228,8 @@ router.put('/profile', authMiddleware, requireRole('customer'), async (req, res)
         role: updatedUser.role
       },
       customer: {
+        address: customerRecord.address,
+        date_of_birth: customerRecord.date_of_birth,
         discount_card_image_url: discountCardImageUrl
       }
     });

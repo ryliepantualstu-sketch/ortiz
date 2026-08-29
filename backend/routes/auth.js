@@ -8,7 +8,7 @@ const { authMiddleware } = require('../middleware/auth');
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { full_name, email, password, confirm_password, phone, role, birthday } = req.body;
+    const { full_name, email, password, confirm_password, phone, role, birthday, address } = req.body;
     const normalizedPhone = typeof phone === 'string'
       ? phone.trim().replace(/[\s-]/g, '')
       : '';
@@ -53,14 +53,18 @@ router.post('/register', async (req, res) => {
       role: role || 'customer'
     });
 
-    // If customer, create customer record and preserve birthday if available
+    // If customer, create customer record and preserve birthday/address if available
     if (user.role === 'customer') {
       const customerPayload = {
-        user_id: user.user_id
+        user_id: user.user_id,
+        phone: normalizedPhone
       };
 
       if (birthday) {
         customerPayload.date_of_birth = birthday;
+      }
+      if (address) {
+        customerPayload.address = address;
       }
 
       await Customer.create(customerPayload);

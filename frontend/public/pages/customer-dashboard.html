@@ -1728,6 +1728,18 @@
                             <input type="tel" class="form-control rounded-3" id="editPhone" name="phone" inputmode="numeric" pattern="\+?[0-9]{7,15}" title="Enter 7 to 15 digits, optionally starting with +" required>
                         </div>
                         <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="editBirthday">
+                                <i class="fas fa-birthday-cake text-primary"></i> Birthday
+                            </label>
+                            <input type="date" class="form-control rounded-3" id="editBirthday" name="birthday">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold" for="editAddress">
+                                <i class="fas fa-map-marker-alt text-primary"></i> Complete Address
+                            </label>
+                            <input type="text" class="form-control rounded-3" id="editAddress" name="address" placeholder="123 Street, City, Province">
+                        </div>
+                        <div class="form-group mb-3">
                             <label class="form-label fw-semibold" for="discountCardImage">
                                 <i class="fas fa-id-card text-primary"></i> Discount Card Image (Optional)
                             </label>
@@ -3434,7 +3446,12 @@
 
             document.getElementById('editFullName').value = user.full_name || '';
             document.getElementById('editEmail').value = user.email || '';
-            document.getElementById('editPhone').value = customer.phone || '';
+            document.getElementById('editPhone').value = customer.phone || user.phone || '';
+            const bdayEl = document.getElementById('editBirthday');
+            if (bdayEl) bdayEl.value = customer.date_of_birth ? customer.date_of_birth.slice(0, 10) : '';
+            const addrEl = document.getElementById('editAddress');
+            if (addrEl) addrEl.value = customer.address || '';
+
             const cardInput = document.getElementById('discountCardImage');
             if (cardInput) cardInput.value = '';
             document.getElementById('profileEditError').style.display = 'none';
@@ -3456,10 +3473,12 @@
             const full_name = document.getElementById('editFullName').value.trim();
             const email = document.getElementById('editEmail').value.trim();
             const phone = document.getElementById('editPhone').value.trim();
+            const birthday = document.getElementById('editBirthday')?.value || null;
+            const address = document.getElementById('editAddress')?.value.trim() || null;
             const discountCardFile = document.getElementById('discountCardImage')?.files[0];
 
             if (!full_name || !email || !phone) {
-                showProfileError('Please fill in all fields');
+                showProfileError('Please fill in all required fields');
                 return;
             }
 
@@ -3468,7 +3487,7 @@
                 return;
             }
 
-            const payload = { full_name, email, phone };
+            const payload = { full_name, email, phone, birthday, address };
 
             if (discountCardFile) {
                 const reader = new FileReader();

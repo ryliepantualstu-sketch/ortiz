@@ -1457,6 +1457,8 @@
                                 <tr><td class="text-muted">Name</td><td><strong>${c.User?.full_name || 'N/A'}</strong></td></tr>
                                 <tr><td class="text-muted">Email</td><td>${c.User?.email || 'N/A'}</td></tr>
                                 <tr><td class="text-muted">Phone</td><td>${c.User?.phone || 'N/A'}</td></tr>
+                                <tr><td class="text-muted">Birthday</td><td>${c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td></tr>
+                                <tr><td class="text-muted">Address</td><td>${c.address || 'N/A'}</td></tr>
                                 <tr><td class="text-muted">Joined</td><td>${new Date(c.created_at).toLocaleDateString()}</td></tr>
                                 <tr><td class="text-muted">Discount Card</td><td>${discountCardImageUrl ? 'Uploaded' : 'No card uploaded'}</td></tr>
                             </table>
