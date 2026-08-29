@@ -107,27 +107,6 @@ body.role-professional.role-admin .sidebar.show {
 }
 
 @media (max-width: 768px) {
-  body.role-professional.role-admin .sidebar {
-    left: 0 !important;
-    width: 250px !important;
-    min-width: 250px !important;
-    height: calc(100vh - 100px) !important;
-    top: 100px !important;
-    transform: translateX(-100%) !important;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  body.role-professional.role-admin .sidebar.show {
-    transform: translateX(0) !important;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3) !important;
-  }
-
-  body.role-professional.role-admin .main-content {
-    margin-left: 0;
-    padding: 25px;
-    width: 100%;
-  }
-
   html,
   body.role-professional.role-admin {
     width: 100%;
@@ -202,14 +181,28 @@ body.role-professional.role-admin .sidebar.show {
   }
 
   body.role-professional.role-admin .sidebar {
+    position: fixed !important;
     top: 78px !important;
+    left: 0 !important;
     width: min(280px, 88vw) !important;
     min-width: 0 !important;
     height: calc(100vh - 78px) !important;
+    margin: 0 !important;
+    transform: translateX(-105%) !important;
+    transition: transform 0.2s ease !important;
+    z-index: 200001 !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
+  }
+
+  body.role-professional.role-admin .sidebar.show {
+    transform: translateX(0) !important;
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.25) !important;
   }
 
   body.role-professional.role-admin .sidebar-overlay {

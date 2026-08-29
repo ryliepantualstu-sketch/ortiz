@@ -2315,6 +2315,14 @@ This will deactivate the account and keep the user record for history.`)) {
                 event.preventDefault();
             }
 
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('show');
+                if (overlay) overlay.classList.remove('show');
+            }
+
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('usersSection').style.display = 'none';
             document.getElementById('customersSection').style.display = 'none';
