@@ -145,25 +145,39 @@
             font-size: 1.2rem;
         }
         
-        @media (min-width: 821px) {
+        @media (min-width: 769px) {
             .sidebar {
-                background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-                width: 252px !important;
-                min-width: 252px !important;
+                background: linear-gradient(180deg, #182834 0%, #20485b 100%) !important;
+                width: 280px !important;
+                min-width: 280px !important;
                 height: calc(100vh - 124px) !important;
                 position: fixed !important;
                 top: 100px !important;
                 left: 24px !important;
-                border-radius: 32px;
-                box-shadow: 4px 0 15px rgba(0,0,0,0.2);
-                overflow-y: auto;
-                overflow-x: hidden;
+                border-radius: 28px !important;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15) !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
                 scrollbar-width: thin;
                 scrollbar-color: rgba(255,255,255,0.2) transparent;
                 flex-shrink: 0;
+                display: flex !important;
+                flex-direction: column !important;
+                z-index: 1000 !important;
+                padding: 24px 16px !important;
+            }
+
+            .main-content {
+                padding: 24px 28px 36px !important;
+                overflow-y: auto;
+                overflow-x: hidden;
+                flex: 1;
+                max-width: calc(100% - 324px) !important;
+                width: calc(100% - 324px) !important;
                 display: flex;
                 flex-direction: column;
-                z-index: 1000;
+                margin-left: 324px !important;
+                min-height: calc(100vh - 100px);
             }
         }
 
@@ -281,21 +295,6 @@
 
         .sidebar .nav-item {
             list-style: none;
-        }
-        
-        @media (min-width: 821px) {
-            .main-content {
-                padding: 28px 24px !important;
-                overflow-y: auto;
-                overflow-x: hidden;
-                flex: 1;
-                background: rgba(255,255,255,0.5) !important;
-                max-width: calc(100% - 340px);
-                display: flex;
-                flex-direction: column;
-                margin-left: 340px !important;
-                min-height: calc(100vh - 100px);
-            }
         }
 
         .main-content h2 {
@@ -436,93 +435,105 @@
 
         .table-container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-radius: 20px;
+            box-shadow: 0 4px 16px rgba(39, 51, 50, 0.06);
+            border: 1px solid rgba(23, 33, 33, 0.08);
             margin-bottom: 25px;
             overflow: hidden;
         }
 
         .table-container h5 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 20px;
+            color: #1e293b;
+            margin-bottom: 18px;
         }
 
         .table {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
+            margin-bottom: 0;
         }
 
-        .table thead {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border-bottom: 3px solid #00a8ff;
-        }
-
-        .table thead th {
-            font-weight: 800;
-            color: white;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 18px 16px;
-            border: none;
-        }
-
-        .table-light {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-            border-bottom: 3px solid #00a8ff;
-        }
-
-        .table-light th {
-            color: #e0f2fe !important;
-            font-weight: 800 !important;
-            background: transparent !important;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 18px 16px !important;
+        .table thead,
+        .table thead tr,
+        .table-light,
+        .table-light tr {
+            background: linear-gradient(135deg, #182834 0%, #20485b 100%) !important;
             border: none !important;
-            border-bottom: 3px solid #00a8ff !important;
+        }
+
+        .table thead th,
+        .table-light th {
+            color: #ffffff !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            --bs-table-bg: transparent !important;
+            --bs-table-color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 0.85rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+            padding: 14px 18px !important;
+            border: none !important;
+            vertical-align: middle !important;
         }
 
         .table-hover tbody tr {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.18s ease;
+            border-bottom: 1px solid rgba(23, 33, 33, 0.07);
         }
 
         .table-hover tbody tr:hover {
-            background: linear-gradient(90deg, rgba(0,168,255,0.08) 0%, rgba(0,88,204,0.04) 100%);
-            transform: scale(1.015);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            background: rgba(45, 127, 184, 0.06) !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         .table tbody td {
-            padding: 16px 16px;
+            padding: 14px 18px;
             vertical-align: middle;
             color: #2c3e50;
             font-weight: 600;
+            font-size: 0.92rem;
         }
 
         .table tbody td:first-child {
             font-weight: 700;
-            color: #00a8ff;
+            color: #1c5478;
         }
 
         .badge {
-            padding: 8px 14px !important;
+            padding: 6px 14px !important;
             font-weight: 700 !important;
-            border-radius: 20px !important;
-            font-size: 0.85rem !important;
+            border-radius: 999px !important;
+            font-size: 0.8rem !important;
             text-transform: capitalize;
             letter-spacing: 0.3px;
         }
 
+        .action-btns {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        .action-btns .btn-sm {
+            padding: 5px 12px !important;
+            font-size: 0.82rem !important;
+            font-weight: 700 !important;
+            border-radius: 10px !important;
+            transition: all 0.18s ease !important;
+            margin: 0 !important;
+        }
+
         .btn-sm {
-            padding: 8px 16px;
+            padding: 6px 14px;
             font-weight: 700;
-            border-radius: 8px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.9rem;
+            border-radius: 10px;
+            transition: all 0.18s ease;
+            font-size: 0.85rem;
             border: none;
         }
 
