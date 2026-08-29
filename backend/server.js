@@ -270,7 +270,11 @@ const ensureSchemaColumns = async () => {
       defaultValue: false
     });
     await addColumnIfMissing('customers', 'discount_card_image_url', {
-      type: DataTypes.TEXT,
+      type: DataTypes.TEXT('long'),
+      allowNull: true
+    });
+    await changeColumnIfDifferent('customers', 'discount_card_image_url', {
+      type: DataTypes.TEXT('long'),
       allowNull: true
     });
     await addColumnIfMissing('customers', 'loyalty_points', {

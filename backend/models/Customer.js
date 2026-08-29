@@ -53,7 +53,7 @@ const Customer = sequelize.define('Customer', {
     defaultValue: 0
   },
   discount_card_image_url: {
-    type: DataTypes.TEXT,
+    type: DataTypes.TEXT('long'),
     allowNull: true
   },
   created_at: {

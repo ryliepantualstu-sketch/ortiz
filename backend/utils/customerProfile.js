@@ -16,6 +16,10 @@ async function persistCustomerDiscountCardImage(imageData, originalFileName, tar
     return null;
   }
 
+  if (typeof imageData === 'string' && (imageData.startsWith('http://') || imageData.startsWith('https://') || imageData.startsWith('images/'))) {
+    return imageData;
+  }
+
   const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(imageData);
   if (!match) {
     throw new Error('Invalid discount card image format');
@@ -32,17 +36,21 @@ async function persistCustomerDiscountCardImage(imageData, originalFileName, tar
     throw new Error('Discount card image must be 5MB or smaller');
   }
 
-  const baseName = path.basename(originalFileName || `discount-card.${extension}`, path.extname(originalFileName || ''))
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'discount-card';
-  const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${extension}`;
+  try {
+    const baseName = path.basename(originalFileName || `discount-card.${extension}`, path.extname(originalFileName || ''))
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'discount-card';
+    const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${extension}`;
 
-  await fs.mkdir(targetDirectory, { recursive: true });
-  await fs.writeFile(path.join(targetDirectory, fileName), buffer);
+    await fs.mkdir(targetDirectory, { recursive: true });
+    await fs.writeFile(path.join(targetDirectory, fileName), buffer);
+  } catch (err) {
+    console.warn('Note: Could not write discount card to disk, using data URI fallback:', err?.message || err);
+  }
 
-  return `${CUSTOMER_DISCOUNT_CARD_URL_PREFIX}/${fileName}`;
+  return imageData;
 }
 
 async function getOrCreateCustomerRecord(customerRepository, userId, phone = null) {
