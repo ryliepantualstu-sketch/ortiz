@@ -1421,6 +1421,16 @@
             renderCustomers(filtered);
         }
 
+        function getDiscountCardImageUrl(path) {
+            if (!path) return null;
+            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+                return path;
+            }
+            const baseUrl = typeof API_URL !== 'undefined' ? API_URL.replace(/\/api\/?$/, '') : '';
+            const cleanPath = path.startsWith('/') ? path : `/${path}`;
+            return `${baseUrl}${cleanPath}`;
+        }
+
         async function viewCustomerDetails(customerId) {
             const modal = new bootstrap.Modal(document.getElementById('customerDetailModal'));
             const body = document.getElementById('customerDetailBody');
@@ -1437,7 +1447,7 @@
                 const c = result.customer;
                 const appointments = result.appointments || [];
                 const orders = result.orders || [];
-                const discountCardImageUrl = c.discount_card_image_url ? `${API_URL.replace('/api', '')}/${c.discount_card_image_url}` : null;
+                const discountCardImageUrl = getDiscountCardImageUrl(c.discount_card_image_url);
 
                 body.innerHTML = `
                     <div class="row mb-4">
