@@ -603,7 +603,59 @@ body.role-professional .modal-backdrop {
 }
 
 body.role-professional .modal-dialog {
-  max-width: 520px !important;
+  max-width: 520px;
+}
+
+body.role-professional .modal-dialog.modal-lg {
+  max-width: 840px !important;
+}
+
+body.role-professional .modal-dialog.modal-xl {
+  max-width: 1080px !important;
+}
+
+/* Customer Info Modal Table */
+.customer-info-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  margin-bottom: 0 !important;
+}
+
+.customer-info-table td {
+  padding: 8px 10px !important;
+  vertical-align: top !important;
+  border-bottom: 1px solid rgba(23, 33, 33, 0.08) !important;
+  font-size: 0.88rem !important;
+}
+
+.customer-info-table tr:last-child td {
+  border-bottom: none !important;
+}
+
+.customer-info-table td:first-child {
+  width: 32% !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+.customer-info-table td:last-child {
+  width: 68% !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  color: #1e293b !important;
+}
+
+@media (max-width: 768px) {
+  .customer-info-table td {
+    padding: 6px 4px !important;
+    font-size: 0.82rem !important;
+  }
+  .customer-info-table td:first-child {
+    width: 35% !important;
+  }
+  .customer-info-table td:last-child {
+    width: 65% !important;
+  }
 }
 
 body.role-professional .modal.show .modal-dialog {
@@ -940,6 +992,11 @@ body.role-professional .modal-footer {
     min-width: 520px !important;
     width: 100% !important;
     margin-bottom: 0 !important;
+  }
+
+  body.role-professional.role-staff .customer-info-table {
+    min-width: 0 !important;
+    width: 100% !important;
   }
 
   body.role-professional.role-staff .table thead th {
