@@ -765,22 +765,26 @@
             }
 
             .action-btns {
-                flex-direction: column;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                gap: 4px !important;
             }
 
             .action-btns .btn-sm {
-                width: 100%;
+                width: auto !important;
                 text-align: center;
             }
 
             .table-container {
-                margin-left: -10px;
-                margin-right: -10px;
-                border-radius: 8px;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                border-radius: 20px !important;
+                padding: 12px 10px !important;
             }
 
             .main-content {
-                padding: 15px !important;
+                padding: 12px 10px 24px !important;
             }
         }
     </style>
