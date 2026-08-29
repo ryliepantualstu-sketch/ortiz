@@ -198,6 +198,45 @@ body.role-professional.role-admin .sidebar.show {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
+    padding: 16px 10px !important;
+  }
+
+  body.role-professional.role-admin .sidebar .brand {
+    padding: 10px 10px 14px !important;
+    margin-bottom: 8px !important;
+  }
+
+  body.role-professional.role-admin .sidebar .brand-badge {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.1rem !important;
+  }
+
+  body.role-professional.role-admin .sidebar .brand h1 {
+    font-size: 1.05rem !important;
+  }
+
+  body.role-professional.role-admin .sidebar .brand p {
+    font-size: 0.75rem !important;
+  }
+
+  body.role-professional.role-admin .sidebar .nav-list {
+    gap: 4px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.role-professional.role-admin .sidebar .nav-link {
+    padding: 9px 12px !important;
+    margin: 0 2px !important;
+    font-size: 0.84rem !important;
+    border-radius: 12px !important;
+    gap: 10px !important;
+  }
+
+  body.role-professional.role-admin .sidebar .nav-link i {
+    width: 18px !important;
+    font-size: 0.92rem !important;
   }
 
   body.role-professional.role-admin .sidebar.show {
