@@ -233,12 +233,65 @@ body.role-professional.role-admin .sidebar.show {
   body.role-professional.role-admin .table-container {
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 14px 12px !important;
+    overflow: hidden !important;
+    border-radius: 20px !important;
   }
 
-  body.role-professional.role-admin .table-container table {
-    min-width: 680px;
+  body.role-professional.role-admin .table-container .p-4,
+  body.role-professional.role-admin .table-container div.p-4 {
+    padding: 8px 6px !important;
+  }
+
+  body.role-professional.role-admin .table-container h5 {
+    font-size: 1.1rem !important;
+    margin-bottom: 10px !important;
+  }
+
+  body.role-professional.role-admin .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(23, 33, 33, 0.08) !important;
+    margin-top: 6px !important;
+    display: block !important;
+  }
+
+  body.role-professional.role-admin .table-container table,
+  body.role-professional.role-admin table {
+    min-width: 600px !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  body.role-professional.role-admin .table thead th {
+    padding: 10px 12px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+  }
+
+  body.role-professional.role-admin .table tbody td {
+    padding: 10px 12px !important;
+    font-size: 0.88rem !important;
+    white-space: nowrap !important;
+  }
+
+  body.role-professional.role-admin .action-btns {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    align-items: center !important;
+  }
+
+  body.role-professional.role-admin .action-btns .btn-sm {
+    width: auto !important;
+    padding: 4px 10px !important;
+    font-size: 0.78rem !important;
+    border-radius: 8px !important;
   }
 
   body.role-professional.role-admin .modal-dialog {
