@@ -1637,16 +1637,21 @@ body.customer-professional .modal-body table {
 
 body.customer-professional .modal-body .customer-info-table {
   width: 100% !important;
-  table-layout: fixed !important;
+  table-layout: auto !important;
 }
 
 body.customer-professional .modal-body .customer-info-table td:first-child {
-  width: 34% !important;
+  width: 1% !important;
+  white-space: nowrap !important;
+  padding-right: 16px !important;
+  text-align: left !important;
 }
 
 body.customer-professional .modal-body .customer-info-table td:last-child {
-  width: 66% !important;
-  overflow-wrap: anywhere !important;
+  width: auto !important;
+  white-space: normal !important;
+  text-align: right !important;
+  overflow-wrap: break-word !important;
 }
 
 body.customer-professional .modal-body table thead {

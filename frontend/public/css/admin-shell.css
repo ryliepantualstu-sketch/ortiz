@@ -309,6 +309,20 @@ body.role-professional.role-admin .sidebar.show {
   body.role-professional.role-admin .customer-info-table {
     min-width: 0 !important;
     width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  body.role-professional.role-admin .customer-info-table td:first-child {
+    width: 1% !important;
+    white-space: nowrap !important;
+    padding-right: 12px !important;
+    text-align: left !important;
+  }
+
+  body.role-professional.role-admin .customer-info-table td:last-child {
+    width: auto !important;
+    white-space: normal !important;
+    text-align: right !important;
   }
 
   body.role-professional.role-admin .table thead th {
