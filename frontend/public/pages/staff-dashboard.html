@@ -961,7 +961,7 @@
                     <div class="table-container mb-4">
                         <div class="p-4">
                             <h5 class="mb-1">Appointment QR Confirmation</h5>
-                            <p class="text-muted mb-3">Scan the appointment QR code with your camera or paste its payload below.</p>
+                            <p class="text-muted mb-3">Scan the appointment QR code with your camera to confirm.</p>
                             <div class="qr-camera-panel mb-3">
                                 <video id="qrVideo" class="qr-video" playsinline muted></video>
                                 <canvas id="qrCanvas" class="d-none"></canvas>
@@ -975,12 +975,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="input-group">
-                                <input type="text" id="qrCodeInput" class="form-control" placeholder="Paste scanned appointment QR payload">
-                                <button class="btn btn-primary" type="button" id="verifyQrButton" onclick="verifyAppointmentQr()">
-                                    <i class="fas fa-search"></i> Find Appointment
-                                </button>
-                            </div>
+                            <input type="hidden" id="qrCodeInput">
                             <div id="verificationResult" class="alert mt-3 mb-0 d-none"></div>
                             <div class="modal fade" id="verificationDetails" tabindex="-1" aria-labelledby="verificationDetailsLabel" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">

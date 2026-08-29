@@ -44,7 +44,7 @@ async function startQrScanner() {
         return;
     }
     if (typeof jsQR !== 'function') {
-        setQrCameraMessage('QR scanner library could not be loaded. Paste the QR payload instead.', 'danger');
+        setQrCameraMessage('QR scanner library could not be loaded.', 'danger');
         return;
     }
 
@@ -145,7 +145,7 @@ async function verifyAppointmentQr() {
     const qrCodeData = input?.value.trim();
 
     if (!qrCodeData) {
-        setVerificationResult('warning', 'Enter the scanned appointment QR payload first.');
+        setVerificationResult('warning', 'Scan an appointment QR code first.');
         return;
     }
 
