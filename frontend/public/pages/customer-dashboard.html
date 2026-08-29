@@ -1138,8 +1138,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
-            padding: 60px 32px;
+            justify-content: center;
+            gap: 16px;
+            padding: 48px 32px;
             text-align: center;
             border-radius: 24px;
             background: #fffdf8;
@@ -1147,9 +1148,43 @@
             color: var(--muted);
         }
 
-        .empty-cart i {
-            font-size: 3rem;
+        .empty-cart-icon i {
+            font-size: 3.2rem;
             color: #c4b89a;
+        }
+
+        .empty-cart-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .shop-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0d8f83 0%, #095f58 100%);
+            color: white !important;
+            border: none;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 14px rgba(13, 143, 131, 0.25);
+        }
+
+        .shop-btn i {
+            font-size: 1rem !important;
+            color: white !important;
+        }
+
+        .shop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(13, 143, 131, 0.35);
+            color: white !important;
         }
 
         @media (max-width: 1024px) {
@@ -2722,7 +2757,7 @@
                         </div>
                         <div class="empty-cart-text">Your cart is empty</div>
                         <button type="button" class="shop-btn border-0" onclick="loadSection('products')">
-                            <i class="fas fa-store"></i> Continue Shopping
+                            <i class="fas fa-store"></i> <span>Continue Shopping</span>
                         </button>
                     </div>
                 `;

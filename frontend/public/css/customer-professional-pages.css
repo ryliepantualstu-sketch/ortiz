@@ -774,10 +774,34 @@ body.customer-professional .shop-btn {
 
 body.customer-professional .btn-primary,
 body.customer-professional .btn-add-cart,
-body.customer-professional .checkout-btn {
+body.customer-professional .checkout-btn,
+body.customer-professional .shop-btn {
   background: linear-gradient(135deg, #0d8f83 0%, #095f58 100%) !important;
   color: white !important;
   border: none !important;
+}
+
+body.customer-professional .shop-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 12px 24px !important;
+  font-size: 0.95rem !important;
+  cursor: pointer;
+  transition: all 0.22s ease !important;
+  box-shadow: 0 4px 14px rgba(13, 143, 131, 0.25) !important;
+}
+
+body.customer-professional .shop-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(13, 143, 131, 0.35) !important;
+  color: white !important;
+}
+
+body.customer-professional .shop-btn i {
+  font-size: 1rem !important;
+  color: white !important;
 }
 
 body.customer-professional .btn-outline-secondary {
