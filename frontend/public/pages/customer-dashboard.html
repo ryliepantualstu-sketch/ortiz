@@ -1890,11 +1890,7 @@
                         <div id="appointmentQrMissing" class="alert alert-warning mb-0 d-none">This appointment does not have a QR code yet.</div>
                     </div>
                     <p class="mb-2"><strong>Confirmation Status:</strong> <span id="qrAppointmentVerification" class="badge bg-secondary">Pending</span></p>
-                    <div class="mt-3 text-start">
-                        <label for="qrAppointmentPayload" class="form-label fw-semibold small">Backup Confirmation Code</label>
-                        <textarea id="qrAppointmentPayload" class="form-control small rounded-3" rows="3" readonly style="font-size: 0.85rem; background: #f8fafc;"></textarea>
-                        <p class="text-muted mb-0 mt-1" style="font-size: 0.75rem;">Present this QR or code during your visit so clinic staff can confirm your appointment.</p>
-                    </div>
+                    <p class="text-muted mb-0 mt-3" style="font-size: 0.8rem;">Present this QR code during your visit so clinic staff can confirm your appointment.</p>
                 </div>
             </div>
         </div>
@@ -2942,7 +2938,10 @@
                 verEl.className = `badge ${appointment.qr_verified ? 'bg-success' : 'bg-secondary'}`;
             }
 
-            document.getElementById('qrAppointmentPayload').value = appointment.qr_payload || '';
+            const payloadEl = document.getElementById('qrAppointmentPayload');
+            if (payloadEl) {
+                payloadEl.value = appointment.qr_payload || '';
+            }
 
             const qrImage = document.getElementById('appointmentQrImage');
             const qrMissing = document.getElementById('appointmentQrMissing');
