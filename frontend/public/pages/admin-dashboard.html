@@ -841,10 +841,15 @@
     <!-- Top Navbar -->
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
-            <span class="navbar-brand">
-                <i class="fas fa-glasses"></i>
-                <span>Ortiz Optical</span>
-            </span>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn d-md-none mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="navbar-brand">
+                    <i class="fas fa-glasses"></i>
+                    <span>Ortiz Optical</span>
+                </span>
+            </div>
             <div class="navbar-right">
                 <span class="navbar-user-name" id="userName">Admin User</span>
                 <button class="btn btn-outline-light btn-sm navbar-logout" type="button" onclick="logout()">
@@ -884,12 +889,8 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div class="d-flex align-items-center justify-content-between" style="padding-bottom: 10px; gap: 12px;">
+                <div style="padding-bottom: 10px;">
                     <h2 class="mb-0" id="pageTitle" style="margin-bottom: 0;">Dashboard</h2>
-                    <button class="btn btn-secondary d-md-none mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle menu">
-                        <i class="fas fa-bars"></i>
-                        Menu
-                    </button>
                 </div>
 
                 <div id="content" style="flex: 1; overflow-y: auto;">
