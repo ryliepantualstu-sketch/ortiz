@@ -708,6 +708,172 @@ body.customer-professional #cartContent > .empty-cart {
   padding: 28px;
 }
 
+/* Shop Glasses Filter Section Styling */
+body.customer-professional .filter-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  padding: 22px 26px !important;
+  margin-bottom: 20px !important;
+}
+
+body.customer-professional .filter-title {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 2px !important;
+}
+
+body.customer-professional .filter-title i {
+  color: #0d8f83 !important;
+  font-size: 1.1rem !important;
+}
+
+body.customer-professional .shop-tools {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+body.customer-professional .shop-search {
+  position: relative !important;
+  flex: 1 1 280px !important;
+  min-width: 220px !important;
+}
+
+body.customer-professional .shop-search i {
+  position: absolute !important;
+  left: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #94a3b8 !important;
+  font-size: 0.95rem !important;
+  pointer-events: none !important;
+}
+
+body.customer-professional .shop-input {
+  width: 100% !important;
+  height: 46px !important;
+  padding: 10px 16px 10px 44px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  font-size: 0.92rem !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+body.customer-professional .shop-input:focus {
+  border-color: #0d8f83 !important;
+  box-shadow: 0 0 0 3px rgba(13, 143, 131, 0.15) !important;
+}
+
+body.customer-professional .shop-select {
+  height: 46px !important;
+  padding: 0 38px 0 16px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  font-size: 0.92rem !important;
+  background: #ffffff
+    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%3c94a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e")
+    no-repeat right 14px center/14px 14px !important;
+  color: #1e293b !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  font-weight: 600 !important;
+  flex: 0 0 auto !important;
+  min-width: 180px !important;
+  outline: none !important;
+}
+
+body.customer-professional .shop-select:focus {
+  border-color: #0d8f83 !important;
+  box-shadow: 0 0 0 3px rgba(13, 143, 131, 0.15) !important;
+}
+
+body.customer-professional .stock-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  padding: 0 16px !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  height: 46px !important;
+  margin: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+body.customer-professional .stock-toggle:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+body.customer-professional .stock-toggle input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  accent-color: #0d8f83 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+body.customer-professional .shop-tools .btn-outline-secondary {
+  height: 46px !important;
+  padding: 0 20px !important;
+  border-radius: 14px !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  background: #ffffff !important;
+  transition: all 0.2s ease !important;
+}
+
+body.customer-professional .shop-tools .btn-outline-secondary:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+@media (max-width: 768px) {
+  body.customer-professional .shop-tools {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  body.customer-professional .shop-search {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+  body.customer-professional .shop-select {
+    width: 100% !important;
+  }
+  body.customer-professional .stock-toggle {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  body.customer-professional .shop-tools .btn-outline-secondary {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+}
+
 body.customer-professional .table-responsive {
   border-radius: 22px;
   overflow: hidden;
