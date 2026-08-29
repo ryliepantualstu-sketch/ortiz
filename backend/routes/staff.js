@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
+const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
 
 function normalizeAppointmentDate(value) {
@@ -325,6 +326,21 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 
     await appointment.update(updates);
 
+    try {
+      const customerRecord = await Customer.findByPk(appointment.customer_id, {
+        include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }]
+      });
+      if (customerRecord && customerRecord.User) {
+        notifyAppointmentUpdate({
+          user: customerRecord.User,
+          appointment,
+          action: status || 'updated'
+        }).catch(e => console.error(e));
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send appointment notification:', notifErr.message);
+    }
+
     res.json({
       success: true,
       message: 'Appointment updated successfully',
@@ -422,6 +438,21 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
     }
 
     await order.update({ status });
+
+    try {
+      const customerRecord = await Customer.findByPk(order.customer_id, {
+        include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }]
+      });
+      if (customerRecord && customerRecord.User) {
+        notifyOrderUpdate({
+          user: customerRecord.User,
+          order,
+          status
+        }).catch(e => console.error(e));
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send order notification:', notifErr.message);
+    }
 
     res.json({
       success: true,

@@ -15,6 +15,7 @@ const Holiday = require('../models/Holiday');
 const BlockedSlot = require('../models/BlockedSlot');
 const { isTimeWithinSchedule, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
+const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
 
 // Utility function to get the correct price based on lens option
@@ -684,6 +685,12 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
       console.error('QR generation failed for appointment', qrError && qrError.message);
     }
 
+    notifyAppointmentUpdate({
+      user,
+      appointment,
+      action: 'booked (pending confirmation)'
+    }).catch(e => console.error('Notification error:', e && e.message));
+
     res.status(201).json({
       success: true,
       message: 'Appointment booked successfully',
@@ -880,6 +887,12 @@ router.put('/appointments/:id', authMiddleware, requireRole('customer'), async (
 
     const [appointmentWithQr] = await attachAppointmentQrDetails([appointment]);
 
+    notifyAppointmentUpdate({
+      user,
+      appointment,
+      action: 'rescheduled / updated'
+    }).catch(e => console.error('Notification error:', e && e.message));
+
     res.json({
       success: true,
       message: 'Appointment updated successfully',
@@ -938,6 +951,12 @@ router.patch('/appointments/:id/cancel', authMiddleware, requireRole('customer')
     }
 
     await appointment.update({ status: 'cancelled' });
+
+    notifyAppointmentUpdate({
+      user: { full_name: req.user.full_name, email: req.user.email, phone: req.user.phone },
+      appointment,
+      action: 'cancelled'
+    }).catch(e => console.error('Notification error:', e && e.message));
 
     res.json({
       success: true,
@@ -1033,6 +1052,12 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
 
     // Clear cart
     await Cart.destroy({ where: { customer_id: customer.customer_id } });
+
+    notifyOrderUpdate({
+      user,
+      order,
+      status: 'placed'
+    }).catch(e => console.error('Notification error:', e && e.message));
 
     res.status(201).json({
       success: true,
