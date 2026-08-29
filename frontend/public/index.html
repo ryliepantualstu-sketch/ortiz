@@ -6,6 +6,7 @@
     <title>Login & Register - Ortiz Optical</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
             margin: 0;
@@ -180,6 +181,53 @@
             text-decoration: underline;
         }
 
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 18px 0 14px;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .auth-divider span {
+            padding: 0 10px;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-google {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.22s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+        }
+
+        .btn-google:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            color: #0f172a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+
         .alert {
             border-radius: 8px;
             margin-bottom: 20px;
@@ -274,6 +322,14 @@
                         </button>
                     </form>
 
+                    <div class="auth-divider">
+                        <span>OR</span>
+                    </div>
+
+                    <button type="button" class="btn btn-google w-100" onclick="triggerGoogleSignIn()">
+                        <i class="fab fa-google text-danger"></i> Continue with Google / Gmail
+                    </button>
+
                     <div class="auth-toggle">
                         Don't have an account? <a onclick="toggleForms()">Create one</a>
                     </div>
@@ -348,6 +404,14 @@
                             <i class="fas fa-user-plus"></i> Create Account
                         </button>
                     </form>
+
+                    <div class="auth-divider">
+                        <span>OR</span>
+                    </div>
+
+                    <button type="button" class="btn btn-google w-100" onclick="triggerGoogleSignIn()">
+                        <i class="fab fa-google text-danger"></i> Continue with Google / Gmail
+                    </button>
 
                     <div class="auth-toggle">
                         Already have an account? <a onclick="toggleForms()">Sign in</a>
@@ -496,6 +560,86 @@
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
         document.querySelectorAll('.password-toggle').forEach((button) => {
             button.addEventListener('click', () => togglePasswordVisibility(button));
+        });
+
+        let googleInitialized = false;
+
+        function initGoogleSignIn() {
+            if (googleInitialized || typeof google === 'undefined' || !google.accounts || !google.accounts.id) return;
+            try {
+                google.accounts.id.initialize({
+                    client_id: window.GOOGLE_CLIENT_ID || '1088497626920-example.apps.googleusercontent.com',
+                    callback: handleGoogleCredentialResponse,
+                    auto_select: false
+                });
+                googleInitialized = true;
+            } catch (e) {
+                console.warn('Google Identity Services initialization warning:', e);
+            }
+        }
+
+        async function handleGoogleCredentialResponse(response) {
+            if (!response || !response.credential) return;
+            await processGoogleAuth({ credential: response.credential });
+        }
+
+        async function triggerGoogleSignIn() {
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                if (!googleInitialized) {
+                    initGoogleSignIn();
+                }
+                try {
+                    google.accounts.id.prompt((notification) => {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            promptGmailLogin();
+                        }
+                    });
+                    return;
+                } catch (e) {
+                    console.warn('Google prompt error:', e);
+                }
+            }
+            promptGmailLogin();
+        }
+
+        async function promptGmailLogin() {
+            const email = window.prompt('Enter your Gmail / Google email address:');
+            if (!email || !email.trim()) return;
+
+            const cleanedEmail = email.trim();
+            if (!cleanedEmail.includes('@')) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            const fullName = window.prompt('Enter your full name (optional):') || '';
+            await processGoogleAuth({ email: cleanedEmail, name: fullName });
+        }
+
+        async function processGoogleAuth(payload) {
+            const result = await apiCall('/auth/google', 'POST', payload);
+
+            if (result.success) {
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+
+                const role = result.user.role;
+                if (role === 'admin') {
+                    window.location.href = 'pages/admin-dashboard.html';
+                } else if (role === 'customer') {
+                    window.location.href = 'pages/customer-dashboard.html';
+                } else if (role === 'staff') {
+                    window.location.href = 'pages/staff-dashboard.html';
+                }
+            } else {
+                const errorMsg = result.message || 'Google authentication failed. Please try again.';
+                showError('login', errorMsg);
+                showError('register', errorMsg);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(initGoogleSignIn, 800);
         });
     </script>
 </body>

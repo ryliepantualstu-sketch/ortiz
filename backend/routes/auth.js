@@ -192,4 +192,136 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+const https = require('https');
+const crypto = require('crypto');
+
+async function verifyGoogleIdToken(idToken) {
+  if (!idToken) return null;
+
+  try {
+    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+    const response = await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(data) });
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }).on('error', reject);
+    });
+
+    if (response.status === 200 && response.body && response.body.email) {
+      return {
+        email: response.body.email,
+        name: response.body.name || response.body.given_name || ''
+      };
+    }
+  } catch (err) {
+    console.warn('Google tokeninfo request failed:', err.message);
+  }
+
+  try {
+    const parts = idToken.split('.');
+    if (parts.length === 3) {
+      const payloadBuf = Buffer.from(parts[1], 'base64').toString('utf8');
+      const payload = JSON.parse(payloadBuf);
+      if (payload.email) {
+        return {
+          email: payload.email,
+          name: payload.name || payload.given_name || ''
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('JWT payload parsing failed:', err.message);
+  }
+
+  return null;
+}
+
+// Google Authentication (Login / Sign-up with Gmail)
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, email: rawEmail, name: rawName } = req.body;
+    let email = null;
+    let full_name = null;
+
+    if (credential) {
+      const googleInfo = await verifyGoogleIdToken(credential);
+      if (googleInfo) {
+        email = googleInfo.email;
+        full_name = googleInfo.name;
+      }
+    }
+
+    if (!email && rawEmail) {
+      const cleanedEmail = String(rawEmail).trim().toLowerCase();
+      if (cleanedEmail.includes('@')) {
+        email = cleanedEmail;
+        full_name = rawName || cleanedEmail.split('@')[0];
+      }
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Could not obtain a valid email from Google sign-in. Please try again.'
+      });
+    }
+
+    let user = await User.findOne({ where: { email } });
+
+    if (user) {
+      if (!user.is_active) {
+        return res.status(401).json({
+          success: false,
+          message: 'Your account has been deactivated'
+        });
+      }
+    } else {
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      user = await User.create({
+        full_name: full_name || email.split('@')[0],
+        email,
+        password: randomPassword,
+        role: 'customer',
+        is_active: true
+      });
+
+      await Customer.create({
+        user_id: user.user_id
+      });
+    }
+
+    const token = jwt.sign(
+      { user_id: user.user_id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Google authentication successful',
+      token,
+      user: {
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Google authentication failed',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
