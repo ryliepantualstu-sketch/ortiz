@@ -177,11 +177,19 @@ async function notifyAppointmentUpdate({ user, appointment, action }) {
   `;
 
   if (email) {
-    sendEmailNotification({ to: email, subject, html: emailHtml }).catch(e => console.error(e));
+    const emailResult = await sendEmailNotification({ to: email, subject, html: emailHtml });
+    if (!emailResult.success) {
+      console.error(`[APPOINTMENT EMAIL FAILED] To: ${email} | Reason: ${emailResult.error || emailResult.reason || 'Unknown error'}`);
+    }
+  } else {
+    console.warn('[APPOINTMENT EMAIL SKIPPED] Customer has no email address');
   }
+
   if (phone) {
-    sendSMSNotification({ to: phone, message: smsText }).catch(e => console.error(e));
+    await sendSMSNotification({ to: phone, message: smsText });
   }
+
+  return { email, phone };
 }
 
 /**
