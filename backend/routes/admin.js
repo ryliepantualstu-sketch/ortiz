@@ -91,6 +91,38 @@ async function persistProductImage(imageData, originalFileName) {
   return `${PRODUCT_IMAGE_URL_PREFIX}/${fileName}`;
 }
 
+async function persistProductImages(imageDataList, imageNameList) {
+  const imageDataItems = Array.isArray(imageDataList) ? imageDataList : [];
+  if (imageDataItems.length > 10) {
+    throw new Error('A product can have up to 10 images');
+  }
+
+  const imageUrls = [];
+  for (let index = 0; index < imageDataItems.length; index += 1) {
+    imageUrls.push(await persistProductImage(imageDataItems[index], imageNameList?.[index]));
+  }
+  return imageUrls;
+}
+
+function parseProductImageUrls(imageUrls, imageUrl) {
+  let parsed = [];
+  if (imageUrls) {
+    try {
+      parsed = JSON.parse(imageUrls);
+    } catch (error) {
+      parsed = [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    parsed = [];
+  }
+  if (imageUrl && !parsed.includes(imageUrl)) {
+    parsed.unshift(imageUrl);
+  }
+  return parsed.slice(0, 10);
+}
+
 // Public: Get all active products (available to all authenticated users)
 router.get('/products/view/all', authMiddleware, async (req, res) => {
   try {
@@ -468,7 +500,7 @@ router.get('/products', authMiddleware, requireRole('admin'), async (req, res) =
 // Create product
 router.post('/products', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const { product_name, category, description, frame_material, lens_type, frame_shape, color_name, color_hex, color_int, price, frame_only_price, regular_lens_price, photochromic_price, stock_quantity, min_stock_level, supplier, image_data, image_name } = req.body;
+    const { product_name, category, description, frame_material, lens_type, frame_shape, color_name, color_hex, color_int, price, frame_only_price, regular_lens_price, photochromic_price, stock_quantity, min_stock_level, supplier, image_data, image_name, image_data_list, image_name_list } = req.body;
     const colorInt = color_int != null && color_int !== '' ? Number(color_int) : null;
     const trimmedColorHex = color_hex ? String(color_hex).trim() : null;
     const normalizedColorHex = trimmedColorHex ? trimmedColorHex.replace(/^#/, '').toUpperCase() : null;
@@ -520,14 +552,22 @@ router.post('/products', authMiddleware, requireRole('admin'), async (req, res) 
       stock_quantity,
       min_stock_level,
       supplier,
-      image_url: null
+      image_url: null,
+      image_urls: null
     });
 
     let image_url = null;
-    if (image_data) {
+    const imageDataItems = Array.isArray(image_data_list) && image_data_list.length
+      ? image_data_list
+      : (image_data ? [image_data] : []);
+    const imageNameItems = Array.isArray(image_name_list) && image_name_list.length
+      ? image_name_list
+      : (image_name ? [image_name] : []);
+    if (imageDataItems.length) {
       try {
-        image_url = await persistProductImage(image_data, image_name);
-        await product.update({ image_url });
+        const imageUrls = await persistProductImages(imageDataItems, imageNameItems);
+        image_url = imageUrls[0] || null;
+        await product.update({ image_url, image_urls: JSON.stringify(imageUrls) });
       } catch (imageError) {
         console.error('Image persistence failed:', imageError);
         // Product created without image, continue
@@ -569,14 +609,24 @@ router.put('/products/:id', authMiddleware, requireRole('admin'), async (req, re
       });
     }
 
-    if (updates.image_data) {
-      const image_url = await persistProductImage(updates.image_data, updates.image_name);
-      await removeManagedProductImage(product.image_url);
-      updates.image_url = image_url;
+    const imageDataItems = Array.isArray(updates.image_data_list) && updates.image_data_list.length
+      ? updates.image_data_list
+      : (updates.image_data ? [updates.image_data] : []);
+    if (imageDataItems.length) {
+      const imageNameItems = Array.isArray(updates.image_name_list) && updates.image_name_list.length
+        ? updates.image_name_list
+        : (updates.image_name ? [updates.image_name] : []);
+      const imageUrls = await persistProductImages(imageDataItems, imageNameItems);
+      const previousImageUrls = parseProductImageUrls(product.image_urls, product.image_url);
+      await Promise.all(previousImageUrls.map(removeManagedProductImage));
+      updates.image_url = imageUrls[0] || null;
+      updates.image_urls = JSON.stringify(imageUrls);
     }
 
     delete updates.image_data;
     delete updates.image_name;
+    delete updates.image_data_list;
+    delete updates.image_name_list;
 
     // Log stock changes if stock_quantity is being updated
     if (updates.stock_quantity !== undefined && updates.stock_quantity !== product.stock_quantity) {
@@ -676,8 +726,8 @@ router.delete('/products/:id', authMiddleware, requireRole('admin'), async (req,
       where: { product_id: productId }
     });
 
-    // Remove product image
-    await removeManagedProductImage(product.image_url);
+    // Remove all product images
+    await Promise.all(parseProductImageUrls(product.image_urls, product.image_url).map(removeManagedProductImage));
 
     // Delete the product
     await product.destroy();
@@ -1481,7 +1531,7 @@ router.delete('/archived/:id', authMiddleware, requireRole('admin'), async (req,
       await StockAuditLog.destroy({ where: { product_id: productId } });
       await Cart.destroy({ where: { product_id: productId } });
       await OrderItem.destroy({ where: { product_id: productId } });
-      await removeManagedProductImage(product.image_url);
+      await Promise.all(parseProductImageUrls(product.image_urls, product.image_url).map(removeManagedProductImage));
       await product.destroy();
 
       return res.json({ success: true, message: 'Archived product deleted permanently' });

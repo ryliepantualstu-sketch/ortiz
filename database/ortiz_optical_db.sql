@@ -64,6 +64,7 @@ CREATE TABLE products (
     photochromic_price DECIMAL(10, 2),
     supplier VARCHAR(100),
     image_url VARCHAR(255),
+    image_urls LONGTEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

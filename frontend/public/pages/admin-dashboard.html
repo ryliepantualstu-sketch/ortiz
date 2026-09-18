@@ -1689,13 +1689,13 @@
                         </div>
                         <button type="button" class="btn btn-outline-secondary w-100 mb-3" onclick="fillExampleProduct()">Use Example Product</button>
                         <div class="mb-3">
-                            <label class="form-label">Product Picture</label>
-                            <input type="file" class="form-control" id="productImage" accept="image/png,image/jpeg,image/webp,image/gif">
-                            <div class="form-text">Upload JPG, PNG, WEBP, or GIF up to 5MB.</div>
+                            <label class="form-label">Product Pictures</label>
+                            <input type="file" class="form-control" id="productImage" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+                            <div class="form-text">Upload 1 to 10 JPG, PNG, WEBP, or GIF images. Each image must be up to 5MB.</div>
                         </div>
                         <div class="mb-3 d-none" id="productImagePreviewWrapper">
                             <label class="form-label">Preview</label>
-                            <img id="productImagePreview" alt="Product preview" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid #dee2e6; background: #f8f9fa;">
+                            <div id="productImagePreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px;"></div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100" id="productSubmitButton">Create Product</button>
                     </form>
@@ -1911,17 +1911,34 @@
             return `../${imageUrl.replace(/^\/+/, '')}`;
         }
 
-        function setProductImagePreview(imageUrl) {
+        function getProductImageUrls(product) {
+            let imageUrls = [];
+            if (product?.image_urls) {
+                try {
+                    imageUrls = Array.isArray(product.image_urls) ? product.image_urls : JSON.parse(product.image_urls);
+                } catch (error) {
+                    imageUrls = [];
+                }
+            }
+            if (!Array.isArray(imageUrls)) imageUrls = [];
+            if (product?.image_url && !imageUrls.includes(product.image_url)) imageUrls.unshift(product.image_url);
+            return imageUrls.filter(Boolean).slice(0, 10);
+        }
+
+        function setProductImagePreview(imageUrls) {
             const wrapper = document.getElementById('productImagePreviewWrapper');
             const image = document.getElementById('productImagePreview');
+            const urls = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
 
-            if (!imageUrl) {
-                image.removeAttribute('src');
+            if (!urls.length) {
+                image.innerHTML = '';
                 wrapper.classList.add('d-none');
                 return;
             }
 
-            image.src = resolveProductImageSrc(imageUrl);
+            image.innerHTML = urls.map((imageUrl) => `
+                <img src="${resolveProductImageSrc(imageUrl)}" alt="Product preview" style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; background: #f8f9fa;">
+            `).join('');
             wrapper.classList.remove('d-none');
         }
 
@@ -2061,7 +2078,7 @@
                 document.getElementById('productStockReason').value = '';
             }
             
-            setProductImagePreview(product?.image_url || '');
+            setProductImagePreview(getProductImageUrls(product));
 
             productModalInstance.show();
         }
@@ -2162,7 +2179,7 @@ This will deactivate the account and keep the user record for history.`)) {
 
             try {
                 const productId = document.getElementById('productId').value;
-                const productImageFile = document.getElementById('productImage').files[0];
+                const productImageFiles = Array.from(document.getElementById('productImage').files || []);
                 const colorNameValue = document.getElementById('productColorName').value.trim();
                 const colorHexValue = document.getElementById('productColorHex').value.trim();
                 const normalizedColorHex = colorHexValue ? colorHexValue.replace(/^#/, '').toUpperCase() : '';
@@ -2207,11 +2224,15 @@ This will deactivate the account and keep the user record for history.`)) {
                     return;
                 }
 
-                if (productImageFile) {
-                    console.log('Reading product image file:', productImageFile.name);
+                if (productImageFiles.length > 10) {
+                    alert('You can upload up to 10 product images.');
+                    return;
+                }
+
+                if (productImageFiles.length) {
                     try {
-                        payload.image_name = productImageFile.name;
-                        payload.image_data = await readProductImageFile(productImageFile);
+                        payload.image_name_list = productImageFiles.map((file) => file.name);
+                        payload.image_data_list = await Promise.all(productImageFiles.map(readProductImageFile));
                         console.log('Image data loaded successfully');
                     } catch (imageError) {
                         console.error('Image read error:', imageError);
@@ -3083,20 +3104,27 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('userForm').addEventListener('submit', submitUserForm);
             document.getElementById('productForm').addEventListener('submit', submitProductForm);
             document.getElementById('productImage').addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (!file) {
+                const files = Array.from(event.target.files || []);
+                if (!files.length) {
                     const currentProduct = adminProducts.find((entry) => String(entry.product_id) === document.getElementById('productId').value);
-                    setProductImagePreview(currentProduct?.image_url || '');
+                    setProductImagePreview(getProductImageUrls(currentProduct));
                     return;
                 }
 
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Product image must be 5MB or smaller.');
+                if (files.length > 10) {
+                    alert('You can upload up to 10 product images.');
                     event.target.value = '';
                     return;
                 }
 
-                const imageData = await readProductImageFile(file);
+                const oversizedFile = files.find((file) => file.size > 5 * 1024 * 1024);
+                if (oversizedFile) {
+                    alert(`${oversizedFile.name} is larger than 5MB.`);
+                    event.target.value = '';
+                    return;
+                }
+
+                const imageData = await Promise.all(files.map(readProductImageFile));
                 setProductImagePreview(imageData);
             });
             loadUserInfo();

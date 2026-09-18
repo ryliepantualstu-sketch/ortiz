@@ -75,6 +75,10 @@ const Product = sequelize.define('Product', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
+  image_urls: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true
+  },
   is_active: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

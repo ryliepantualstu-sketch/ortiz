@@ -13,8 +13,8 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '80mb' }));
+app.use(bodyParser.urlencoded({ limit: '80mb', extended: true }));
 app.use(express.static(path.resolve(__dirname, '../frontend/public')));
 
 // Initialize database and models
@@ -278,6 +278,10 @@ const ensureSchemaColumns = async () => {
       defaultValue: false
     });
     await addColumnIfMissing('customers', 'discount_card_image_url', {
+      type: DataTypes.TEXT('long'),
+      allowNull: true
+    });
+    await addColumnIfMissing('products', 'image_urls', {
       type: DataTypes.TEXT('long'),
       allowNull: true
     });

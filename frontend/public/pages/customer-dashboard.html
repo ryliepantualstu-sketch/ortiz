@@ -2374,8 +2374,22 @@
             return 'fa-glasses';
         }
 
+        function getProductImageUrls(product) {
+            let imageUrls = [];
+            if (product?.image_urls) {
+                try {
+                    imageUrls = Array.isArray(product.image_urls) ? product.image_urls : JSON.parse(product.image_urls);
+                } catch (error) {
+                    imageUrls = [];
+                }
+            }
+            if (!Array.isArray(imageUrls)) imageUrls = [];
+            if (product?.image_url && !imageUrls.includes(product.image_url)) imageUrls.unshift(product.image_url);
+            return imageUrls.filter(Boolean).slice(0, 10);
+        }
+
         function getProductImageSrc(product) {
-            const imageUrl = product?.image_url?.toString().trim();
+            const imageUrl = getProductImageUrls(product)[0]?.toString().trim();
             if (!imageUrl) return '';
             if (/^(?:https?:|data:|blob:)/i.test(imageUrl)) return imageUrl;
             const normalizedPath = imageUrl.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -2391,6 +2405,36 @@
                 return `<i class="fas ${getProductIcon(product)}"></i>`;
             }
             return `<img src="${imageSrc}" alt="${product.product_name}">`;
+        }
+
+        function renderProductModalGallery(product, activeIndex = 0) {
+            const imageUrls = getProductImageUrls(product);
+            const gallery = document.getElementById('modalProductIcon');
+            if (!imageUrls.length) {
+                gallery.innerHTML = `<i class="fas ${getProductIcon(product)} fa-3x text-muted"></i>`;
+                return;
+            }
+
+            const safeIndex = Math.min(activeIndex, imageUrls.length - 1);
+            const activeImage = getProductImageSrc({ image_url: imageUrls[safeIndex] });
+            gallery.innerHTML = `
+                <div style="width: 100%;">
+                    <img src="${activeImage}" alt="${product.product_name}" style="width: 100%; height: 220px; object-fit: contain; border-radius: 12px; background: #f8fafc;">
+                    ${imageUrls.length > 1 ? `<div style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; justify-content: center;">
+                        ${imageUrls.map((imageUrl, index) => `
+                            <button type="button" onclick="selectModalProductImage(${index})" style="border: ${index === safeIndex ? '2px solid #0d6efd' : '1px solid #dbe3ef'}; padding: 2px; border-radius: 8px; background: #fff; flex: 0 0 52px;">
+                                <img src="${getProductImageSrc({ image_url: imageUrl })}" alt="Product image ${index + 1}" style="width: 46px; height: 46px; object-fit: cover; border-radius: 6px;">
+                            </button>
+                        `).join('')}
+                    </div>` : ''}
+                </div>
+            `;
+        }
+
+        function selectModalProductImage(index) {
+            if (currentModalProduct) {
+                renderProductModalGallery(currentModalProduct, index);
+            }
         }
 
         async function fetchProductDetails(productId) {
@@ -2665,7 +2709,7 @@
             document.getElementById('modalProductDescription').textContent = getProductDescription(product);
             document.getElementById('modalProductStock').textContent = `${getStockLabel(product)} (${product.stock_quantity} available)`;
             document.getElementById('modalProductSupplier').textContent = product.supplier || 'Ortiz Optical';
-            document.getElementById('modalProductIcon').innerHTML = getProductImageMarkup(product);
+            renderProductModalGallery(product);
             document.getElementById('modalProductTags').innerHTML = `
                 <span class="product-tag">${product.supplier || 'Ortiz Optical'}</span>
                 <span class="product-tag">${product.category}</span>
