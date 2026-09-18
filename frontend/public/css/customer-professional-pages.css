@@ -1157,6 +1157,10 @@ body.customer-professional .modal {
   backdrop-filter: none !important;
 }
 
+body.customer-professional .modal::before {
+  display: none !important;
+}
+
 body.customer-professional .modal.show,
 body.customer-professional .modal.fade.show {
   pointer-events: auto !important;
@@ -1212,7 +1216,7 @@ body.customer-professional #profileModal .modal-content {
 
 body.customer-professional > .modal-backdrop {
   z-index: 2147483645 !important;
-  background-color: rgba(14, 25, 48, 0.42) !important;
+  background-color: rgba(14, 25, 48, 0.28) !important;
   filter: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
