@@ -46,6 +46,53 @@ async function sendEmailNotification({ to, subject, html, text }) {
   if (!to) return { success: false, reason: 'No recipient email' };
 
   try {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM;
+    if (resendApiKey && resendFrom) {
+      const response = await new Promise((resolve, reject) => {
+        const payload = JSON.stringify({
+          from: resendFrom,
+          to: [to],
+          subject,
+          text: text || html.replace(/<[^>]*>?/gm, ''),
+          html
+        });
+        const request = https.request({
+          hostname: 'api.resend.com',
+          path: '/emails',
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload)
+          },
+          timeout: 15000
+        }, (res) => {
+          let responseBody = '';
+          res.on('data', (chunk) => { responseBody += chunk; });
+          res.on('end', () => resolve({ statusCode: res.statusCode, body: responseBody }));
+        });
+        request.on('timeout', () => request.destroy(new Error('Resend connection timeout')));
+        request.on('error', reject);
+        request.write(payload);
+        request.end();
+      });
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        let errorMessage = response.body;
+        try {
+          errorMessage = JSON.parse(response.body).message || errorMessage;
+        } catch (error) {
+          // Keep the raw response when the provider does not return JSON.
+        }
+        return { success: false, error: `Resend ${response.statusCode}: ${errorMessage}` };
+      }
+
+      const result = JSON.parse(response.body);
+      console.log(`[EMAIL SENT VIA RESEND] MessageId: ${result.id} to ${to}`);
+      return { success: true, messageId: result.id, provider: 'resend' };
+    }
+
     const transporter = await createEmailTransporter();
     if (!transporter) {
       console.log(`[EMAIL SIMULATION] To: ${to} | Subject: ${subject}`);
