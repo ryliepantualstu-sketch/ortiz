@@ -280,6 +280,16 @@ router.post('/appointments/verify', authMiddleware, requireRole('staff', 'admin'
       scanned_by: req.user.user_id
     });
 
+    if (appointment.Customer && appointment.Customer.User) {
+      notifyAppointmentUpdate({
+        user: appointment.Customer.User,
+        appointment,
+        action: 'confirmed'
+      }).catch((notificationError) => {
+        console.error('Failed to send appointment confirmation notification:', notificationError);
+      });
+    }
+
     res.json({
       success: true,
       message: 'Appointment confirmed successfully',
