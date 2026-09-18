@@ -15,6 +15,7 @@ function createEmailTransporter() {
     port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === 'true',
     requireTLS: true,
+    family: 4,
     auth: {
       user: user,
       pass: pass
