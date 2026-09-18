@@ -68,6 +68,13 @@ function confirmLogout(redirectUrl = '../index.html') {
     const confirmButton = modalEl.querySelector('#logoutConfirmButton');
     confirmButton.dataset.redirectUrl = redirectUrl;
 
+    const modalDialogElement = modalEl.querySelector('.modal-dialog');
+    if (modalDialogElement) {
+        modalDialogElement.style.setProperty('width', 'calc(100% - 2rem)', 'important');
+        modalDialogElement.style.setProperty('max-width', '500px', 'important');
+        modalDialogElement.style.setProperty('margin', '1.75rem auto', 'important');
+    }
+
     document.body.appendChild(modalEl);
     modalEl.style.zIndex = '2147483647';
     modalEl.style.position = 'fixed';

@@ -614,6 +614,12 @@ body.role-professional .modal-dialog.modal-xl {
   max-width: 1080px !important;
 }
 
+body.role-professional #logoutConfirmModal .modal-dialog {
+  width: calc(100% - 2rem) !important;
+  max-width: 500px !important;
+  margin: 1.75rem auto !important;
+}
+
 /* Customer Info Modal Table */
 .customer-info-table {
   width: 100% !important;
