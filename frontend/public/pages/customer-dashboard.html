@@ -2418,8 +2418,16 @@
             const safeIndex = Math.min(activeIndex, imageUrls.length - 1);
             const activeImage = getProductImageSrc({ image_url: imageUrls[safeIndex] });
             gallery.innerHTML = `
-                <div style="width: 100%;">
-                    <img src="${activeImage}" alt="${product.product_name}" style="width: 100%; height: 220px; object-fit: contain; border-radius: 12px; background: #f8fafc;">
+                <div style="width: 100%; position: relative;">
+                    <img src="${activeImage}" alt="${product.product_name}" data-image-index="${safeIndex}" style="width: 100%; height: 220px; object-fit: contain; border-radius: 12px; background: #f8fafc;">
+                    ${imageUrls.length > 1 ? `
+                        <button type="button" onclick="changeModalProductImage(-1)" aria-label="View previous product image" style="position: absolute; left: 8px; top: 94px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(20, 33, 56, 0.82); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button type="button" onclick="changeModalProductImage(1)" aria-label="View next product image" style="position: absolute; right: 8px; top: 94px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(20, 33, 56, 0.82); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    ` : ''}
                     ${imageUrls.length > 1 ? `<div style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; justify-content: center;">
                         ${imageUrls.map((imageUrl, index) => `
                             <button type="button" onclick="selectModalProductImage(${index})" style="border: ${index === safeIndex ? '2px solid #0d6efd' : '1px solid #dbe3ef'}; padding: 2px; border-radius: 8px; background: #fff; flex: 0 0 52px;">
@@ -2435,6 +2443,17 @@
             if (currentModalProduct) {
                 renderProductModalGallery(currentModalProduct, index);
             }
+        }
+
+        function changeModalProductImage(direction) {
+            if (!currentModalProduct) return;
+            const imageCount = getProductImageUrls(currentModalProduct).length;
+            if (imageCount < 2) return;
+
+            const activeImage = document.querySelector('#modalProductIcon img[data-image-index]');
+            const currentIndex = activeImage ? Number(activeImage.dataset.imageIndex || 0) : 0;
+            const nextIndex = (currentIndex + direction + imageCount) % imageCount;
+            renderProductModalGallery(currentModalProduct, nextIndex);
         }
 
         async function fetchProductDetails(productId) {
