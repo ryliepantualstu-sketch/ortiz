@@ -1,8 +1,10 @@
 const nodemailer = require('nodemailer');
 const https = require('https');
+const dns = require('dns').promises;
+const net = require('net');
 
 // Initialize Nodemailer transporter for Gmail / SMTP
-function createEmailTransporter() {
+async function createEmailTransporter() {
   const user = process.env.GMAIL_USER || process.env.SMTP_USER;
   const pass = process.env.GMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
 
@@ -10,8 +12,19 @@ function createEmailTransporter() {
     return null;
   }
 
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  let smtpAddress = smtpHost;
+  if (!net.isIP(smtpHost)) {
+    try {
+      const resolved = await dns.lookup(smtpHost, { family: 4 });
+      smtpAddress = resolved.address;
+    } catch (error) {
+      console.warn(`[EMAIL DNS WARNING] Could not resolve ${smtpHost} over IPv4: ${error.message}`);
+    }
+  }
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: smtpAddress,
     port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === 'true',
     requireTLS: true,
@@ -33,7 +46,7 @@ async function sendEmailNotification({ to, subject, html, text }) {
   if (!to) return { success: false, reason: 'No recipient email' };
 
   try {
-    const transporter = createEmailTransporter();
+    const transporter = await createEmailTransporter();
     if (!transporter) {
       console.log(`[EMAIL SIMULATION] To: ${to} | Subject: ${subject}`);
       return { success: true, simulated: true };
