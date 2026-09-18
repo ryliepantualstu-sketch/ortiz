@@ -2375,9 +2375,14 @@
         }
 
         function getProductImageSrc(product) {
-            if (!product?.image_url) return '';
-            if (/^(?:https?:|data:)/i.test(product.image_url)) return product.image_url;
-            return `../${product.image_url.replace(/^\/+/, '')}`;
+            const imageUrl = product?.image_url?.toString().trim();
+            if (!imageUrl) return '';
+            if (/^(?:https?:|data:|blob:)/i.test(imageUrl)) return imageUrl;
+            const normalizedPath = imageUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+            const imageOrigin = typeof API_URL === 'string'
+                ? API_URL.replace(/\/api\/?$/, '')
+                : window.location.origin;
+            return `${imageOrigin}/${normalizedPath}`;
         }
 
         function getProductImageMarkup(product) {
