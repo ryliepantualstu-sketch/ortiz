@@ -51,6 +51,17 @@ function parseTimeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
+function isAppointmentSlotInPast(date, time, now = new Date()) {
+  const appointmentDate = normalizeAppointmentDate(date);
+  const appointmentMinutes = parseTimeToMinutes(time);
+  if (!appointmentDate || appointmentMinutes === null || Number.isNaN(now.getTime())) {
+    return false;
+  }
+
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return appointmentDate === today && appointmentMinutes <= (now.getHours() * 60) + now.getMinutes();
+}
+
 function formatMinutesToTime(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -109,11 +120,14 @@ function buildAppointmentSlotList(date, schedule, blockedSlots = [], existingApp
       return appointmentDate === normalizeAppointmentDate(date) && appointmentTime === startTime;
     });
 
-    const available = !isBlocked && !isBooked;
+    const isPast = isAppointmentSlotInPast(date, startTime);
+    const available = !isBlocked && !isBooked && !isPast;
     let reason = null;
     if (!available) {
       if (isBooked) {
         reason = 'Booked';
+      } else if (isPast) {
+        reason = 'Past time';
       } else if (DEFAULT_LUNCH_BREAKS.some((blockedSlot) => {
         const blockStart = parseTimeToMinutes(blockedSlot.start_time);
         const blockEnd = parseTimeToMinutes(blockedSlot.end_time);
@@ -138,6 +152,7 @@ function buildAvailableAppointmentSlots(date, schedule, blockedSlots = [], exist
 
 module.exports = {
   parseTimeToMinutes,
+  isAppointmentSlotInPast,
   formatMinutesToTime,
   normalizeAppointmentDate,
   normalizeAppointmentTime,

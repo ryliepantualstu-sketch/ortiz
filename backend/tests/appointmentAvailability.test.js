@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isTimeWithinSchedule, buildAvailableAppointmentSlots } = require('../utils/appointmentAvailability');
+const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots } = require('../utils/appointmentAvailability');
 
 test('rejects times before the configured opening hour', () => {
   assert.equal(isTimeWithinSchedule('06:00', '08:00', '17:00'), false);
@@ -8,6 +8,14 @@ test('rejects times before the configured opening hour', () => {
 
 test('accepts times within the configured operating hours', () => {
   assert.equal(isTimeWithinSchedule('10:30', '08:00', '17:00'), true);
+});
+
+test('marks current and earlier slots as past', () => {
+  const now = new Date(2026, 7, 3, 15, 0);
+
+  assert.equal(isAppointmentSlotInPast('2026-08-03', '14:30', now), true);
+  assert.equal(isAppointmentSlotInPast('2026-08-03', '15:00', now), true);
+  assert.equal(isAppointmentSlotInPast('2026-08-03', '15:30', now), false);
 });
 
 test('does not build a slot at the closing boundary', () => {

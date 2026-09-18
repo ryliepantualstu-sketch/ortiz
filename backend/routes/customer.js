@@ -13,7 +13,7 @@ const QrcodeLibrary = require('qrcode');
 const Schedule = require('../models/Schedule');
 const Holiday = require('../models/Holiday');
 const BlockedSlot = require('../models/BlockedSlot');
-const { isTimeWithinSchedule, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime } = require('../utils/appointmentAvailability');
+const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
@@ -570,6 +570,13 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
       });
     }
 
+    if (isAppointmentSlotInPast(dateStr, timeStr)) {
+      return res.status(400).json({
+        success: false,
+        message: 'The selected appointment time has already passed'
+      });
+    }
+
     const requestedDay = requestedDate.toLocaleDateString('en-US', { weekday: 'long' });
     const holiday = await Holiday.findOne({ where: { holiday_date: dateStr } });
     if (holiday) {
@@ -814,6 +821,13 @@ router.put('/appointments/:id', authMiddleware, requireRole('customer'), async (
       }
 
       const requestedTime = String(appointment_time || appointment.appointment_time).trim();
+      if (isAppointmentSlotInPast(dateStr, requestedTime)) {
+        return res.status(400).json({
+          success: false,
+          message: 'The selected appointment time has already passed'
+        });
+      }
+
       if (!isTimeWithinSchedule(requestedTime, schedule.start_time, schedule.end_time)) {
         return res.status(400).json({
           success: false,

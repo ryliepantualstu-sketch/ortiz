@@ -3095,13 +3095,18 @@
                     timeSelect.appendChild(placeholderOption);
 
                     const unavailableSlots = [];
+                    const now = new Date();
+                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    const currentMinutes = (now.getHours() * 60) + now.getMinutes();
 
                     result.slots.forEach(slot => {
                         const label = formatTime(slot.start_time);
                         const option = document.createElement('option');
                         option.value = slot.start_time;
 
-                        const isUnavailable = !slot.available || slot.reason === 'Booked' || slot.reason === 'Blocked' || slot.reason === 'Lunch break';
+                        const [slotHours, slotMinutes] = slot.start_time.split(':').map(Number);
+                        const isPast = dateInput.value === today && ((slotHours * 60) + slotMinutes) <= currentMinutes;
+                        const isUnavailable = !slot.available || isPast || slot.reason === 'Booked' || slot.reason === 'Blocked' || slot.reason === 'Lunch break' || slot.reason === 'Past time';
                         const displayText = isUnavailable
                             ? `${label} - unavailable`
                             : label;
