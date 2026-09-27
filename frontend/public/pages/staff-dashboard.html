@@ -1348,7 +1348,10 @@
                             <td>#${order.order_id || 'N/A'}</td>
                             <td>${order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
-                            <td><span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span></td>
+                            <td>
+                                <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>
+                                ${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${formatOrderDate(order.pickup_date)}</div>` : ''}
+                            </td>
                             <td>${formatOrderDate(order.order_date || order.created_at)}</td>
                             <td>
                                 <div class="dropdown orders-actions">
@@ -1580,6 +1583,7 @@
                     <h5>Order #${order.order_id}</h5>
                     <p><strong>Customer:</strong> ${order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
+                    ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)}</p>` : ''}
                     <div class="mb-3">
                         <strong>Customer Instructions:</strong>
                         <div class="border rounded p-3 mt-1 bg-light" style="white-space: pre-wrap;">${order.notes?.trim() ? escapeStaffOrderText(order.notes) : '<span class="text-muted">No instructions provided.</span>'}</div>

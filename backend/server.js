@@ -302,6 +302,10 @@ const ensureSchemaColumns = async () => {
       allowNull: false,
       defaultValue: 0
     });
+    await addColumnIfMissing('orders', 'pickup_date', {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    });
     await addColumnIfMissing('schedules', 'schedule_date', {
       type: DataTypes.DATEONLY,
       allowNull: true

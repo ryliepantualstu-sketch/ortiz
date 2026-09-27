@@ -17,6 +17,7 @@ const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointment
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
+const { isValidPickupDate } = require('../utils/orderPickup');
 
 // Utility function to get the correct price based on lens option
 function getPriceByLensOption(product, lensOption = 'regular-lens') {
@@ -1093,6 +1094,34 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       message: 'Failed to create order',
       error: error.message
     });
+  }
+});
+
+// Set an order pickup date after staff marks it ready
+router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), async (req, res) => {
+  try {
+    const { pickup_date } = req.body;
+    const customer = await getOrCreateCustomerRecord(Customer, req.user.user_id, req.user.phone || null);
+    const order = await Order.findOne({
+      where: { order_id: req.params.id, customer_id: customer.customer_id }
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if ((order.status || '').trim().toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'Pickup dates can only be set when an order is ready for pickup' });
+    }
+
+    if (!isValidPickupDate(pickup_date)) {
+      return res.status(400).json({ success: false, message: 'Choose a valid pickup date that is today or later' });
+    }
+
+    await order.update({ pickup_date });
+    res.json({ success: true, message: 'Pickup date saved', order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to save pickup date', error: error.message });
   }
 });
 

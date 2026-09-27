@@ -116,6 +116,7 @@ CREATE TABLE orders (
     payment_method ENUM('Cash', 'Card', 'Online') DEFAULT 'Cash',
     delivery_address VARCHAR(255),
     notes TEXT,
+    pickup_date DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
