@@ -1465,7 +1465,7 @@
                 body.innerHTML = `
                     <div class="row g-3 mb-4">
                         <div class="col-md-6 col-12">
-                            <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
+                            <div class="border rounded-3 p-3 bg-white shadow-sm h-100 text-center">
                                 <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-user me-2"></i>Customer Info</h6>
                                 <table class="table table-sm customer-info-table mb-0">
                                     <tr><td class="info-label">Name</td><td class="info-value"><strong>${c.User?.full_name || 'N/A'}</strong></td></tr>
@@ -1479,7 +1479,7 @@
                             </div>
                         </div>
                         <div class="col-md-6 col-12">
-                            <div class="border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-column">
+                            <div class="border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-column text-center">
                                 <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-history me-2"></i>Activity Summary</h6>
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
@@ -1496,7 +1496,7 @@
                                     </div>
                                 </div>
                                 ${discountCardImageUrl ? `
-                                    <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-id-card me-2"></i>Discount Card Preview</h6>
+                                    <h6 class="fw-bold mb-2 text-primary text-center"><i class="fas fa-id-card me-2"></i>Discount Card Preview</h6>
                                     <div class="border rounded-3 p-2 bg-light text-center flex-grow-1 d-flex align-items-center justify-content-center">
                                         <img src="${discountCardImageUrl}" alt="Discount card" class="img-fluid rounded" style="max-height: 200px; object-fit: contain;" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'alert alert-warning mb-0 small\\'><i class=\\'fas fa-exclamation-triangle me-1\\'></i> Previous file missing on server. Please ask customer to re-upload discount card.</div>';">
                                     </div>
