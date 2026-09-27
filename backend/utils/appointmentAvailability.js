@@ -17,6 +17,14 @@ function normalizeAppointmentDate(value) {
   return text.slice(0, 10);
 }
 
+function isSundayDate(value) {
+  const date = normalizeAppointmentDate(value);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+
+  const parsedDate = new Date(`${date}T00:00:00.000Z`);
+  return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === date && parsedDate.getUTCDay() === 0;
+}
+
 function normalizeAppointmentTime(value) {
   if (!value) return null;
 
@@ -85,7 +93,7 @@ const DEFAULT_LUNCH_BREAKS = [
 ];
 
 function buildAppointmentSlotList(date, schedule, blockedSlots = [], existingAppointments = []) {
-  if (!schedule || !schedule.start_time || !schedule.end_time) {
+  if (isSundayDate(date) || !schedule || !schedule.start_time || !schedule.end_time) {
     return [];
   }
 
@@ -155,6 +163,7 @@ module.exports = {
   isAppointmentSlotInPast,
   formatMinutesToTime,
   normalizeAppointmentDate,
+  isSundayDate,
   normalizeAppointmentTime,
   isTimeWithinSchedule,
   buildAvailableAppointmentSlots,

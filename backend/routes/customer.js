@@ -13,7 +13,7 @@ const QrcodeLibrary = require('qrcode');
 const Schedule = require('../models/Schedule');
 const Holiday = require('../models/Holiday');
 const BlockedSlot = require('../models/BlockedSlot');
-const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime } = require('../utils/appointmentAvailability');
+const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime, isSundayDate } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
@@ -500,6 +500,10 @@ router.get('/available-slots', authMiddleware, requireRole('customer'), async (r
       return res.status(400).json({ success: false, message: 'Invalid date parameter' });
     }
 
+    if (isSundayDate(dateStr)) {
+      return res.json({ success: true, available: false, reason: 'Ortiz Optical is closed on Sundays', slots: [] });
+    }
+
     const dateObj = new Date(`${dateStr}T00:00:00`);
     const holiday = await Holiday.findOne({ where: { holiday_date: dateStr } });
     if (holiday) {
@@ -556,6 +560,10 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
     const timeStr = String(appointment_time).trim();
     if (!dateStr || !timeStr) {
       return res.status(400).json({ success: false, message: 'Invalid appointment date or time' });
+    }
+
+    if (isSundayDate(dateStr)) {
+      return res.status(400).json({ success: false, message: 'Appointments are not available on Sundays because Ortiz Optical is closed' });
     }
 
     const requestedDate = new Date(`${dateStr}T00:00:00`);
@@ -794,6 +802,13 @@ router.put('/appointments/:id', authMiddleware, requireRole('customer'), async (
         return res.status(400).json({
           success: false,
           message: 'Invalid appointment date'
+        });
+      }
+
+      if (isSundayDate(dateStr)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointments are not available on Sundays because Ortiz Optical is closed'
         });
       }
 

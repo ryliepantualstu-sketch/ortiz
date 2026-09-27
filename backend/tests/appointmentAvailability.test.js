@@ -1,6 +1,22 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots } = require('../utils/appointmentAvailability');
+const { isTimeWithinSchedule, isAppointmentSlotInPast, isSundayDate, buildAvailableAppointmentSlots, buildAppointmentSlotList } = require('../utils/appointmentAvailability');
+
+test('identifies Sundays using calendar dates', () => {
+  assert.equal(isSundayDate('2026-08-02'), true);
+  assert.equal(isSundayDate('2026-08-03'), false);
+});
+
+test('does not create appointment slots on Sundays even when a schedule is operational', () => {
+  const slots = buildAppointmentSlotList('2026-08-02', {
+    start_time: '08:00',
+    end_time: '17:00',
+    is_operational: true,
+    slot_duration_minutes: 30
+  });
+
+  assert.deepEqual(slots, []);
+});
 
 test('rejects times before the configured opening hour', () => {
   assert.equal(isTimeWithinSchedule('06:00', '08:00', '17:00'), false);
