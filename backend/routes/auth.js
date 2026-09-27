@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
 const { authMiddleware } = require('../middleware/auth');
+const { getVerifiedGoogleIdentity } = require('../utils/googleIdentity');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -200,7 +201,7 @@ const https = require('https');
 const crypto = require('crypto');
 
 async function verifyGoogleIdToken(idToken) {
-  if (!idToken) return null;
+  if (!idToken || !process.env.GOOGLE_CLIENT_ID) return null;
 
   try {
     const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
@@ -218,65 +219,34 @@ async function verifyGoogleIdToken(idToken) {
       }).on('error', reject);
     });
 
-    if (response.status === 200 && response.body && response.body.email) {
-      return {
-        email: response.body.email,
-        name: response.body.name || response.body.given_name || ''
-      };
-    }
+    if (response.status !== 200) return null;
+    return getVerifiedGoogleIdentity(response.body, process.env.GOOGLE_CLIENT_ID);
   } catch (err) {
     console.warn('Google tokeninfo request failed:', err.message);
+    return null;
   }
-
-  try {
-    const parts = idToken.split('.');
-    if (parts.length === 3) {
-      const payloadBuf = Buffer.from(parts[1], 'base64').toString('utf8');
-      const payload = JSON.parse(payloadBuf);
-      if (payload.email) {
-        return {
-          email: payload.email,
-          name: payload.name || payload.given_name || ''
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('JWT payload parsing failed:', err.message);
-  }
-
-  return null;
 }
 
 // Google Authentication (Login / Sign-up with Gmail)
+router.get('/google/config', (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ success: false, message: 'Google sign-up is not configured yet' });
+  }
+
+  res.json({ success: true, client_id: process.env.GOOGLE_CLIENT_ID });
+});
+
 router.post('/google', async (req, res) => {
   try {
-    const { credential, email: rawEmail, name: rawName } = req.body;
-    let email = null;
-    let full_name = null;
-
-    if (credential) {
-      const googleInfo = await verifyGoogleIdToken(credential);
-      if (googleInfo) {
-        email = googleInfo.email;
-        full_name = googleInfo.name;
-      }
-    }
-
-    if (!email && rawEmail) {
-      const cleanedEmail = String(rawEmail).trim().toLowerCase();
-      if (cleanedEmail.includes('@')) {
-        email = cleanedEmail;
-        full_name = rawName || cleanedEmail.split('@')[0];
-      }
-    }
-
-    if (!email) {
+    const googleInfo = await verifyGoogleIdToken(req.body.credential);
+    if (!googleInfo) {
       return res.status(400).json({
         success: false,
-        message: 'Could not obtain a valid email from Google sign-in. Please try again.'
+        message: 'Google could not verify this account. Please choose your Google account and try again.'
       });
     }
 
+    const { email, full_name } = googleInfo;
     let user = await User.findOne({ where: { email } });
 
     if (user) {

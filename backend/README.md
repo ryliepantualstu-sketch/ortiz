@@ -43,6 +43,14 @@ A modern Express.js REST API backend for the Ortiz Optical management system wit
    JWT_SECRET=your_secret_key
    ```
 
+   To enable customer sign-up and sign-in with Google, create an OAuth 2.0 **Web application** client in Google Cloud, add your local and deployed site domains under **Authorized JavaScript origins**, then set the client ID in `.env`:
+
+   ```env
+   GOOGLE_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
+   ```
+
+   Set the same `GOOGLE_CLIENT_ID` environment variable in Railway for the deployed service. The Google button creates a customer account on first sign-in and signs existing accounts in. Google Identity Services must be reachable by the browser.
+
 3. **Start the server:**
 
    **Development mode with auto-reload:**

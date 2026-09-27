@@ -327,9 +327,7 @@
                         <span>OR</span>
                     </div>
 
-                    <button type="button" class="btn btn-google w-100" onclick="triggerGoogleSignIn()">
-                        <i class="fab fa-google text-danger"></i> Continue with Google / Gmail
-                    </button>
+                    <div id="loginGoogleButton" class="google-signin-button" aria-label="Sign in with Google"></div>
 
                     <div class="auth-toggle">
                         Don't have an account? <a onclick="toggleForms()">Create one</a>
@@ -417,9 +415,7 @@
                         <span>OR</span>
                     </div>
 
-                    <button type="button" class="btn btn-google w-100" onclick="triggerGoogleSignIn()">
-                        <i class="fab fa-google text-danger"></i> Continue with Google / Gmail
-                    </button>
+                    <div id="registerGoogleButton" class="google-signin-button" aria-label="Sign up with Google"></div>
 
                     <div class="auth-toggle">
                         Already have an account? <a onclick="toggleForms()">Sign in</a>
@@ -573,57 +569,54 @@
         });
 
         let googleInitialized = false;
+        let googleClientId = null;
+        let googleConfigPromise = null;
 
-        function initGoogleSignIn() {
-            if (googleInitialized || typeof google === 'undefined' || !google.accounts || !google.accounts.id) return;
+        async function initGoogleSignIn() {
+            if (googleInitialized) return;
             try {
+                if (!googleConfigPromise) {
+                    googleConfigPromise = apiCall('/auth/google/config');
+                }
+                const config = await googleConfigPromise;
+                if (!config || !config.success || !config.client_id) {
+                    throw new Error(config?.message || 'Google sign-up is not configured yet.');
+                }
+                googleClientId = config.client_id;
+
+                if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+                    throw new Error('Google sign-in is still loading. Please refresh and try again.');
+                }
+
                 google.accounts.id.initialize({
-                    client_id: window.GOOGLE_CLIENT_ID || '1088497626920-example.apps.googleusercontent.com',
+                    client_id: googleClientId,
                     callback: handleGoogleCredentialResponse,
                     auto_select: false
                 });
+                ['loginGoogleButton', 'registerGoogleButton'].forEach((buttonId) => {
+                    const button = document.getElementById(buttonId);
+                    if (button) {
+                        google.accounts.id.renderButton(button, {
+                            type: 'standard',
+                            theme: 'outline',
+                            size: 'large',
+                            text: 'continue_with',
+                            shape: 'rect',
+                            width: Math.min(400, Math.max(240, button.clientWidth))
+                        });
+                    }
+                });
                 googleInitialized = true;
             } catch (e) {
-                console.warn('Google Identity Services initialization warning:', e);
+                console.error('Google Identity Services initialization failed:', e);
+                const activeForm = document.getElementById('register-section').classList.contains('active') ? 'register' : 'login';
+                showError(activeForm, e.message || 'Google sign-in is unavailable right now.');
             }
         }
 
         async function handleGoogleCredentialResponse(response) {
             if (!response || !response.credential) return;
             await processGoogleAuth({ credential: response.credential });
-        }
-
-        async function triggerGoogleSignIn() {
-            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                if (!googleInitialized) {
-                    initGoogleSignIn();
-                }
-                try {
-                    google.accounts.id.prompt((notification) => {
-                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                            promptGmailLogin();
-                        }
-                    });
-                    return;
-                } catch (e) {
-                    console.warn('Google prompt error:', e);
-                }
-            }
-            promptGmailLogin();
-        }
-
-        async function promptGmailLogin() {
-            const email = window.prompt('Enter your Gmail / Google email address:');
-            if (!email || !email.trim()) return;
-
-            const cleanedEmail = email.trim();
-            if (!cleanedEmail.includes('@')) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-
-            const fullName = window.prompt('Enter your full name (optional):') || '';
-            await processGoogleAuth({ email: cleanedEmail, name: fullName });
         }
 
         async function processGoogleAuth(payload) {
@@ -643,13 +636,13 @@
                 }
             } else {
                 const errorMsg = result.message || 'Google authentication failed. Please try again.';
-                showError('login', errorMsg);
-                showError('register', errorMsg);
+                const activeForm = document.getElementById('register-section').classList.contains('active') ? 'register' : 'login';
+                showError(activeForm, errorMsg);
             }
         }
 
         window.addEventListener('load', () => {
-            setTimeout(initGoogleSignIn, 800);
+            setTimeout(() => initGoogleSignIn(), 800);
         });
     </script>
 </body>
