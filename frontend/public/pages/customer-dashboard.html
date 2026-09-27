@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
     <link href="../css/customer-fixes.css" rel="stylesheet">
     <link href="../css/professional-shell.css" rel="stylesheet">
     <link href="../css/customer-professional-pages.css" rel="stylesheet">
@@ -1860,7 +1861,7 @@
                         <div id="appointmentFormAlert" class="alert alert-danger d-none" role="alert"></div>
                         <div class="mb-3">
                             <label for="appointmentDate" class="form-label fw-semibold">Appointment Date</label>
-                            <input type="date" id="appointmentDate" name="appointment_date" class="form-control rounded-3" required min="">
+                            <input type="text" id="appointmentDate" name="appointment_date" class="form-control rounded-3" placeholder="Select a date" autocomplete="off" required>
                         </div>
                         <div class="mb-3">
                             <label for="appointmentTime" class="form-label fw-semibold">Appointment Time</label>
@@ -1932,6 +1933,7 @@
     <script src="../js/disable-transitions.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 
     <script>
         /* ======================================================== */
@@ -1964,6 +1966,7 @@
         let appointmentsById = new Map();
         let appointmentFormModalInstance = null;
         let appointmentQrModalInstance = null;
+        let appointmentDatePicker = null;
 
         // Orders State
         let customerOrders = [];
@@ -3046,11 +3049,43 @@
             const dateInput = document.getElementById('appointmentDate');
             if (!dateInput) return;
             const today = new Date();
-            const minDate = today.toISOString().split('T')[0];
+            const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const maxDate = new Date(today);
             maxDate.setFullYear(maxDate.getFullYear() + 1);
-            dateInput.setAttribute('min', minDate);
-            dateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+            const maxDateValue = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+            if (appointmentDatePicker) {
+                appointmentDatePicker.set('minDate', minDate);
+                appointmentDatePicker.set('maxDate', maxDateValue);
+            } else {
+                dateInput.setAttribute('min', minDate);
+                dateInput.setAttribute('max', maxDateValue);
+            }
+        }
+
+        function initializeAppointmentDatePicker() {
+            const dateInput = document.getElementById('appointmentDate');
+            if (!dateInput || typeof flatpickr !== 'function' || appointmentDatePicker) return;
+
+            setAppointmentDateMin();
+            dateInput.required = false;
+            appointmentDatePicker = flatpickr(dateInput, {
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'F j, Y',
+                altInputClass: 'form-control rounded-3',
+                allowInput: false,
+                disableMobile: true,
+                minDate: dateInput.min,
+                maxDate: dateInput.max,
+                disable: [date => date.getDay() === 0],
+                onReady: (selectedDates, dateString, instance) => {
+                    instance.altInput.id = 'appointmentDateDisplay';
+                    instance.altInput.required = true;
+                    const label = document.querySelector('label[for="appointmentDate"]');
+                    if (label) label.htmlFor = instance.altInput.id;
+                },
+                onChange: loadAvailableAppointmentTimes
+            });
         }
 
         async function loadAvailableAppointmentTimes() {
@@ -3168,12 +3203,20 @@
             const appointment = appointmentId ? appointmentsById.get(String(appointmentId)) : null;
             const appointmentForm = document.getElementById('appointmentForm');
             appointmentForm.reset();
+            if (appointmentDatePicker) {
+                appointmentDatePicker.clear();
+            }
             appointmentForm.classList.remove('was-validated');
             clearAppointmentFormAlert();
             setAppointmentDateMin();
 
             document.getElementById('appointmentId').value = appointment?.appointment_id || '';
-            document.getElementById('appointmentDate').value = appointment ? String(appointment.appointment_date).slice(0, 10) : '';
+            const appointmentDateValue = appointment ? String(appointment.appointment_date).slice(0, 10) : '';
+            if (appointmentDatePicker) {
+                appointmentDatePicker.setDate(appointmentDateValue, false, 'Y-m-d');
+            } else {
+                document.getElementById('appointmentDate').value = appointmentDateValue;
+            }
 
             const timeSelect = document.getElementById('appointmentTime');
             timeSelect.innerHTML = '<option value="">Select a date first</option>';
@@ -3183,7 +3226,6 @@
             if (appointment) {
                 const appointmentTime = String(appointment.appointment_time || '').slice(0, 5);
                 const appointmentDate = String(appointment.appointment_date || '').slice(0, 10);
-                document.getElementById('appointmentDate').value = appointmentDate;
                 document.getElementById('appointmentService').value = appointment?.service_type || 'Eye Checkup';
                 loadAvailableAppointmentTimes().then(() => {
                     if (appointmentTime) {
@@ -3674,7 +3716,21 @@
             // Set up date listener for appointments
             const appointmentDateInput = document.getElementById('appointmentDate');
             if (appointmentDateInput) {
-                appointmentDateInput.addEventListener('change', loadAvailableAppointmentTimes);
+                if (typeof flatpickr === 'function') {
+                    initializeAppointmentDatePicker();
+                } else {
+                    appointmentDateInput.type = 'date';
+                    appointmentDateInput.addEventListener('change', () => {
+                        const selectedDate = new Date(`${appointmentDateInput.value}T00:00:00`);
+                        if (appointmentDateInput.value && selectedDate.getDay() === 0) {
+                            appointmentDateInput.value = '';
+                            document.getElementById('appointmentTimeHint').textContent = 'Ortiz Optical is closed on Sundays. Please choose another date.';
+                            document.getElementById('appointmentTime').disabled = true;
+                            return;
+                        }
+                        loadAvailableAppointmentTimes();
+                    });
+                }
             }
 
             // Set up form submission handlers
