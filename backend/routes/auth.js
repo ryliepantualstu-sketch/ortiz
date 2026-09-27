@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
 const { authMiddleware } = require('../middleware/auth');
-const { getVerifiedGoogleIdentity } = require('../utils/googleIdentity');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -192,107 +191,6 @@ router.get('/me', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to verify token',
-      error: error.message
-    });
-  }
-});
-
-const https = require('https');
-const crypto = require('crypto');
-
-async function verifyGoogleIdToken(idToken) {
-  if (!idToken || !process.env.GOOGLE_CLIENT_ID) return null;
-
-  try {
-    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
-    const response = await new Promise((resolve, reject) => {
-      https.get(url, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            resolve({ status: res.statusCode, body: JSON.parse(data) });
-          } catch (e) {
-            reject(e);
-          }
-        });
-      }).on('error', reject);
-    });
-
-    if (response.status !== 200) return null;
-    return getVerifiedGoogleIdentity(response.body, process.env.GOOGLE_CLIENT_ID);
-  } catch (err) {
-    console.warn('Google tokeninfo request failed:', err.message);
-    return null;
-  }
-}
-
-// Google Authentication (Login / Sign-up with Gmail)
-router.get('/google/config', (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    return res.status(503).json({ success: false, message: 'Google sign-up is not configured yet' });
-  }
-
-  res.json({ success: true, client_id: process.env.GOOGLE_CLIENT_ID });
-});
-
-router.post('/google', async (req, res) => {
-  try {
-    const googleInfo = await verifyGoogleIdToken(req.body.credential);
-    if (!googleInfo) {
-      return res.status(400).json({
-        success: false,
-        message: 'Google could not verify this account. Please choose your Google account and try again.'
-      });
-    }
-
-    const { email, full_name } = googleInfo;
-    let user = await User.findOne({ where: { email } });
-
-    if (user) {
-      if (!user.is_active) {
-        return res.status(401).json({
-          success: false,
-          message: 'Your account has been deactivated'
-        });
-      }
-    } else {
-      const randomPassword = crypto.randomBytes(16).toString('hex');
-      user = await User.create({
-        full_name: full_name || email.split('@')[0],
-        email,
-        password: randomPassword,
-        role: 'customer',
-        is_active: true
-      });
-
-      await Customer.create({
-        user_id: user.user_id
-      });
-    }
-
-    const token = jwt.sign(
-      { user_id: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
-    );
-
-    res.json({
-      success: true,
-      message: 'Google authentication successful',
-      token,
-      user: {
-        user_id: user.user_id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Google authentication failed',
       error: error.message
     });
   }
