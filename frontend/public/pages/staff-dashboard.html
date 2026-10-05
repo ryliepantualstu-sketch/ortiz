@@ -1394,6 +1394,7 @@
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Cancel</button></li>
                                     </ul>
                                 </div>
+                                </div>
                             </td>
                         </tr>
                     `).join('');
