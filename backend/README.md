@@ -154,6 +154,8 @@ GOOGLE_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
 
 Users can sign in with an existing account whose email matches their verified Google email. A new Google account is created as a customer; existing email/password login continues to work.
 
+Manual registration requires a Gmail address (`@gmail.com`) verified by a 6-digit OTP: `POST /api/auth/register/request-otp` emails the code (valid 10 minutes, 60-second resend cooldown, 5 attempts), then `POST /api/auth/register` must include it as `otp`. Public registration always creates customer accounts.
+
 Customer appointment and order updates are sent from the configured business Gmail account. Enable 2-Step Verification for that Gmail account, create an App Password in Google Account security settings, then configure:
 
 ```env

@@ -331,7 +331,7 @@
                             <label class="form-label" for="registerEmail">
                                 <i class="fas fa-envelope"></i> Email Address
                             </label>
-                            <input type="email" class="form-control" id="registerEmail" name="email" placeholder="your@example.com" required>
+                            <input type="email" class="form-control" id="registerEmail" name="email" placeholder="yourname@gmail.com" pattern="[A-Za-z0-9._%+\-]+@[Gg][Mm][Aa][Ii][Ll]\.[Cc][Oo][Mm]" title="Enter your Gmail address (example@gmail.com)" required>
                         </div>
 
                         <div class="form-group">
@@ -379,8 +379,20 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-auth w-100">
-                            <i class="fas fa-user-plus"></i> Create Account
+                        <div class="form-group d-none" id="registerOtpGroup">
+                            <label class="form-label" for="registerOtp">
+                                <i class="fas fa-shield-alt"></i> Verification Code
+                            </label>
+                            <input type="text" class="form-control" id="registerOtp" name="otp" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                            <div class="small text-muted mt-1">
+                                We sent a code to your Gmail. <a id="resendOtpLink" onclick="resendRegisterOtp()">Resend code</a>
+                            </div>
+                        </div>
+
+                        <div id="registerOtpStatus" class="small text-success mb-2" role="status"></div>
+
+                        <button type="submit" class="btn btn-auth w-100" id="registerSubmitBtn">
+                            <i class="fas fa-paper-plane"></i> Send Verification Code
                         </button>
                     </form>
 
@@ -568,6 +580,32 @@
                 return;
             }
 
+            if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+                showError('register', 'Please use a valid Gmail address (example@gmail.com)');
+                return;
+            }
+
+            const otpGroup = document.getElementById('registerOtpGroup');
+            const submitBtn = document.getElementById('registerSubmitBtn');
+
+            if (otpGroup.classList.contains('d-none')) {
+                submitBtn.disabled = true;
+                const sent = await requestRegisterOtp(email, full_name);
+                submitBtn.disabled = false;
+                if (sent) {
+                    otpGroup.classList.remove('d-none');
+                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Verify & Create Account';
+                    document.getElementById('registerOtp').focus();
+                }
+                return;
+            }
+
+            const otp = document.getElementById('registerOtp').value.trim();
+            if (!/^\d{6}$/.test(otp)) {
+                showError('register', 'Enter the 6-digit code sent to your Gmail');
+                return;
+            }
+
             const result = await apiCall('/auth/register', 'POST', {
                 full_name,
                 email,
@@ -575,17 +613,48 @@
                 birthday,
                 address,
                 password,
-                confirm_password
+                confirm_password,
+                otp
             });
 
             if (result.success) {
                 alert('Account created successfully! Please login.');
                 toggleForms();
                 document.getElementById('loginEmail').value = email;
+                resetRegisterOtpStep();
             } else {
                 showError('register', result.message || 'Registration failed. Please try again.');
             }
         }
+
+        async function requestRegisterOtp(email, full_name) {
+            const status = document.getElementById('registerOtpStatus');
+            status.textContent = '';
+            const result = await apiCall('/auth/register/request-otp', 'POST', { email, full_name });
+            if (!result.success) {
+                showError('register', result.message || 'Could not send verification code.');
+                return false;
+            }
+            document.getElementById('registerError').classList.remove('show');
+            status.textContent = result.message;
+            return true;
+        }
+
+        async function resendRegisterOtp() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const full_name = document.getElementById('registerName').value.trim();
+            await requestRegisterOtp(email, full_name);
+        }
+
+        function resetRegisterOtpStep() {
+            document.getElementById('registerOtpGroup').classList.add('d-none');
+            document.getElementById('registerOtp').value = '';
+            document.getElementById('registerOtpStatus').textContent = '';
+            document.getElementById('registerSubmitBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Send Verification Code';
+        }
+
+        // Changing the email invalidates the code that was sent to the previous address
+        document.getElementById('registerEmail').addEventListener('input', resetRegisterOtpStep);
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
