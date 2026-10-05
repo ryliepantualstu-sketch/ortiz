@@ -3508,7 +3508,7 @@
                 ${isReadyForPickup ? `
                     <div class="border rounded-3 p-3 mb-3 bg-light">
                         <label for="pickupDateInput-${order.order_id}" class="form-label fw-semibold mb-1">Choose your pickup date</label>
-                        <p class="small text-muted mb-2">${order.pickup_date ? `Current date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Select the day you plan to collect your order.'}</p>
+                        <p class="small text-muted mb-2">${order.pickup_missed ? `<span class="text-danger fw-semibold">You missed your pickup on ${formatDate(`${order.pickup_date}T00:00:00`)}.</span> ${Number(order.pickup_reschedule_count || 0) >= 1 ? 'This order will be cancelled automatically.' : 'Please choose a new pickup date. If it is missed again, the order will be cancelled automatically.'}` : order.pickup_date ? `Current date: ${formatDate(`${order.pickup_date}T00:00:00`)}${Number(order.pickup_reschedule_count || 0) >= 1 ? ' <span class="text-danger">(final re-pickup: the order is auto-cancelled if not claimed)</span>' : ''}` : 'Select the day you plan to collect your order.'}</p>
                         <div class="d-flex flex-wrap gap-2">
                             <input type="date" class="form-control" id="pickupDateInput-${order.order_id}" min="${getLocalDateInputValue()}" value="${order.pickup_date || ''}" aria-label="Pickup date for order ${order.order_id}" style="max-width: 230px;">
                             <button type="button" class="btn btn-primary" onclick="saveOrderPickupDate(${order.order_id})">Save date</button>
@@ -3618,7 +3618,7 @@
                                     <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${formatStatus(order.status)}</span>
                                 </div>
                             </div>
-                            ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
+                            ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_missed ? `<span class="text-danger">Missed pickup (${formatDate(`${order.pickup_date}T00:00:00`)}) - set a new date</span>` : order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
                             ${order.delivery_address ? `<div class="small text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>${escapeText(order.delivery_address)}</div>` : ''}
                             <div class="order-items">
                                 ${getOrderItems(order).map(item => {
@@ -3642,7 +3642,7 @@
                                 <div class="order-actions">
                                     <button type="button" class="btn btn-sm btn-primary" onclick="viewCustomerOrder(${order.order_id})">View Order</button>
                                     ${canCancelOrder(order) ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1" aria-hidden="true"></i>Cancel</button>` : ''}
-                                    ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas fa-calendar-day me-1" aria-hidden="true"></i>${order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
+                                    ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas fa-calendar-day me-1" aria-hidden="true"></i>${order.pickup_missed ? 'Set new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
                                 </div>
                                 <div class="order-total">
                                     <div class="order-subtotal">Subtotal: <strong>₱${Number(order.total_amount || 0).toFixed(2)}</strong></div>

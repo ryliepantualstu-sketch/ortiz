@@ -1146,7 +1146,16 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
       return res.status(400).json({ success: false, message: 'Choose a valid pickup date that is today or later' });
     }
 
-    await order.update({ pickup_date });
+    // Only a missed pickup date counts as the one allowed re-pickup
+    const updates = { pickup_date };
+    if (order.pickup_missed) {
+      if ((order.pickup_reschedule_count || 0) >= 1) {
+        return res.status(409).json({ success: false, message: 'This order can no longer be rescheduled for pickup' });
+      }
+      updates.pickup_reschedule_count = (order.pickup_reschedule_count || 0) + 1;
+    }
+
+    await order.update(updates);
     res.json({ success: true, message: 'Pickup date saved', order });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to save pickup date', error: error.message });

@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const { getManilaToday } = require('../utils/orderPickup');
 
 const Order = sequelize.define('Order', {
   order_id: {
@@ -47,6 +48,20 @@ const Order = sequelize.define('Order', {
   pickup_date: {
     type: DataTypes.DATEONLY,
     allowNull: true
+  },
+  pickup_reschedule_count: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  // True when the order is ready for pickup but the customer's chosen date has passed
+  pickup_missed: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      const status = (this.getDataValue('status') || '').toString().trim().toLowerCase();
+      const pickupDate = this.getDataValue('pickup_date');
+      return status === 'ready for pickup' && !!pickupDate && String(pickupDate) < getManilaToday();
+    }
   },
   created_at: {
     type: DataTypes.DATE,

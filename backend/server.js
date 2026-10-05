@@ -31,6 +31,7 @@ const Holiday = require('./models/Holiday');
 const BlockedSlot = require('./models/BlockedSlot');
 const StaffServiceAssignment = require('./models/StaffServiceAssignment');
 const StockAuditLog = require('./models/StockAuditLog');
+const { startMissedPickupJob } = require('./utils/missedPickups');
 
 // Define associations
 User.hasOne(Customer, { foreignKey: 'user_id' });
@@ -306,6 +307,11 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.DATEONLY,
       allowNull: true
     });
+    await addColumnIfMissing('orders', 'pickup_reschedule_count', {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    });
     await addColumnIfMissing('schedules', 'schedule_date', {
       type: DataTypes.DATEONLY,
       allowNull: true
@@ -400,6 +406,7 @@ const startServer = async () => {
     }
 
     await startHttpServer(PORT);
+    startMissedPickupJob();
   } catch (err) {
     console.error('Database initialization failed:', err);
     // Do not exit process — start server in degraded mode so nodemon stays up.

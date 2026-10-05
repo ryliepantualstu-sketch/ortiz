@@ -2565,7 +2565,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <td>#${order.order_id}</td>
                             <td>${order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                            <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span></td>
+                            <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                             <td><button class="btn btn-sm btn-primary" onclick="viewAdminOrder(${order.order_id})">View</button></td>
                         </tr>
                     `).join('');
@@ -2747,7 +2747,7 @@ This will deactivate the account and keep the user record for history.`)) {
                                                 <td>${order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td>
                                                 <td class="fw-semibold">₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                                                 <td>${(order.OrderItems || []).map(item => item.Product?.product_name || 'Item').join(', ') || 'N/A'}</td>
-                                                <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span></td>
+                                                <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -2785,7 +2785,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     <p><strong>Address:</strong> ${order.delivery_address || order.Customer?.address || 'Not provided'}</p>
                     <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
                     <p><strong>Notes:</strong> ${order.notes || 'None'}</p>
-                    ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date}</p>` : ''}
+                    ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
                     <p><strong>Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None'}</p>
                     <p><strong>Status:</strong> <span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'N/A'}</span></p>
                     <div class="table-responsive">
@@ -2885,7 +2885,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <td>#${order.order_id}</td>
                             <td>${order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                            <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span></td>
+                            <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                             <td>${new Date(order.order_date).toLocaleDateString()}</td>
                             <td><button class="btn btn-sm btn-info" onclick="viewAdminOrder(${order.order_id})">View</button></td>
                         </tr>
