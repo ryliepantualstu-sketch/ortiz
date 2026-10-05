@@ -1376,7 +1376,7 @@
                     tbody.innerHTML = result.orders.map(order => `
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
-                            <td>${order.is_walk_in ? 'Walk-in Sale' : order.customer_name || order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
                             <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
@@ -1618,8 +1618,8 @@
                 const currentDiscountType = order.discount_type || null;
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${order.is_walk_in ? 'Walk-in Sale' : `${escapeStaffOrderText(order.customer_name || order.Customer?.User?.full_name || 'N/A')} (${escapeStaffOrderText(order.Customer?.User?.email || '')})`}</p>
-                    ${order.is_walk_in ? '' : `<p><strong>Phone:</strong> ${escapeStaffOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
+                    <p><strong>Customer:</strong> ${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}${order.is_walk_in ? '' : ` (${escapeStaffOrderText(order.Customer?.User?.email || '')})`}</p>
+                    ${order.is_walk_in ? `<p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || 'Not provided')}</p>` : `<p><strong>Phone:</strong> ${escapeStaffOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
                     <p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>`}
                     <p><strong>Date &amp; Time Ordered:</strong> ${formatOrderDateTime(order.order_date || order.created_at)}</p>
                     <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
@@ -1734,6 +1734,7 @@
 
         async function openWalkInSale() {
             walkInItems = [];
+            ['wiName', 'wiAddress'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiQty').value = 1;
             document.getElementById('wiDiscNone').checked = true;
             renderWalkInItems();
@@ -1780,11 +1781,15 @@
         }
 
         async function submitWalkInSale() {
+            const name = document.getElementById('wiName').value.trim();
+            if (!name) { alert('Enter the customer name'); return; }
             if (!walkInItems.length) { alert('Add at least one item'); return; }
             const btn = document.getElementById('wiSubmit');
             btn.disabled = true;
             try {
                 const result = await apiCall('/staff/orders/walk-in', 'POST', {
+                    customer_name: name,
+                    address: document.getElementById('wiAddress').value.trim(),
                     discount_type: document.querySelector('input[name="wiDiscount"]:checked').value || null,
                     items: walkInItems.map(i => ({ product_id: i.product.product_id, quantity: i.qty, lens_option: i.lens }))
                 });
@@ -1834,6 +1839,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required></div>
+          <div class="col-md-6"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress" maxlength="255"></div>
+        </div>
         <div class="row g-2 mb-2 align-items-end">
           <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
           <div class="col-md-3"><label class="form-label">Lens</label>

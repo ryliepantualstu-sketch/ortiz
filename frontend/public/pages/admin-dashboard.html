@@ -2555,6 +2555,12 @@ This will deactivate the account and keep the user record for history.`)) {
             });
         }
 
+        function escapeAdminOrderText(value) {
+            const textNode = document.createElement('span');
+            textNode.textContent = value == null ? '' : String(value);
+            return textNode.innerHTML;
+        }
+
         async function loadOrders() {
             try {
                 const result = await apiCall('/admin/orders');
@@ -2564,7 +2570,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     tbody.innerHTML = result.orders.slice(0, 5).map(order => `
                         <tr>
                             <td>#${order.order_id}</td>
-                            <td>${order.is_walk_in ? 'Walk-in Sale' : order.customer_name || order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${escapeAdminOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
                             <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                             <td><button class="btn btn-sm btn-primary" onclick="viewAdminOrder(${order.order_id})">View</button></td>
@@ -2782,9 +2788,9 @@ This will deactivate the account and keep the user record for history.`)) {
                 const items = order.OrderItems || [];
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${order.is_walk_in ? 'Walk-in Sale' : `${order.customer_name || order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})`}</p>
-                    ${order.is_walk_in ? '' : `<p><strong>Phone:</strong> ${order.Customer?.User?.phone || order.Customer?.phone || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${order.delivery_address || order.Customer?.address || 'Not provided'}</p>`}
+                    <p><strong>Customer:</strong> ${escapeAdminOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}${order.is_walk_in ? '' : ` (${escapeAdminOrderText(order.Customer?.User?.email || '')})`}</p>
+                    ${order.is_walk_in ? `<p><strong>Address:</strong> ${escapeAdminOrderText(order.delivery_address || 'Not provided')}</p>` : `<p><strong>Phone:</strong> ${escapeAdminOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
+                    <p><strong>Address:</strong> ${escapeAdminOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>`}
                     <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
                     <p><strong>Notes:</strong> ${order.notes || 'None'}</p>
                     ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}

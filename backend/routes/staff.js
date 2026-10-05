@@ -370,9 +370,14 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 // Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
 router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
+    const customerName = typeof req.body.customer_name === 'string' ? req.body.customer_name.trim() : '';
+    const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
     const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
 
+    if (!customerName) {
+      return res.status(400).json({ success: false, message: 'Customer name is required' });
+    }
     if (requestedItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
     }
@@ -404,6 +409,8 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         total_amount: Number((subtotal - discountAmount).toFixed(2)),
         discount_type: discountType,
         discount_amount: discountAmount,
+        customer_name: customerName,
+        delivery_address: address || null,
         is_walk_in: true,
         status: 'picked up'
       }, { transaction });
