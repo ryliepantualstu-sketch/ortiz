@@ -11,7 +11,6 @@ const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
-const crypto = require('crypto');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
 
@@ -369,37 +368,11 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 });
 
 // Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
-const WALK_IN_EMAIL = 'walkin@ortizoptical.local';
-
-async function getWalkInCustomer(transaction) {
-  let user = await User.findOne({ where: { email: WALK_IN_EMAIL }, transaction });
-  if (!user) {
-    user = await User.create({
-      full_name: 'Walk-in Customer',
-      email: WALK_IN_EMAIL,
-      password: crypto.randomBytes(32).toString('hex'),
-      role: 'customer',
-      is_active: false
-    }, { transaction });
-  }
-  let customer = await Customer.findOne({ where: { user_id: user.user_id }, transaction });
-  if (!customer) {
-    customer = await Customer.create({ user_id: user.user_id }, { transaction });
-  }
-  return customer;
-}
-
 router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
-    const customerName = typeof req.body.customer_name === 'string' ? req.body.customer_name.trim() : '';
-    const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
-    const notes = typeof req.body.notes === 'string' ? req.body.notes.trim() : '';
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
     const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
 
-    if (!customerName) {
-      return res.status(400).json({ success: false, message: 'Customer name is required' });
-    }
     if (requestedItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
     }
@@ -425,16 +398,12 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
       const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
-      const customer = await getWalkInCustomer(transaction);
 
       const order = await Order.create({
-        customer_id: customer.customer_id,
+        customer_id: null,
         total_amount: Number((subtotal - discountAmount).toFixed(2)),
         discount_type: discountType,
         discount_amount: discountAmount,
-        delivery_address: address || null,
-        notes: notes || null,
-        customer_name: customerName,
         is_walk_in: true,
         status: 'picked up'
       }, { transaction });

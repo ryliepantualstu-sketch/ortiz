@@ -38,6 +38,7 @@
   function buildReceiptHtml(order) {
     const user = order.Customer?.User || {};
     if (order.customer_name) user.full_name = order.customer_name;
+    const registeredName = order.is_walk_in ? 'Walk-in Sale' : user.full_name || '';
     const items = order.OrderItems || order.items || [];
     const total = Number(order.total_amount || 0);
     const discount = Number(order.discount_amount || 0);
@@ -81,7 +82,7 @@
       <div class="iv-received">
         <div class="iv-bold">RECEIVED FROM:</div>
         <div class="iv-recv-body">
-          <div>Registered Name: <span class="iv-fill">${esc(user.full_name || '')}</span></div>
+          <div>Registered Name: <span class="iv-fill">${esc(registeredName)}</span></div>
           <div>TIN:</div>
           <div>Address: <span class="iv-fill">${esc(order.delivery_address || order.Customer?.address || '')}</span></div>
         </div>

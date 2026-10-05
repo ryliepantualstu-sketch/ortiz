@@ -298,6 +298,10 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.STRING(50),
       allowNull: true
     });
+    await changeColumnIfDifferent('orders', 'customer_id', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
     await addColumnIfMissing('orders', 'discount_amount', {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,

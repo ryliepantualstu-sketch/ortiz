@@ -105,7 +105,7 @@ CREATE TABLE appointments (
 
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
+    customer_id INT NULL,
     order_date DATE NOT NULL,
     order_time TIME NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,

@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const User = require('../models/User');
 const Product = require('../models/Product');
@@ -18,6 +19,7 @@ const BlockedSlot = require('../models/BlockedSlot');
 const StaffServiceAssignment = require('../models/StaffServiceAssignment');
 const StockAuditLog = require('../models/StockAuditLog');
 const { archiveUser, restoreUser } = require('../utils/userLifecycle');
+const { WALK_IN_EMAIL } = require('../utils/walkIn');
 const PRODUCT_IMAGE_DIRECTORY = path.resolve(__dirname, '../../frontend/public/images/products');
 const PRODUCT_IMAGE_URL_PREFIX = 'images/products';
 const ALLOWED_IMAGE_TYPES = {
@@ -1404,7 +1406,7 @@ router.get('/archived', authMiddleware, requireRole('admin'), async (req, res) =
     });
 
     const archivedUsers = await User.findAll({
-      where: { is_active: false },
+      where: { is_active: false, email: { [Op.ne]: WALK_IN_EMAIL } },
       order: [['updated_at', 'DESC']]
     });
 
