@@ -48,7 +48,11 @@ async function sendEmailNotification({ to, subject, html, text }) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM;
-    if (resendApiKey && resendFrom) {
+    const hasSmtpCredentials = Boolean(
+      (process.env.GMAIL_USER || process.env.SMTP_USER) &&
+      (process.env.GMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD)
+    );
+    if (!hasSmtpCredentials && resendApiKey && resendFrom) {
       const response = await new Promise((resolve, reject) => {
         const payload = JSON.stringify({
           from: resendFrom,
@@ -95,8 +99,10 @@ async function sendEmailNotification({ to, subject, html, text }) {
 
     const transporter = await createEmailTransporter();
     if (!transporter) {
-      console.log(`[EMAIL SIMULATION] To: ${to} | Subject: ${subject}`);
-      return { success: true, simulated: true };
+      return {
+        success: false,
+        reason: 'Email service is not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD.'
+      };
     }
 
     const mailOptions = {

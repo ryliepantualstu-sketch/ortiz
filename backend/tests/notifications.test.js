@@ -2,14 +2,41 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { sendEmailNotification, sendSMSNotification, notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 
-test('sendEmailNotification handles simulation gracefully when credentials not set', async () => {
-  const result = await sendEmailNotification({
-    to: 'test@example.com',
-    subject: 'Test Notification',
-    html: '<p>Test Email Content</p>'
-  });
+test('sendEmailNotification reports missing provider configuration instead of simulating delivery', async () => {
+  const emailConfigKeys = [
+    'GMAIL_USER',
+    'GMAIL_PASS',
+    'GMAIL_APP_PASSWORD',
+    'SMTP_USER',
+    'SMTP_PASS',
+    'RESEND_API_KEY',
+    'EMAIL_FROM',
+    'RESEND_FROM'
+  ];
+  const savedConfig = Object.fromEntries(
+    emailConfigKeys.map((key) => [key, process.env[key]])
+  );
 
-  assert.equal(result.success, true);
+  let result;
+  try {
+    emailConfigKeys.forEach((key) => delete process.env[key]);
+    result = await sendEmailNotification({
+      to: 'test@example.com',
+      subject: 'Test Notification',
+      html: '<p>Test Email Content</p>'
+    });
+  } finally {
+    emailConfigKeys.forEach((key) => {
+      if (savedConfig[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedConfig[key];
+      }
+    });
+  }
+
+  assert.equal(result.success, false);
+  assert.match(result.reason, /not configured/i);
 });
 
 test('sendSMSNotification handles simulation gracefully when keys not set', async () => {

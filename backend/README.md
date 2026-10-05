@@ -144,6 +144,25 @@ Authorization: Bearer <token>
 
 Tokens are returned after login and contain user information including role for authorization checks.
 
+### Google Sign-In and customer email notifications
+
+The login page supports Google Sign-In when `GOOGLE_CLIENT_ID` is configured. Create a **Web application** OAuth client in Google Cloud Console and add the exact site origin (for local development, `http://localhost:3000`) to its authorized JavaScript origins. Add the client ID to `backend/.env`:
+
+```env
+GOOGLE_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
+```
+
+Users can sign in with an existing account whose email matches their verified Google email. A new Google account is created as a customer; existing email/password login continues to work.
+
+Customer appointment and order updates are sent from the configured business Gmail account. Enable 2-Step Verification for that Gmail account, create an App Password in Google Account security settings, then configure:
+
+```env
+GMAIL_USER=business@gmail.com
+GMAIL_APP_PASSWORD=your_16_character_app_password
+```
+
+Use an App Password, not the account's normal Gmail password. Keep both values private in the backend environment, never in frontend code or source control. Restart the backend after updating `.env`. Emails are not marked as sent when no email provider is configured.
+
 ## Development
 
 - API runs on port 3000

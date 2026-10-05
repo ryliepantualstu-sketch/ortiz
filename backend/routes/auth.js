@@ -1,9 +1,118 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+const sequelize = require('../config/database');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
 const { authMiddleware } = require('../middleware/auth');
+
+function createAuthToken(user) {
+  return jwt.sign(
+    { user_id: user.user_id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
+}
+
+router.get('/google/config', (req, res) => {
+  res.json({
+    success: true,
+    enabled: Boolean(process.env.GOOGLE_CLIENT_ID),
+    clientId: process.env.GOOGLE_CLIENT_ID || null
+  });
+});
+
+router.post('/google', async (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(503).json({
+      success: false,
+      message: 'Google sign-in is not configured'
+    });
+  }
+
+  const credential = req.body && req.body.credential;
+  if (typeof credential !== 'string' || !credential) {
+    return res.status(400).json({
+      success: false,
+      message: 'A Google credential is required'
+    });
+  }
+
+  let payload;
+  try {
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    payload = ticket.getPayload();
+  } catch (error) {
+    console.warn('[GOOGLE AUTH] ID token verification failed:', error.message);
+    return res.status(401).json({
+      success: false,
+      message: 'Google sign-in failed. Please try again.'
+    });
+  }
+
+  if (!payload || !payload.email || (payload.email_verified !== true && payload.email_verified !== 'true')) {
+    return res.status(401).json({
+      success: false,
+      message: 'The Google account email could not be verified'
+    });
+  }
+
+  try {
+    const email = payload.email.toLowerCase();
+    const user = await sequelize.transaction(async (transaction) => {
+      let existingUser = await User.findOne({ where: { email }, transaction });
+      if (!existingUser) {
+        existingUser = await User.create({
+          full_name: payload.name || email.split('@')[0],
+          email,
+          password: crypto.randomBytes(32).toString('hex'),
+          role: 'customer'
+        }, { transaction });
+
+        await Customer.create({ user_id: existingUser.user_id }, { transaction });
+      } else if (existingUser.role === 'customer') {
+        const customer = await Customer.findOne({
+          where: { user_id: existingUser.user_id },
+          transaction
+        });
+        if (!customer) {
+          await Customer.create({ user_id: existingUser.user_id }, { transaction });
+        }
+      }
+
+      return existingUser;
+    });
+
+    if (!user.is_active) {
+      return res.status(401).json({
+        success: false,
+        message: 'Your account has been deactivated'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token: createAuthToken(user),
+      user: {
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('[GOOGLE AUTH ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to sign in with Google right now'
+    });
+  }
+});
 
 // Register
 router.post('/register', async (req, res) => {
@@ -71,11 +180,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign(
-      { user_id: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
-    );
+    const token = createAuthToken(user);
 
     res.status(201).json({
       success: true,
@@ -138,11 +243,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign(
-      { user_id: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
-    );
+    const token = createAuthToken(user);
 
     res.json({
       success: true,
