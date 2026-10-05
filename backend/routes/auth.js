@@ -71,6 +71,68 @@ router.post('/google', async (req, res) => {
 
   try {
     const email = payload.email.toLowerCase();
+
+    // First-time Google users must confirm a one-time code sent to their Gmail
+    const knownUser = await User.findOne({ where: { email } });
+    if (!knownUser) {
+      const otp = req.body.otp;
+      if (!otp) {
+        const issued = issueOtp(email);
+        if (!issued.ok) {
+          return res.status(429).json({
+            success: false,
+            requires_otp: true,
+            email,
+            message: `Please wait ${issued.retryAfter} seconds before requesting another code`
+          });
+        }
+
+        const emailResult = await sendEmailNotification({
+          to: email,
+          subject: 'Ortiz Optical - Your verification code',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <h2 style="color: #0d8f83; margin-top: 0;">Ortiz Optical</h2>
+              <p>Use this code to verify your email and finish creating your account:</p>
+              <p style="font-size: 2rem; letter-spacing: 8px; font-weight: bold; text-align: center; background: #f8fafc; padding: 16px; border-radius: 8px;">${issued.code}</p>
+              <p>This code expires in ${issued.expiresInMinutes} minutes. If you did not request it, you can ignore this email.</p>
+            </div>
+          `
+        });
+
+        if (!emailResult.success) {
+          discardOtp(email);
+          console.error('[GOOGLE OTP EMAIL FAILED]', emailResult.error || emailResult.reason);
+          return res.status(503).json({
+            success: false,
+            message: 'We could not send the verification email. Please try again later.'
+          });
+        }
+
+        return res.json({
+          success: false,
+          requires_otp: true,
+          email,
+          message: `Verification code sent to ${email}`
+        });
+      }
+
+      const otpResult = verifyOtp(email, otp);
+      if (!otpResult.ok) {
+        const messages = {
+          invalid: 'Incorrect verification code',
+          expired: 'Verification code expired. Please request a new one',
+          too_many_attempts: 'Too many incorrect attempts. Please request a new code'
+        };
+        return res.status(400).json({
+          success: false,
+          requires_otp: otpResult.reason === 'invalid',
+          email,
+          message: messages[otpResult.reason] || 'Invalid verification code'
+        });
+      }
+    }
+
     const user = await sequelize.transaction(async (transaction) => {
       let existingUser = await User.findOne({ where: { email }, transaction });
       if (!existingUser) {

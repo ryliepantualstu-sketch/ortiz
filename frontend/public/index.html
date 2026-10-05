@@ -428,6 +428,27 @@
         </div>
     </div>
 
+    <div class="modal fade" id="googleOtpModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-shield-alt"></i> Verify your email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>We sent a 6-digit code to <strong id="googleOtpEmail"></strong>. Enter it to finish creating your account.</p>
+                    <input type="text" class="form-control" id="googleOtpInput" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                    <div class="small text-success mt-2" id="googleOtpMsg" role="status"></div>
+                    <div class="small text-danger mt-1" id="googleOtpError" role="alert"></div>
+                    <div class="small text-muted mt-2">Didn't get it? <a href="#" onclick="resendGoogleOtp(); return false;">Resend code</a></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-auth" onclick="submitGoogleOtp()">Verify & Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="js/api.js"></script>
     <script>
@@ -472,10 +493,34 @@
             }
         }
 
+        let pendingGoogleCredential = null;
+        let googleOtpModal = null;
+
+        function finishGoogleLogin(result) {
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user));
+            redirectByRole(result.user);
+        }
+
+        function openGoogleOtpModal(email, message) {
+            document.getElementById('googleOtpEmail').textContent = email;
+            document.getElementById('googleOtpInput').value = '';
+            document.getElementById('googleOtpMsg').textContent = message || '';
+            document.getElementById('googleOtpError').textContent = '';
+            googleOtpModal = googleOtpModal || new bootstrap.Modal(document.getElementById('googleOtpModal'));
+            googleOtpModal.show();
+        }
+
         async function handleGoogleCredential(response) {
+            pendingGoogleCredential = response.credential;
             const result = await apiCall('/auth/google', 'POST', {
-                credential: response.credential
+                credential: pendingGoogleCredential
             });
+
+            if (result.requires_otp) {
+                openGoogleOtpModal(result.email, result.message);
+                return;
+            }
 
             if (!result.success) {
                 const formType = document.getElementById('register-section').classList.contains('active') ? 'register' : 'login';
@@ -483,9 +528,45 @@
                 return;
             }
 
-            localStorage.setItem('token', result.token);
-            localStorage.setItem('user', JSON.stringify(result.user));
-            redirectByRole(result.user);
+            finishGoogleLogin(result);
+        }
+
+        async function submitGoogleOtp() {
+            const otp = document.getElementById('googleOtpInput').value.trim();
+            const errorEl = document.getElementById('googleOtpError');
+            if (!/^\d{6}$/.test(otp)) {
+                errorEl.textContent = 'Enter the 6-digit code sent to your Gmail';
+                return;
+            }
+
+            const result = await apiCall('/auth/google', 'POST', {
+                credential: pendingGoogleCredential,
+                otp
+            });
+
+            if (result.success) {
+                googleOtpModal.hide();
+                finishGoogleLogin(result);
+            } else {
+                errorEl.textContent = result.message || 'Verification failed. Please try again.';
+            }
+        }
+
+        async function resendGoogleOtp() {
+            // The credential is already verified; re-posting without otp issues a fresh code
+            const result = await apiCall('/auth/google', 'POST', {
+                credential: pendingGoogleCredential
+            });
+            const msgEl = document.getElementById('googleOtpMsg');
+            const errorEl = document.getElementById('googleOtpError');
+            if (result.requires_otp && result.success === false && /wait/i.test(result.message || '')) {
+                errorEl.textContent = result.message;
+            } else if (result.requires_otp) {
+                errorEl.textContent = '';
+                msgEl.textContent = result.message;
+            } else {
+                errorEl.textContent = result.message || 'Could not resend the code.';
+            }
         }
 
         const GOOGLE_BUTTON_TARGETS = [
