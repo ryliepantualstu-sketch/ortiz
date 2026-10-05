@@ -379,20 +379,8 @@
                             </div>
                         </div>
 
-                        <div class="form-group d-none" id="registerOtpGroup">
-                            <label class="form-label" for="registerOtp">
-                                <i class="fas fa-shield-alt"></i> Verification Code
-                            </label>
-                            <input type="text" class="form-control" id="registerOtp" name="otp" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-                            <div class="small text-muted mt-1">
-                                We sent a code to your Gmail. <a id="resendOtpLink" onclick="resendRegisterOtp()">Resend code</a>
-                            </div>
-                        </div>
-
-                        <div id="registerOtpStatus" class="small text-success mb-2" role="status"></div>
-
                         <button type="submit" class="btn btn-auth w-100" id="registerSubmitBtn">
-                            <i class="fas fa-paper-plane"></i> Send Verification Code
+                            <i class="fas fa-user-plus"></i> Create Account
                         </button>
                     </form>
 
@@ -423,27 +411,6 @@
                     <i class="fas fa-eye"></i>
                     <i class="fas fa-comments mx-3"></i>
                     <i class="fas fa-shopping-bag"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="googleOtpModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-shield-alt"></i> Verify your email</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>We sent a 6-digit code to <strong id="googleOtpEmail"></strong>. Enter it to finish creating your account.</p>
-                    <input type="text" class="form-control" id="googleOtpInput" placeholder="6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-                    <div class="small text-success mt-2" id="googleOtpMsg" role="status"></div>
-                    <div class="small text-danger mt-1" id="googleOtpError" role="alert"></div>
-                    <div class="small text-muted mt-2">Didn't get it? <a href="#" onclick="resendGoogleOtp(); return false;">Resend code</a></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-auth" onclick="submitGoogleOtp()">Verify & Continue</button>
                 </div>
             </div>
         </div>
@@ -493,34 +460,16 @@
             }
         }
 
-        let pendingGoogleCredential = null;
-        let googleOtpModal = null;
-
         function finishGoogleLogin(result) {
             localStorage.setItem('token', result.token);
             localStorage.setItem('user', JSON.stringify(result.user));
             redirectByRole(result.user);
         }
 
-        function openGoogleOtpModal(email, message) {
-            document.getElementById('googleOtpEmail').textContent = email;
-            document.getElementById('googleOtpInput').value = '';
-            document.getElementById('googleOtpMsg').textContent = message || '';
-            document.getElementById('googleOtpError').textContent = '';
-            googleOtpModal = googleOtpModal || new bootstrap.Modal(document.getElementById('googleOtpModal'));
-            googleOtpModal.show();
-        }
-
         async function handleGoogleCredential(response) {
-            pendingGoogleCredential = response.credential;
             const result = await apiCall('/auth/google', 'POST', {
-                credential: pendingGoogleCredential
+                credential: response.credential
             });
-
-            if (result.requires_otp) {
-                openGoogleOtpModal(result.email, result.message);
-                return;
-            }
 
             if (!result.success) {
                 const formType = document.getElementById('register-section').classList.contains('active') ? 'register' : 'login';
@@ -529,44 +478,6 @@
             }
 
             finishGoogleLogin(result);
-        }
-
-        async function submitGoogleOtp() {
-            const otp = document.getElementById('googleOtpInput').value.trim();
-            const errorEl = document.getElementById('googleOtpError');
-            if (!/^\d{6}$/.test(otp)) {
-                errorEl.textContent = 'Enter the 6-digit code sent to your Gmail';
-                return;
-            }
-
-            const result = await apiCall('/auth/google', 'POST', {
-                credential: pendingGoogleCredential,
-                otp
-            });
-
-            if (result.success) {
-                googleOtpModal.hide();
-                finishGoogleLogin(result);
-            } else {
-                errorEl.textContent = result.message || 'Verification failed. Please try again.';
-            }
-        }
-
-        async function resendGoogleOtp() {
-            // The credential is already verified; re-posting without otp issues a fresh code
-            const result = await apiCall('/auth/google', 'POST', {
-                credential: pendingGoogleCredential
-            });
-            const msgEl = document.getElementById('googleOtpMsg');
-            const errorEl = document.getElementById('googleOtpError');
-            if (result.requires_otp && result.success === false && /wait/i.test(result.message || '')) {
-                errorEl.textContent = result.message;
-            } else if (result.requires_otp) {
-                errorEl.textContent = '';
-                msgEl.textContent = result.message;
-            } else {
-                errorEl.textContent = result.message || 'Could not resend the code.';
-            }
         }
 
         const GOOGLE_BUTTON_TARGETS = [
@@ -693,27 +604,6 @@
                 return;
             }
 
-            const otpGroup = document.getElementById('registerOtpGroup');
-            const submitBtn = document.getElementById('registerSubmitBtn');
-
-            if (otpGroup.classList.contains('d-none')) {
-                submitBtn.disabled = true;
-                const sent = await requestRegisterOtp(email, full_name);
-                submitBtn.disabled = false;
-                if (sent) {
-                    otpGroup.classList.remove('d-none');
-                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Verify & Create Account';
-                    document.getElementById('registerOtp').focus();
-                }
-                return;
-            }
-
-            const otp = document.getElementById('registerOtp').value.trim();
-            if (!/^\d{6}$/.test(otp)) {
-                showError('register', 'Enter the 6-digit code sent to your Gmail');
-                return;
-            }
-
             const result = await apiCall('/auth/register', 'POST', {
                 full_name,
                 email,
@@ -721,48 +611,17 @@
                 birthday,
                 address,
                 password,
-                confirm_password,
-                otp
+                confirm_password
             });
 
             if (result.success) {
                 alert('Account created successfully! Please login.');
                 toggleForms();
                 document.getElementById('loginEmail').value = email;
-                resetRegisterOtpStep();
             } else {
                 showError('register', result.message || 'Registration failed. Please try again.');
             }
         }
-
-        async function requestRegisterOtp(email, full_name) {
-            const status = document.getElementById('registerOtpStatus');
-            status.textContent = '';
-            const result = await apiCall('/auth/register/request-otp', 'POST', { email, full_name });
-            if (!result.success) {
-                showError('register', result.message || 'Could not send verification code.');
-                return false;
-            }
-            document.getElementById('registerError').classList.remove('show');
-            status.textContent = result.message;
-            return true;
-        }
-
-        async function resendRegisterOtp() {
-            const email = document.getElementById('registerEmail').value.trim();
-            const full_name = document.getElementById('registerName').value.trim();
-            await requestRegisterOtp(email, full_name);
-        }
-
-        function resetRegisterOtpStep() {
-            document.getElementById('registerOtpGroup').classList.add('d-none');
-            document.getElementById('registerOtp').value = '';
-            document.getElementById('registerOtpStatus').textContent = '';
-            document.getElementById('registerSubmitBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Send Verification Code';
-        }
-
-        // Changing the email invalidates the code that was sent to the previous address
-        document.getElementById('registerEmail').addEventListener('input', resetRegisterOtpStep);
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
