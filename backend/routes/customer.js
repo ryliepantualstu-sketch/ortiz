@@ -19,21 +19,7 @@ const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notific
 const { Op } = require('sequelize');
 const { isValidPickupDate } = require('../utils/orderPickup');
 
-// Utility function to get the correct price based on lens option
-function getPriceByLensOption(product, lensOption = 'regular-lens') {
-  if (!product) return 0;
-  
-  if (lensOption === 'frame-only' && product.frame_only_price) {
-    return product.frame_only_price;
-  } else if (lensOption === 'photochromic' && product.photochromic_price) {
-    return product.photochromic_price;
-  } else if (lensOption === 'regular-lens' && product.regular_lens_price) {
-    return product.regular_lens_price;
-  }
-  
-  // Fallback to base price
-  return product.price;
-}
+const { getPriceByLensOption } = require('../utils/pricing');
 
 function calculateCustomerDiscount(customer, amount) {
   const isSenior = Boolean(customer?.is_senior);

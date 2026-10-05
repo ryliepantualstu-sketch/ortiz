@@ -37,6 +37,7 @@
 
   function buildReceiptHtml(order) {
     const user = order.Customer?.User || {};
+    if (order.customer_name) user.full_name = order.customer_name;
     const items = order.OrderItems || order.items || [];
     const total = Number(order.total_amount || 0);
     const discount = Number(order.discount_amount || 0);

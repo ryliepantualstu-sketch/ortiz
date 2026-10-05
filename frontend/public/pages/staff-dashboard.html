@@ -1032,7 +1032,10 @@
 
                 <!-- Orders Section -->
                 <div id="ordersSection" style="display: none;">
-                    <h4 class="mb-4">Order Management</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Order Management</h4>
+                        <button class="btn btn-primary" onclick="openWalkInSale()"><i class="fas fa-cash-register me-1"></i>Walk-in Sale</button>
+                    </div>
                     <div class="table-container">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
@@ -1373,7 +1376,7 @@
                     tbody.innerHTML = result.orders.map(order => `
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
-                            <td>${order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${order.customer_name || order.Customer?.User?.full_name || 'N/A'}${order.is_walk_in ? ' <span class="badge bg-secondary">Walk-in</span>' : ''}</td>
                             <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
@@ -1615,7 +1618,7 @@
                 const currentDiscountType = order.discount_type || null;
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${escapeStaffOrderText(order.Customer?.User?.full_name || 'N/A')} (${escapeStaffOrderText(order.Customer?.User?.email || '')})</p>
+                    <p><strong>Customer:</strong> ${escapeStaffOrderText(order.customer_name || order.Customer?.User?.full_name || 'N/A')}${order.is_walk_in ? ' (Walk-in)' : ` (${escapeStaffOrderText(order.Customer?.User?.email || '')})`}</p>
                     <p><strong>Phone:</strong> ${escapeStaffOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
                     <p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>
                     <p><strong>Date &amp; Time Ordered:</strong> ${formatOrderDateTime(order.order_date || order.created_at)}</p>
@@ -1720,6 +1723,88 @@
             viewStaffOrder(orderId);
         }
 
+        // Walk-in sale
+        let walkInProducts = [];
+        let walkInItems = [];
+
+        function walkInPrice(product, lens) {
+            const map = { 'frame-only': product.frame_only_price, 'regular-lens': product.regular_lens_price, 'photochromic': product.photochromic_price };
+            return Number(map[lens] || product.price || 0);
+        }
+
+        async function openWalkInSale() {
+            walkInItems = [];
+            ['wiName', 'wiAddress'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('wiQty').value = 1;
+            document.getElementById('wiDiscNone').checked = true;
+            renderWalkInItems();
+            const result = await apiCall('/staff/products');
+            walkInProducts = (result && result.products) || [];
+            document.getElementById('wiProduct').innerHTML = walkInProducts
+                .filter(p => (p.stock_quantity || 0) > 0)
+                .map(p => `<option value="${p.product_id}">${escapeStaffOrderText(p.product_name)}${p.color_name ? ' - ' + escapeStaffOrderText(p.color_name) : ''} (stock: ${p.stock_quantity})</option>`)
+                .join('');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).show();
+        }
+
+        function addWalkInItem() {
+            const product = walkInProducts.find(p => String(p.product_id) === document.getElementById('wiProduct').value);
+            const qty = parseInt(document.getElementById('wiQty').value, 10);
+            const lens = document.getElementById('wiLens').value;
+            if (!product || !qty || qty < 1) return;
+            const existing = walkInItems.find(i => i.product.product_id === product.product_id && i.lens === lens);
+            const already = walkInItems.filter(i => i.product.product_id === product.product_id).reduce((s, i) => s + i.qty, 0);
+            if (already + qty > (product.stock_quantity || 0)) {
+                alert('Not enough stock. Available: ' + product.stock_quantity);
+                return;
+            }
+            if (existing) existing.qty += qty; else walkInItems.push({ product, lens, qty });
+            renderWalkInItems();
+        }
+
+        function removeWalkInItem(index) {
+            walkInItems.splice(index, 1);
+            renderWalkInItems();
+        }
+
+        function renderWalkInItems() {
+            const lensLabels = { 'frame-only': 'Frame only', 'regular-lens': 'Regular lens', 'photochromic': 'Photochromic' };
+            document.getElementById('wiItems').innerHTML = walkInItems.length ? walkInItems.map((i, idx) => {
+                const price = walkInPrice(i.product, i.lens);
+                return `<tr><td>${escapeStaffOrderText(i.product.product_name)}</td><td>${lensLabels[i.lens]}</td><td class="text-end">?${price.toFixed(2)}</td><td>${i.qty}</td><td class="text-end">?${(price * i.qty).toFixed(2)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeWalkInItem(${idx})">&times;</button></td></tr>`;
+            }).join('') : '<tr><td colspan="6" class="text-center text-muted">No items yet</td></tr>';
+            const subtotal = walkInItems.reduce((s, i) => s + walkInPrice(i.product, i.lens) * i.qty, 0);
+            const discount = document.querySelector('input[name="wiDiscount"]:checked').value ? Number((subtotal * 0.2).toFixed(2)) : 0;
+            document.getElementById('wiSubtotal').textContent = '?' + subtotal.toFixed(2);
+            document.getElementById('wiDiscountAmt').textContent = '?' + discount.toFixed(2);
+            document.getElementById('wiTotal').textContent = '?' + (subtotal - discount).toFixed(2);
+        }
+
+        async function submitWalkInSale() {
+            const name = document.getElementById('wiName').value.trim();
+            if (!name) { alert('Enter the customer name'); return; }
+            if (!walkInItems.length) { alert('Add at least one item'); return; }
+            const btn = document.getElementById('wiSubmit');
+            btn.disabled = true;
+            try {
+                const result = await apiCall('/staff/orders/walk-in', 'POST', {
+                    customer_name: name,
+                    address: document.getElementById('wiAddress').value.trim(),
+                    discount_type: document.querySelector('input[name="wiDiscount"]:checked').value || null,
+                    items: walkInItems.map(i => ({ product_id: i.product.product_id, quantity: i.qty, lens_option: i.lens }))
+                });
+                if (result && result.success) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).hide();
+                    showOrderReceipt(result.order);
+                    loadOrders();
+                } else {
+                    alert((result && result.message) || 'Failed to record sale');
+                }
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadUserInfo();
             loadDashboard();
@@ -1741,6 +1826,56 @@
                 <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
+    </div>
+  </div>
+</div>
+
+<!-- Walk-in Sale Modal -->
+<div class="modal fade" id="walkInModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>Walk-in Sale</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150"></div>
+          <div class="col-md-6"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress"></div>
+        </div>
+        <div class="row g-2 mb-2 align-items-end">
+          <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
+          <div class="col-md-3"><label class="form-label">Lens</label>
+            <select class="form-select" id="wiLens">
+              <option value="frame-only">Frame only</option>
+              <option value="regular-lens" selected>Regular lens</option>
+              <option value="photochromic">Photochromic</option>
+            </select></div>
+          <div class="col-md-2"><label class="form-label">Qty</label><input type="number" class="form-control" id="wiQty" value="1" min="1"></div>
+          <div class="col-md-2"><button type="button" class="btn btn-outline-primary w-100" onclick="addWalkInItem()">Add</button></div>
+        </div>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Item</th><th>Lens</th><th class="text-end">Price</th><th>Qty</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+            <tbody id="wiItems"></tbody>
+          </table>
+        </div>
+        <div class="mb-3">
+          <label class="form-label d-block">Discount</label>
+          <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="wiDiscount" id="wiDiscNone" value="" checked onchange="renderWalkInItems()"><label class="form-check-label" for="wiDiscNone">None</label></div>
+          <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="wiDiscount" id="wiDiscSenior" value="senior" onchange="renderWalkInItems()"><label class="form-check-label" for="wiDiscSenior">Senior (20%)</label></div>
+          <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="wiDiscount" id="wiDiscPwd" value="pwd" onchange="renderWalkInItems()"><label class="form-check-label" for="wiDiscPwd">PWD (20%)</label></div>
+        </div>
+        <div class="text-end">
+          <div>Subtotal: <strong id="wiSubtotal">?0.00</strong></div>
+          <div>Discount: <strong id="wiDiscountAmt">?0.00</strong></div>
+          <div class="fs-5">Total: <strong id="wiTotal">?0.00</strong></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success" id="wiSubmit" onclick="submitWalkInSale()">Complete Sale &amp; Print Receipt</button>
+      </div>
     </div>
   </div>
 </div>

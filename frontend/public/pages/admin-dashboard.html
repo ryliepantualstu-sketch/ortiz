@@ -2564,7 +2564,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     tbody.innerHTML = result.orders.slice(0, 5).map(order => `
                         <tr>
                             <td>#${order.order_id}</td>
-                            <td>${order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${order.customer_name || order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
                             <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                             <td><button class="btn btn-sm btn-primary" onclick="viewAdminOrder(${order.order_id})">View</button></td>
@@ -2782,7 +2782,7 @@ This will deactivate the account and keep the user record for history.`)) {
                 const items = order.OrderItems || [];
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
+                    <p><strong>Customer:</strong> ${order.customer_name || order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
                     <p><strong>Phone:</strong> ${order.Customer?.User?.phone || order.Customer?.phone || 'N/A'}</p>
                     <p><strong>Address:</strong> ${order.delivery_address || order.Customer?.address || 'Not provided'}</p>
                     <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
@@ -2885,7 +2885,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     tbody.innerHTML = result.orders.map(order => `
                         <tr>
                             <td>#${order.order_id}</td>
-                            <td>${order.Customer?.User?.full_name || 'N/A'}</td>
+                            <td>${order.customer_name || order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
                             <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
                             <td>${new Date(order.order_date).toLocaleDateString()}</td>

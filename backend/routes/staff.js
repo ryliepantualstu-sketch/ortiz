@@ -11,6 +11,9 @@ const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
+const crypto = require('crypto');
+const sequelize = require('../config/database');
+const { getPriceByLensOption } = require('../utils/pricing');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -361,6 +364,112 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       success: false,
       message: 'Failed to update appointment',
       error: error.message
+    });
+  }
+});
+
+// Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
+const WALK_IN_EMAIL = 'walkin@ortizoptical.local';
+
+async function getWalkInCustomer(transaction) {
+  let user = await User.findOne({ where: { email: WALK_IN_EMAIL }, transaction });
+  if (!user) {
+    user = await User.create({
+      full_name: 'Walk-in Customer',
+      email: WALK_IN_EMAIL,
+      password: crypto.randomBytes(32).toString('hex'),
+      role: 'customer',
+      is_active: false
+    }, { transaction });
+  }
+  let customer = await Customer.findOne({ where: { user_id: user.user_id }, transaction });
+  if (!customer) {
+    customer = await Customer.create({ user_id: user.user_id }, { transaction });
+  }
+  return customer;
+}
+
+router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const customerName = typeof req.body.customer_name === 'string' ? req.body.customer_name.trim() : '';
+    const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+    const notes = typeof req.body.notes === 'string' ? req.body.notes.trim() : '';
+    const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
+    const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
+
+    if (!customerName) {
+      return res.status(400).json({ success: false, message: 'Customer name is required' });
+    }
+    if (requestedItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+
+    const orderId = await sequelize.transaction(async (transaction) => {
+      const lines = [];
+      for (const entry of requestedItems) {
+        const quantity = Number.parseInt(entry.quantity, 10);
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          throw Object.assign(new Error('Quantity must be at least 1'), { status: 400 });
+        }
+        const product = await Product.findByPk(entry.product_id, { transaction, lock: transaction.LOCK.UPDATE });
+        if (!product) {
+          throw Object.assign(new Error('Product not found'), { status: 404 });
+        }
+        if ((product.stock_quantity || 0) < quantity) {
+          throw Object.assign(new Error(`Not enough stock for ${product.product_name} (available: ${product.stock_quantity || 0})`), { status: 409 });
+        }
+        const lensOption = entry.lens_option || 'regular-lens';
+        const price = Number(getPriceByLensOption(product, lensOption));
+        lines.push({ product, quantity, lensOption, price });
+      }
+
+      const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+      const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
+      const customer = await getWalkInCustomer(transaction);
+
+      const order = await Order.create({
+        customer_id: customer.customer_id,
+        total_amount: Number((subtotal - discountAmount).toFixed(2)),
+        discount_type: discountType,
+        discount_amount: discountAmount,
+        delivery_address: address || null,
+        notes: notes || null,
+        customer_name: customerName,
+        is_walk_in: true,
+        status: 'picked up'
+      }, { transaction });
+
+      for (const line of lines) {
+        await OrderItem.create({
+          order_id: order.order_id,
+          product_id: line.product.product_id,
+          quantity: line.quantity,
+          price: line.price,
+          subtotal: line.price * line.quantity,
+          lens_option: line.lensOption
+        }, { transaction });
+        await line.product.update(
+          { stock_quantity: line.product.stock_quantity - line.quantity },
+          { transaction }
+        );
+      }
+
+      return order.order_id;
+    });
+
+    const order = await Order.findByPk(orderId, {
+      include: [
+        { model: OrderItem, include: [{ model: Product }] },
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+      ]
+    });
+
+    res.status(201).json({ success: true, message: 'Walk-in sale recorded', order });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to record walk-in sale',
+      ...(error.status ? {} : { error: error.message })
     });
   }
 });

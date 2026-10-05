@@ -49,6 +49,15 @@ const Order = sequelize.define('Order', {
     type: DataTypes.DATEONLY,
     allowNull: true
   },
+  customer_name: {
+    type: DataTypes.STRING(150),
+    allowNull: true
+  },
+  is_walk_in: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   pickup_reschedule_count: {
     type: DataTypes.INTEGER,
     allowNull: false,

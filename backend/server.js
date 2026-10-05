@@ -307,6 +307,15 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.DATEONLY,
       allowNull: true
     });
+    await addColumnIfMissing('orders', 'customer_name', {
+      type: DataTypes.STRING(150),
+      allowNull: true
+    });
+    await addColumnIfMissing('orders', 'is_walk_in', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
     await addColumnIfMissing('orders', 'pickup_reschedule_count', {
       type: DataTypes.INTEGER,
       allowNull: false,
