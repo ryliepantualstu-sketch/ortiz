@@ -162,6 +162,28 @@
             color: white;
         }
 
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0;
+            color: #667085;
+            font-size: 0.85rem;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+
+        #googleLoginButton {
+            display: flex;
+            justify-content: center;
+        }
+
         .auth-toggle {
             text-align: center;
             margin-top: 20px;
@@ -273,6 +295,12 @@
                             <i class="fas fa-sign-in-alt"></i> Sign In
                         </button>
                     </form>
+
+                    <div id="googleLoginSection" class="d-none">
+                        <div class="login-divider">or</div>
+                        <div id="googleLoginButton"></div>
+                        <div id="googleLoginStatus" class="small text-center text-muted mt-2" role="status"></div>
+                    </div>
 
                     <div class="auth-toggle">
                         Don't have an account? <a onclick="toggleForms()">Create one</a>
@@ -417,6 +445,73 @@
             button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
         }
 
+        function redirectByRole(user) {
+            if (user.role === 'admin') {
+                window.location.href = 'pages/admin-dashboard.html';
+            } else if (user.role === 'customer') {
+                window.location.href = 'pages/customer-dashboard.html';
+            } else if (user.role === 'staff') {
+                window.location.href = 'pages/staff-dashboard.html';
+            }
+        }
+
+        async function handleGoogleCredential(response) {
+            const result = await apiCall('/auth/google', 'POST', {
+                credential: response.credential
+            });
+
+            if (!result.success) {
+                showError('login', result.message || 'Google sign-in failed. Please try again.');
+                return;
+            }
+
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user));
+            redirectByRole(result.user);
+        }
+
+        async function initializeGoogleLogin() {
+            const section = document.getElementById('googleLoginSection');
+            const status = document.getElementById('googleLoginStatus');
+            await probeApiPorts();
+
+            const config = await apiCall('/auth/google/config');
+            if (!config.success || !config.enabled || !config.clientId) {
+                status.textContent = 'Google sign-in is not configured yet.';
+                return;
+            }
+
+            section.classList.remove('d-none');
+
+            try {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://accounts.google.com/gsi/client';
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Could not load Google sign-in'));
+                    document.head.appendChild(script);
+                });
+
+                google.accounts.id.initialize({
+                    client_id: config.clientId,
+                    callback: handleGoogleCredential
+                });
+                google.accounts.id.renderButton(document.getElementById('googleLoginButton'), {
+                    type: 'standard',
+                    theme: 'outline',
+                    size: 'large',
+                    text: 'signin_with',
+                    shape: 'rectangular',
+                    width: 300
+                });
+            } catch (error) {
+                console.error('Google sign-in initialization failed:', error);
+                status.textContent = 'Could not load Google sign-in. Please use email and password.';
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
 
@@ -436,16 +531,7 @@
             if (result.success) {
                 localStorage.setItem('token', result.token);
                 localStorage.setItem('user', JSON.stringify(result.user));
-                
-                // Redirect based on role
-                const role = result.user.role;
-                if (role === 'admin') {
-                    window.location.href = 'pages/admin-dashboard.html';
-                } else if (role === 'customer') {
-                    window.location.href = 'pages/customer-dashboard.html';
-                } else if (role === 'staff') {
-                    window.location.href = 'pages/staff-dashboard.html';
-                }
+                redirectByRole(result.user);
             } else {
                 showError('login', result.message || 'Login failed. Please try again.');
             }
@@ -506,6 +592,7 @@
         document.querySelectorAll('.password-toggle').forEach((button) => {
             button.addEventListener('click', () => togglePasswordVisibility(button));
         });
+        initializeGoogleLogin();
 
     </script>
 </body>
