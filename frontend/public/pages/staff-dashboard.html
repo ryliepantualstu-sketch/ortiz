@@ -1771,13 +1771,13 @@
             const lensLabels = { 'frame-only': 'Frame only', 'regular-lens': 'Regular lens', 'photochromic': 'Photochromic' };
             document.getElementById('wiItems').innerHTML = walkInItems.length ? walkInItems.map((i, idx) => {
                 const price = walkInPrice(i.product, i.lens);
-                return `<tr><td>${escapeStaffOrderText(i.product.product_name)}</td><td>${lensLabels[i.lens]}</td><td class="text-end">?${price.toFixed(2)}</td><td>${i.qty}</td><td class="text-end">?${(price * i.qty).toFixed(2)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeWalkInItem(${idx})">&times;</button></td></tr>`;
+                return `<tr><td>${escapeStaffOrderText(i.product.product_name)}</td><td>${lensLabels[i.lens]}</td><td class="text-end">&#8369;${price.toFixed(2)}</td><td>${i.qty}</td><td class="text-end">&#8369;${(price * i.qty).toFixed(2)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeWalkInItem(${idx})">&times;</button></td></tr>`;
             }).join('') : '<tr><td colspan="6" class="text-center text-muted">No items yet</td></tr>';
             const subtotal = walkInItems.reduce((s, i) => s + walkInPrice(i.product, i.lens) * i.qty, 0);
             const discount = document.querySelector('input[name="wiDiscount"]:checked').value ? Number((subtotal * 0.2).toFixed(2)) : 0;
-            document.getElementById('wiSubtotal').textContent = '?' + subtotal.toFixed(2);
-            document.getElementById('wiDiscountAmt').textContent = '?' + discount.toFixed(2);
-            document.getElementById('wiTotal').textContent = '?' + (subtotal - discount).toFixed(2);
+            document.getElementById('wiSubtotal').textContent = '\u20B1' + subtotal.toFixed(2);
+            document.getElementById('wiDiscountAmt').textContent = '\u20B1' + discount.toFixed(2);
+            document.getElementById('wiTotal').textContent = '\u20B1' + (subtotal - discount).toFixed(2);
         }
 
         async function submitWalkInSale() {
