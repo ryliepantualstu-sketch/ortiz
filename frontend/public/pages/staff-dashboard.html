@@ -1607,6 +1607,10 @@
                 // attach order id to modal for footer actions
                 modalEl.dataset.orderId = order.order_id;
                 window.currentReceiptOrder = order;
+                const orderStatus = (order.status || '').toLowerCase();
+                const isFinal = ['picked up', 'picked-up', 'cancelled'].includes(orderStatus);
+                document.getElementById('staffReceiptBtn').classList.toggle('d-none', !['picked up', 'picked-up'].includes(orderStatus));
+                document.getElementById('staffPickupBtn').classList.toggle('d-none', isFinal);
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
                 body.innerHTML = `
@@ -1635,17 +1639,17 @@
                     <div class="mt-1"><strong>Total:</strong> ₱${Number(order.total_amount||0).toFixed(2)}</div>
                     <hr />
                     <div>
-                      <label class="form-label">Apply Discount (staff only)</label>
+                      <label class="form-label">Discount (staff only) <small class="text-muted">- applied automatically when selected</small></label>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountNone" value="none" ${!currentDiscountType ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountNone" value="none" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${!currentDiscountType ? 'checked' : ''}>
                         <label class="form-check-label" for="discountNone">None</label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountSenior" value="senior" ${currentDiscountType === 'senior' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountSenior" value="senior" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${currentDiscountType === 'senior' ? 'checked' : ''}>
                         <label class="form-check-label" for="discountSenior">Senior (20%)</label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountPwd" value="pwd" ${currentDiscountType === 'pwd' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountPwd" value="pwd" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${currentDiscountType === 'pwd' ? 'checked' : ''}>
                         <label class="form-check-label" for="discountPwd">PWD (20%)</label>
                       </div>
                     </div>
@@ -1699,6 +1703,12 @@
                 modal.hide();
             }
 
+            const receiptResult = await apiCall(`/staff/orders/${orderId}`);
+            if (receiptResult && receiptResult.success) {
+                window.currentReceiptOrder = receiptResult.order;
+                showOrderReceipt(receiptResult.order);
+            }
+
             updateDashboardStats().catch(() => {});
             if (document.getElementById('ordersSection').style.display !== 'none') {
                 await loadOrders();
@@ -1727,9 +1737,8 @@
       </div>
       <div class="modal-body" id="staffOrderDetailBody"> </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-success" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
-                <button type="button" class="btn btn-success" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
-                <button type="button" class="btn btn-primary" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) applyOrderDiscount(id); })()">Apply Discount</button>
+                <button type="button" class="btn btn-outline-success d-none" id="staffReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
+                <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
     </div>
