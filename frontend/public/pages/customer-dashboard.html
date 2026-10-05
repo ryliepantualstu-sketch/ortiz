@@ -1929,7 +1929,7 @@
                 </div>
                 <div class="modal-body p-4" id="customerOrderDetailBody"></div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-success" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
+                    <button type="button" class="btn btn-outline-success d-none" id="customerReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
                     <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -3488,6 +3488,7 @@
             }
 
             window.currentReceiptOrder = order;
+            document.getElementById('customerReceiptBtn').classList.toggle('d-none', !['picked up', 'completed'].includes(normalizeStatus(order.status)));
             const items = getOrderItems(order);
             const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || item.price || 0), 0);
             const discountLabel = order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None';
