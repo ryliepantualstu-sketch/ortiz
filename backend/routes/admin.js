@@ -144,6 +144,69 @@ router.get('/products/view/all', authMiddleware, async (req, res) => {
   }
 });
 
+// Permanently remove a user and every dependent record (appointments, orders, cart)
+async function purgeUser(user, deletedBy) {
+  const customer = await Customer.findOne({ where: { user_id: user.user_id } });
+  let appointmentIds = [];
+  let orderIds = [];
+  let orderItemIds = [];
+  let cartItemIds = [];
+
+  if (customer) {
+    const appointments = await Appointment.findAll({ where: { customer_id: customer.customer_id } });
+    appointmentIds = appointments.map(a => a.appointment_id);
+
+    const orders = await Order.findAll({ where: { customer_id: customer.customer_id } });
+    orderIds = orders.map(o => o.order_id);
+
+    for (const ord of orders) {
+      const items = await OrderItem.findAll({ where: { order_id: ord.order_id }, attributes: ['order_item_id'] });
+      orderItemIds.push(...items.map(i => i.order_item_id));
+    }
+
+    const cartItems = await Cart.findAll({ where: { customer_id: customer.customer_id } });
+    cartItemIds = cartItems.map(c => c.cart_id);
+  }
+
+  // Write deletion log entry (JSONL)
+  try {
+    const LOG_DIR = path.resolve(__dirname, '../logs');
+    await fs.mkdir(LOG_DIR, { recursive: true });
+    const logFile = path.join(LOG_DIR, 'deleted_users.jsonl');
+    const entry = {
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy || null,
+      user: sanitizeUser(user),
+      customer_id: customer ? customer.customer_id : null,
+      appointment_ids: appointmentIds,
+      order_ids: orderIds,
+      order_item_ids: orderItemIds,
+      cart_item_ids: cartItemIds
+    };
+    await fs.appendFile(logFile, JSON.stringify(entry) + '\n');
+  } catch (logErr) {
+    console.error('Failed to write deletion log:', logErr);
+  }
+
+  if (customer) {
+    for (const appt of await Appointment.findAll({ where: { customer_id: customer.customer_id } })) {
+      await QRCode.destroy({ where: { code_type: 'Appointment', reference_id: appt.appointment_id } });
+      await appt.destroy();
+    }
+
+    for (const ord of await Order.findAll({ where: { customer_id: customer.customer_id } })) {
+      await OrderItem.destroy({ where: { order_id: ord.order_id } });
+      await QRCode.destroy({ where: { code_type: 'Order', reference_id: ord.order_id } });
+      await ord.destroy();
+    }
+
+    await Cart.destroy({ where: { customer_id: customer.customer_id } });
+    await customer.destroy();
+  }
+
+  await user.destroy();
+}
+
 // Force delete user and all dependent records (appointments, orders, cart)
 router.delete('/users/:id/force', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
@@ -162,70 +225,7 @@ router.delete('/users/:id/force', authMiddleware, requireRole('admin'), async (r
       });
     }
 
-    const customer = await Customer.findOne({ where: { user_id: user.user_id } });
-    // Collect dependent IDs and counts for logging before deletion
-    let appointmentIds = [];
-    let orderIds = [];
-    let orderItemIds = [];
-    let cartItemIds = [];
-
-    if (customer) {
-      const appointments = await Appointment.findAll({ where: { customer_id: customer.customer_id } });
-      appointmentIds = appointments.map(a => a.appointment_id);
-
-      const orders = await Order.findAll({ where: { customer_id: customer.customer_id } });
-      orderIds = orders.map(o => o.order_id);
-
-      for (const ord of orders) {
-        const items = await OrderItem.findAll({ where: { order_id: ord.order_id }, attributes: ['order_item_id'] });
-        orderItemIds.push(...items.map(i => i.order_item_id));
-      }
-
-      const cartItems = await Cart.findAll({ where: { customer_id: customer.customer_id } });
-      cartItemIds = cartItems.map(c => c.cart_id);
-
-      // Write deletion log entry (JSONL)
-      try {
-        const LOG_DIR = path.resolve(__dirname, '../logs');
-        await fs.mkdir(LOG_DIR, { recursive: true });
-        const logFile = path.join(LOG_DIR, 'deleted_users.jsonl');
-        const entry = {
-          deleted_at: new Date().toISOString(),
-          deleted_by: req.user ? req.user.user_id : null,
-          user: sanitizeUser(user),
-          customer_id: customer.customer_id,
-          appointment_ids: appointmentIds,
-          order_ids: orderIds,
-          order_item_ids: orderItemIds,
-          cart_item_ids: cartItemIds
-        };
-        await fs.appendFile(logFile, JSON.stringify(entry) + '\n');
-      } catch (logErr) {
-        console.error('Failed to write deletion log:', logErr);
-      }
-
-      // Remove appointment QR codes and appointments
-      for (const appt of await Appointment.findAll({ where: { customer_id: customer.customer_id } })) {
-        await QRCode.destroy({ where: { code_type: 'Appointment', reference_id: appt.appointment_id } });
-        await appt.destroy();
-      }
-
-      // Remove order items, order QR codes, and orders
-      for (const ord of await Order.findAll({ where: { customer_id: customer.customer_id } })) {
-        await OrderItem.destroy({ where: { order_id: ord.order_id } });
-        await QRCode.destroy({ where: { code_type: 'Order', reference_id: ord.order_id } });
-        await ord.destroy();
-      }
-
-      // Remove cart items
-      await Cart.destroy({ where: { customer_id: customer.customer_id } });
-
-      // Finally remove the customer record
-      await customer.destroy();
-    }
-
-    // Remove the user record
-    await user.destroy();
+    await purgeUser(user, req.user && req.user.user_id);
 
     res.json({
       success: true,
@@ -1544,7 +1544,7 @@ router.delete('/archived/:id', authMiddleware, requireRole('admin'), async (req,
         return res.status(404).json({ success: false, message: 'Archived user not found' });
       }
 
-      await user.destroy();
+      await purgeUser(user, req.user && req.user.user_id);
       return res.json({ success: true, message: 'Archived user deleted permanently' });
     }
 

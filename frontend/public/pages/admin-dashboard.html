@@ -2147,6 +2147,30 @@
             await loadDashboard();
         }
 
+        async function permanentlyDeleteUser(userId) {
+            const user = adminUsers.find((entry) => entry.user_id === userId);
+            if (!user) {
+                alert('❌ User not found');
+                return;
+            }
+
+            if (!confirm(`PERMANENTLY delete ${user.full_name} (${user.email})?
+
+This removes the account and all of their appointments, orders and cart items. It cannot be undone. They can register again with the same email.`)) {
+                return;
+            }
+
+            const result = await apiCall(`/admin/users/${userId}/force?confirm=true`, 'DELETE');
+            if (!result.success) {
+                alert(result.message || 'Failed to delete user.');
+                return;
+            }
+
+            alert(`✅ ${user.full_name} deleted permanently.`);
+            await loadUsers();
+            await loadDashboard();
+        }
+
         async function deleteUser(userId) {
             const user = adminUsers.find((entry) => entry.user_id === userId);
             if (!user) {
@@ -2791,6 +2815,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <td>
                                 <button class="btn btn-sm btn-warning" onclick="openUserModal(${user.user_id})">Edit</button>
                                 <button class="btn btn-sm btn-secondary" onclick="deleteUser(${user.user_id})">Archive</button>
+                                <button class="btn btn-sm btn-danger" onclick="permanentlyDeleteUser(${user.user_id})">Delete</button>
                             </td>
                         </tr>
                     `).join('');
