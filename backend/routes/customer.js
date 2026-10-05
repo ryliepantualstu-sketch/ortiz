@@ -1007,6 +1007,7 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
   try {
     console.log('POST /customer/orders/checkout', { user: req.user && req.user.user_id, body: req.body });
     const { notes } = req.body;
+    const submittedAddress = typeof req.body.address === 'string' ? req.body.address.trim() : '';
     const user = await User.findByPk(req.user.user_id);
     if (!user) {
       return res.status(401).json({
@@ -1030,6 +1031,18 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       });
     }
 
+    const orderAddress = submittedAddress || (customer.address || '').trim();
+    if (!orderAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your address for this order'
+      });
+    }
+
+    if (submittedAddress && submittedAddress !== customer.address) {
+      await customer.update({ address: submittedAddress });
+    }
+
     // Calculate total with lens-specific prices
     const totalAmount = cartItems.reduce((sum, item) => {
       const itemPrice = getPriceByLensOption(item.Product, item.lens_option);
@@ -1049,7 +1062,7 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       total_amount: discount.total_amount,
       discount_type: discount.discount_type,
       discount_amount: discount.discount_amount,
-      delivery_address: null,
+      delivery_address: orderAddress,
       notes,
       status: 'pending'
     });
@@ -1140,6 +1153,40 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
   }
 });
 
+// Cancel an order (only before it is ready for pickup)
+router.patch('/orders/:id/cancel', authMiddleware, requireRole('customer'), async (req, res) => {
+  try {
+    const customer = await getOrCreateCustomerRecord(Customer, req.user.user_id, req.user.phone || null);
+    const order = await Order.findOne({
+      where: { order_id: req.params.id, customer_id: customer.customer_id }
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const currentStatus = (order.status || '').trim().toLowerCase();
+    if (!['pending', 'processing'].includes(currentStatus)) {
+      return res.status(409).json({
+        success: false,
+        message: currentStatus === 'cancelled'
+          ? 'This order is already cancelled'
+          : 'Only pending or processing orders can be cancelled. Please contact the shop.'
+      });
+    }
+
+    await order.update({ status: 'cancelled', updated_at: new Date() });
+
+    const user = await User.findByPk(req.user.user_id);
+    notifyOrderUpdate({ user, order, status: 'cancelled' })
+      .catch(e => console.error('Notification error:', e && e.message));
+
+    res.json({ success: true, message: 'Order cancelled', order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to cancel order', error: error.message });
+  }
+});
+
 // Get customer orders
 router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
@@ -1147,7 +1194,10 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
 
     const orders = await Order.findAll({
       where: { customer_id: customer.customer_id },
-      include: [{ model: OrderItem, include: [{ model: Product }] }],
+      include: [
+        { model: OrderItem, include: [{ model: Product }] },
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+      ],
       order: [['created_at', 'DESC']]
     });
 

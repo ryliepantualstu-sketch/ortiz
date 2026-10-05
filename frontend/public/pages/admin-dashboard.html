@@ -2781,6 +2781,12 @@ This will deactivate the account and keep the user record for history.`)) {
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
                     <p><strong>Customer:</strong> ${order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
+                    <p><strong>Phone:</strong> ${order.Customer?.User?.phone || order.Customer?.phone || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${order.delivery_address || order.Customer?.address || 'Not provided'}</p>
+                    <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
+                    <p><strong>Notes:</strong> ${order.notes || 'None'}</p>
+                    ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date}</p>` : ''}
+                    <p><strong>Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None'}</p>
                     <p><strong>Status:</strong> <span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'N/A'}</span></p>
                     <div class="table-responsive">
                         <table class="table table-sm">
