@@ -28,6 +28,13 @@
     return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  function formatDateTime(value) {
+    return value.toLocaleString('en-PH', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+  }
+
   function buildReceiptHtml(order) {
     const user = order.Customer?.User || {};
     const items = order.OrderItems || order.items || [];
@@ -104,7 +111,8 @@
         </div>
         <div class="iv-by">BY: <span class="iv-fill iv-wide"></span><div class="iv-small iv-c">Cashier/Authorized<br>Representative</div></div>
       </div>
-      <div class="iv-c iv-small iv-bold" style="margin-top:8px;">"THIS DOCUMENT IS NOT VALID<br>FOR CLAIM OF INPUT TAXES"</div>`;
+      <div class="iv-c iv-small iv-bold" style="margin-top:8px;">"THIS DOCUMENT IS NOT VALID<br>FOR CLAIM OF INPUT TAXES"</div>
+      <div class="iv-printed">PRINTED RECEIPT<div class="iv-small">Printed on: ${esc(formatDateTime(new Date()))}</div></div>`;
   }
 
   const STYLE = `
@@ -140,6 +148,7 @@
     .iv-trow { display: flex; justify-content: space-between; gap: 6px; padding: 3px 6px; border-bottom: 1px solid #111; font-size: 11px; }
     .iv-trow:last-child { border-bottom: 0; }
     .iv-foot { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; }
+    .iv-printed { margin-top: 8px; padding: 4px; border: 2px solid #111; text-align: center; font-weight: 800; letter-spacing: 2px; }
     .iv-by { text-align: right; }
   `;
 
