@@ -179,7 +179,8 @@
             background: #e0e0e0;
         }
 
-        #googleLoginButton {
+        #googleLoginButton,
+        #googleRegisterButton {
             display: flex;
             justify-content: center;
         }
@@ -296,10 +297,9 @@
                         </button>
                     </form>
 
-                    <div id="googleLoginSection" class="d-none">
+                    <div id="googleLoginSection">
                         <div class="login-divider">or</div>
                         <div id="googleLoginButton"></div>
-                        <div id="googleLoginStatus" class="small text-center text-muted mt-2" role="status"></div>
                     </div>
 
                     <div class="auth-toggle">
@@ -396,6 +396,11 @@
                         </button>
                     </form>
 
+                    <div id="googleRegisterSection">
+                        <div class="login-divider">or</div>
+                        <div id="googleRegisterButton" class="google-btn-wrap"></div>
+                    </div>
+
                     <div class="auth-toggle">
                         Already have an account? <a onclick="toggleForms()">Sign in</a>
                     </div>
@@ -473,7 +478,8 @@
             });
 
             if (!result.success) {
-                showError('login', result.message || 'Google sign-in failed. Please try again.');
+                const formType = document.getElementById('register-section').classList.contains('active') ? 'register' : 'login';
+                showError(formType, result.message || 'Google sign-in failed. Please try again.');
                 return;
             }
 
@@ -482,18 +488,35 @@
             redirectByRole(result.user);
         }
 
+        const GOOGLE_BUTTON_TARGETS = [
+            { buttonId: 'googleLoginButton', text: 'signin_with' },
+            { buttonId: 'googleRegisterButton', text: 'signup_with' }
+        ];
+
+        function showGoogleFallback(message) {
+            GOOGLE_BUTTON_TARGETS.forEach(({ buttonId, text }) => {
+                const container = document.getElementById(buttonId);
+                container.innerHTML = '';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-secondary w-100';
+                btn.innerHTML = `<i class="fab fa-google"></i> ${text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google'}`;
+                btn.addEventListener('click', () => {
+                    showError(text === 'signup_with' ? 'register' : 'login', message);
+                });
+                container.appendChild(btn);
+            });
+        }
+
         async function initializeGoogleLogin() {
-            const section = document.getElementById('googleLoginSection');
-            const status = document.getElementById('googleLoginStatus');
+            const notConfigured = 'Google sign-in is not set up yet. Please ask the administrator to add the Google Client ID.';
+            showGoogleFallback(notConfigured);
             await probeApiPorts();
 
             const config = await apiCall('/auth/google/config');
             if (!config.success || !config.enabled || !config.clientId) {
-                status.textContent = 'Google sign-in is not configured yet.';
                 return;
             }
-
-            section.classList.remove('d-none');
 
             try {
                 await new Promise((resolve, reject) => {
@@ -510,17 +533,21 @@
                     client_id: config.clientId,
                     callback: handleGoogleCredential
                 });
-                google.accounts.id.renderButton(document.getElementById('googleLoginButton'), {
-                    type: 'standard',
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'signin_with',
-                    shape: 'rectangular',
-                    width: 300
+                GOOGLE_BUTTON_TARGETS.forEach(({ buttonId, text }) => {
+                    const container = document.getElementById(buttonId);
+                    container.innerHTML = '';
+                    google.accounts.id.renderButton(container, {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        text,
+                        shape: 'rectangular',
+                        width: 300
+                    });
                 });
             } catch (error) {
                 console.error('Google sign-in initialization failed:', error);
-                status.textContent = 'Could not load Google sign-in. Please use email and password.';
+                showGoogleFallback('Could not load Google sign-in. Please check your internet connection or use email and password.');
             }
         }
 
