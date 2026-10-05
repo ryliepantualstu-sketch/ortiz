@@ -52,8 +52,8 @@
       return `<tr>
         <td>${esc(name)} <span class="iv-small">(${esc(lens)})</span></td>
         <td class="iv-c">${item.quantity || 1}</td>
-        <td class="iv-r">${peso(item.price)}</td>
-        <td class="iv-r">${peso(item.subtotal)}</td>
+        <td class="iv-r">₱${peso(item.price)}</td>
+        <td class="iv-r">₱${peso(item.subtotal)}</td>
       </tr>`;
     });
     while (rows.length < MIN_ROWS) rows.push('<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>');
@@ -98,10 +98,10 @@
           <div class="iv-small iv-bold">Signature <span class="iv-fill iv-wide"></span></div>
         </div>
         <div class="iv-totals">
-          <div class="iv-trow"><span>Total Sales</span><span>${peso(totalSales)}</span></div>
-          <div class="iv-trow"><span>Less Discount: (SC/PWD/NAAC/MOV/SP)${discountLabel ? ` <b>${esc(discountLabel)}</b>` : ''}</span><span>${discount > 0 ? peso(discount) : ''}</span></div>
+          <div class="iv-trow"><span>Total Sales</span><span>₱${peso(totalSales)}</span></div>
+          <div class="iv-trow"><span>Less Discount: (SC/PWD/NAAC/MOV/SP)${discountLabel ? ` <b>${esc(discountLabel)}</b>` : ''}</span><span>${discount > 0 ? '₱' + peso(discount) : ''}</span></div>
           <div class="iv-trow"><span>Less: Withholding Tax</span><span></span></div>
-          <div class="iv-trow iv-bold"><span>TOTAL AMOUNT DUE</span><span>₱ ${peso(total)}</span></div>
+          <div class="iv-trow iv-bold"><span>TOTAL AMOUNT DUE</span><span>₱${peso(total)}</span></div>
         </div>
       </div>
       <div class="iv-foot">
