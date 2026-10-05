@@ -1146,6 +1146,16 @@
             });
         }
 
+        function formatOrderDateTime(value) {
+            if (!value) return 'N/A';
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) return 'N/A';
+            return parsed.toLocaleString(undefined, {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: 'numeric', minute: '2-digit', hour12: true
+            });
+        }
+
         let allCustomersData = [];
 
         function getOrderStatusClass(status) {
@@ -1368,7 +1378,7 @@
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>
                                 ${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${formatOrderDate(order.pickup_date)}</div>` : ''}
                             </td>
-                            <td>${formatOrderDate(order.order_date || order.created_at)}</td>
+                            <td>${formatOrderDateTime(order.order_date || order.created_at)}</td>
                             <td>
                                 <div class="dropdown orders-actions">
                                     <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions for order ${order.order_id}">
@@ -1597,7 +1607,11 @@
                 const currentDiscountType = order.discount_type || null;
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${order.Customer?.User?.full_name || 'N/A'} (${order.Customer?.User?.email || ''})</p>
+                    <p><strong>Customer:</strong> ${escapeStaffOrderText(order.Customer?.User?.full_name || 'N/A')} (${escapeStaffOrderText(order.Customer?.User?.email || '')})</p>
+                    <p><strong>Phone:</strong> ${escapeStaffOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
+                    <p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>
+                    <p><strong>Date &amp; Time Ordered:</strong> ${formatOrderDateTime(order.order_date || order.created_at)}</p>
+                    <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)}</p>` : ''}
                     <div class="mb-3">
