@@ -1,6 +1,14 @@
 (function () {
-  const SHOP_NAME = 'ORTIZ OPTICAL';
-  const WIDTH_CSS = 'width: 320px; max-width: 100%;';
+  const SHOP = {
+    name: 'KARIN ORTIZ OPTICAL CLINIC',
+    address: 'Coronado St., Pob. 1, Nagcarlan, Laguna',
+    owner: 'KARIN O. BERNARDINO',
+    tin: '206-824-848-00000',
+    printer: '20 Bklts. (50x2) 0001-1000',
+    atp: '055AU20250000005143',
+    dateIssued: '10/07/25'
+  };
+  const MIN_ROWS = 10;
   const LENS_LABELS = {
     'frame-only': 'Frame Only',
     'regular-lens': 'Regular Lens',
@@ -12,17 +20,12 @@
     el.textContent = value == null ? '' : String(value);
     return el.innerHTML;
   };
-  const peso = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const row = (left, right, extra = '') => `<div class="rc-row ${extra}"><span>${left}</span><span>${right}</span></div>`;
-  const line = '<div class="rc-line"></div>';
+  const peso = (value) => Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  function formatDateTime(value) {
+  function formatDate(value) {
     const d = value ? new Date(value) : null;
-    if (!d || Number.isNaN(d.getTime())) return 'N/A';
-    return d.toLocaleString('en-PH', {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: 'numeric', minute: '2-digit', hour12: true
-    });
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   function buildReceiptHtml(order) {
@@ -30,92 +33,136 @@
     const items = order.OrderItems || order.items || [];
     const total = Number(order.total_amount || 0);
     const discount = Number(order.discount_amount || 0);
-    const grossBeforeDiscount = total + discount;
-    // Prices are VAT inclusive (12%)
-    const vatableSales = total / 1.12;
-    const vatAmount = total - vatableSales;
+    const totalSales = total + discount;
     const discountLabel = order.discount_type
-      ? ({ senior: 'Senior Citizen', pwd: 'PWD' }[String(order.discount_type).toLowerCase()] || order.discount_type)
-      : null;
+      ? ({ senior: 'SC', pwd: 'PWD' }[String(order.discount_type).toLowerCase()] || order.discount_type)
+      : '';
 
-    const itemRows = items.map((item) => {
+    const rows = items.map((item) => {
       const name = item.Product?.product_name || item.product_name || 'Item';
       const lens = LENS_LABELS[item.lens_option] || 'Regular Lens';
-      return `
-        ${row(`${item.quantity || 1} pc(s) x ${esc(name)}`, peso(item.subtotal))}
-        <div class="rc-sub">${esc(lens)} / ${peso(item.price)} each</div>`;
-    }).join('');
+      return `<tr>
+        <td>${esc(name)} <span class="iv-small">(${esc(lens)})</span></td>
+        <td class="iv-c">${item.quantity || 1}</td>
+        <td class="iv-r">${peso(item.price)}</td>
+        <td class="iv-r">${peso(item.subtotal)}</td>
+      </tr>`;
+    });
+    while (rows.length < MIN_ROWS) rows.push('<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>');
 
     return `
-      <div class="rc-center rc-title">${SHOP_NAME}</div>
-      <div class="rc-center">Official Receipt</div>
-      ${line}
-      ${row('Receipt No.', `OR-${String(order.order_id).padStart(6, '0')}`)}
-      ${row('Order #', order.order_id)}
-      ${row('Date', formatDateTime(order.order_date || order.created_at))}
-      ${row('Status', esc(String(order.status || 'pending').toUpperCase()))}
-      ${line}
-      <div class="rc-bold">CUSTOMER INFORMATION</div>
-      <div class="rc-sub">Name: ${esc(user.full_name || 'N/A')}</div>
-      <div class="rc-sub">Email: ${esc(user.email || 'N/A')}</div>
-      <div class="rc-sub">Phone: ${esc(user.phone || order.Customer?.phone || 'N/A')}</div>
-      <div class="rc-sub">Address: ${esc(order.delivery_address || order.Customer?.address || 'N/A')}</div>
-      <div class="rc-sub">Type: ${esc(discountLabel || 'Regular')}</div>
-      ${line}
-      ${row('Order Type', 'In-clinic pickup')}
-      ${order.pickup_date ? row('Pickup Date', esc(order.pickup_date)) : ''}
-      ${line}
-      ${itemRows}
-      ${line}
-      ${discount > 0 ? row('Subtotal', peso(grossBeforeDiscount)) + row(`${esc(discountLabel || 'Discount')} Discount`, `-${peso(discount)}`) : ''}
-      ${row('Total', peso(total), 'rc-bold rc-big')}
-      ${line}
-      ${row('Total Sales (VAT Inclusive)', peso(total))}
-      ${row('Less: VAT', peso(vatAmount))}
-      ${row('Amount Net of VAT', peso(vatableSales))}
-      ${row('VATable Sales', peso(vatableSales))}
-      ${row('VAT Amount (12%)', peso(vatAmount))}
-      ${line}
-      <div class="rc-center rc-bold" style="margin: 10px 0;">Thank you for your order!</div>
-      ${line}
-      <div class="rc-center" style="margin-top: 28px;">______________________________</div>
-      <div class="rc-center">Cashier / Authorized<br>Representative</div>`;
+      <div class="iv-head">
+        <div>
+          <div class="iv-shop">${SHOP.name}</div>
+          <div class="iv-small">${SHOP.address}</div>
+          <div class="iv-owner">${SHOP.owner} <span class="iv-small">- Prop.</span></div>
+          <div class="iv-small">NON-VAT REG. TIN: ${SHOP.tin}</div>
+        </div>
+        <div class="iv-title"><div>SERVICE</div><div class="iv-title-big">INVOICE</div></div>
+      </div>
+      <div class="iv-meta">
+        <div>
+          <div><span class="iv-box"></span> CASH SALES</div>
+          <div><span class="iv-box"></span> CHARGE SALES</div>
+        </div>
+        <div class="iv-right">
+          <div class="iv-no">Nº <span>${String(order.order_id).padStart(4, '0')}</span></div>
+          <div>Date: <span class="iv-fill">${esc(formatDate(order.order_date || order.created_at))}</span></div>
+        </div>
+      </div>
+      <div class="iv-received">
+        <div class="iv-bold">RECEIVED FROM:</div>
+        <div class="iv-recv-body">
+          <div>Registered Name: <span class="iv-fill">${esc(user.full_name || '')}</span></div>
+          <div>TIN:</div>
+          <div>Address: <span class="iv-fill">${esc(order.delivery_address || order.Customer?.address || '')}</span></div>
+        </div>
+      </div>
+      <table class="iv-table">
+        <thead><tr><th>Item Description/<br>Nature of Service</th><th>Quantity</th><th>Unit Price</th><th>AMOUNT</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+      <div class="iv-bottom">
+        <div class="iv-left">
+          <div class="iv-bold iv-small">SC/PWD/NAAC/MOV/Solo Parent</div>
+          <div class="iv-small">ID No. <span class="iv-fill iv-wide"></span></div>
+          <div class="iv-bold iv-small" style="margin-top:6px;">SC/PWD/NAAC/Solo Parent/MOV</div>
+          <div class="iv-small iv-bold">Signature <span class="iv-fill iv-wide"></span></div>
+        </div>
+        <div class="iv-totals">
+          <div class="iv-trow"><span>Total Sales</span><span>${peso(totalSales)}</span></div>
+          <div class="iv-trow"><span>Less Discount: (SC/PWD/NAAC/MOV/SP)${discountLabel ? ` <b>${esc(discountLabel)}</b>` : ''}</span><span>${discount > 0 ? peso(discount) : ''}</span></div>
+          <div class="iv-trow"><span>Less: Withholding Tax</span><span></span></div>
+          <div class="iv-trow iv-bold"><span>TOTAL AMOUNT DUE</span><span>₱ ${peso(total)}</span></div>
+        </div>
+      </div>
+      <div class="iv-foot">
+        <div class="iv-small">
+          ${SHOP.printer}<br>
+          BIR Authority to Print No. <b>${SHOP.atp}</b><br>
+          Date Issued: <b>${SHOP.dateIssued}</b>
+        </div>
+        <div class="iv-by">BY: <span class="iv-fill iv-wide"></span><div class="iv-small iv-c">Cashier/Authorized<br>Representative</div></div>
+      </div>
+      <div class="iv-c iv-small iv-bold" style="margin-top:8px;">"THIS DOCUMENT IS NOT VALID<br>FOR CLAIM OF INPUT TAXES"</div>`;
   }
 
   const STYLE = `
     .rc-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .rc-card { background: #fff; border-radius: 14px; width: 420px; max-width: 100%; max-height: 92vh; display: flex; flex-direction: column; padding: 16px; }
-    .rc-paper { overflow-y: auto; padding: 14px 16px; font-family: 'Courier New', monospace; font-size: 12px; color: #111; line-height: 1.5; flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .rc-row { display: flex; justify-content: space-between; gap: 10px; }
-    .rc-row span:last-child { text-align: right; white-space: nowrap; }
-    .rc-line { border-top: 1px dashed #111; margin: 6px 0; }
-    .rc-center { text-align: center; }
-    .rc-title { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
-    .rc-bold { font-weight: 700; }
-    .rc-big { font-size: 14px; }
-    .rc-sub { color: #444; font-size: 11px; }
+    .rc-card { background: #fff; border-radius: 14px; width: 520px; max-width: 100%; max-height: 94vh; display: flex; flex-direction: column; padding: 16px; }
     .rc-btn { border: 0; border-radius: 8px; padding: 12px; font-weight: 700; color: #fff; width: 100%; margin-top: 10px; cursor: pointer; }
+    .iv-paper { overflow-y: auto; flex: 1; border: 1px solid #d1d5db; border-radius: 4px; padding: 14px; background: #fbfbf8; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; }
+    .iv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .iv-shop { font-family: Georgia, 'Times New Roman', serif; font-weight: 900; font-size: 17px; letter-spacing: .5px; }
+    .iv-owner { font-weight: 700; }
+    .iv-small { font-size: 10.5px; }
+    .iv-title { text-align: center; font-weight: 700; font-size: 11px; line-height: 1.1; }
+    .iv-title-big { font-size: 17px; font-weight: 800; }
+    .iv-meta { display: flex; justify-content: space-between; margin: 8px 0; }
+    .iv-right { text-align: right; }
+    .iv-no { color: #c0151b; font-family: Georgia, serif; font-weight: 700; font-size: 17px; }
+    .iv-box { display: inline-block; width: 11px; height: 11px; border: 1.5px solid #111; margin-right: 4px; vertical-align: -1px; }
+    .iv-fill { border-bottom: 1px solid #111; display: inline-block; min-width: 90px; padding: 0 4px; font-weight: 600; }
+    .iv-wide { min-width: 120px; }
+    .iv-received { border: 1.5px solid #111; margin-bottom: 8px; }
+    .iv-received > .iv-bold { padding: 2px 6px; border-bottom: 1.5px solid #111; }
+    .iv-recv-body { padding: 4px 6px; line-height: 1.9; }
+    .iv-bold { font-weight: 700; }
+    .iv-c { text-align: center; }
+    .iv-r { text-align: right; }
+    .iv-table { width: 100%; border-collapse: collapse; border: 1.5px solid #111; }
+    .iv-table th, .iv-table td { border: 1px solid #111; padding: 2px 5px; height: 22px; }
+    .iv-table th { font-weight: 600; text-align: center; font-size: 11px; }
+    .iv-table th:nth-child(1) { width: 46%; }
+    .iv-bottom { display: flex; border: 1.5px solid #111; border-top: 0; }
+    .iv-left { width: 48%; padding: 4px 6px; border-right: 1.5px solid #111; }
+    .iv-totals { flex: 1; }
+    .iv-trow { display: flex; justify-content: space-between; gap: 6px; padding: 3px 6px; border-bottom: 1px solid #111; font-size: 11px; }
+    .iv-trow:last-child { border-bottom: 0; }
+    .iv-foot { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; }
+    .iv-by { text-align: right; }
   `;
 
   function closeReceipt() {
-    document.getElementById('orderReceiptOverlay')?.remove();
+    const overlay = document.getElementById('orderReceiptOverlay');
+    if (overlay) overlay.remove();
   }
 
   function printReceipt() {
     const paper = document.getElementById('orderReceiptPaper');
     if (!paper) return;
-    const win = window.open('', '_blank', 'width=420,height=700');
+    const win = window.open('', '_blank', 'width=560,height=800');
     if (!win) {
       alert('Please allow pop-ups to print the receipt.');
       return;
     }
-    win.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>${STYLE}
-      body { margin: 0; } .rc-paper { ${WIDTH_CSS} border: 0; margin: 0 auto; overflow: visible; }</style></head>
-      <body><div class="rc-paper">${paper.innerHTML}</div></body></html>`);
+    win.document.write(`<!DOCTYPE html><html><head><title>Service Invoice</title><style>${STYLE}
+      body { margin: 0; padding: 12px; } .iv-paper { border: 0; overflow: visible; max-width: 560px; margin: 0 auto; background: #fff; }
+      @media print { body { padding: 0; } }</style></head>
+      <body><div class="iv-paper">${paper.innerHTML}</div></body></html>`);
     win.document.close();
     win.focus();
     win.onload = () => { win.print(); };
-    setTimeout(() => { try { win.print(); } catch (e) { /* already printed */ } }, 500);
   }
 
   window.showOrderReceipt = function (order) {
@@ -129,8 +176,8 @@
     overlay.className = 'rc-overlay';
     overlay.innerHTML = `
       <style>${STYLE}</style>
-      <div class="rc-card" role="dialog" aria-label="Order receipt">
-        <div class="rc-paper" id="orderReceiptPaper">${buildReceiptHtml(order)}</div>
+      <div class="rc-card" role="dialog" aria-label="Service invoice">
+        <div class="iv-paper" id="orderReceiptPaper">${buildReceiptHtml(order)}</div>
         <button type="button" class="rc-btn" style="background:#16a34a" id="receiptPrintBtn">Print Receipt</button>
         <button type="button" class="rc-btn" style="background:#1e3a8a" id="receiptDoneBtn">Done</button>
       </div>`;
