@@ -117,7 +117,7 @@
   }
 
   const STYLE = `
-    .rc-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .rc-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 2147483000; display: flex; align-items: center; justify-content: center; padding: 16px; }
     .rc-card { background: #fff; border-radius: 14px; width: 520px; max-width: 100%; max-height: 94vh; display: flex; flex-direction: column; padding: 16px; }
     .rc-btn { border: 0; border-radius: 8px; padding: 12px; font-weight: 700; color: #fff; width: 100%; margin-top: 10px; cursor: pointer; }
     .iv-paper { overflow-y: auto; flex: 1; border: 1px solid #d1d5db; border-radius: 4px; padding: 14px; background: #fbfbf8; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; }
