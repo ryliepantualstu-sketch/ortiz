@@ -1266,21 +1266,28 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
     let reportData = {};
     const currentDate = new Date().toISOString();
 
+    const dateRange = {};
+    if (date_from) {
+      dateRange[Op.gte] = new Date(date_from);
+    }
+    if (date_to) {
+      dateRange[Op.lte] = new Date(date_to);
+    }
+
     // Generate different types of reports
     if (report_type === 'sales') {
       const orders = await Order.findAll({
         attributes: ['order_id', 'total_amount', 'status', 'order_date'],
-        include: [{ model: Customer, attributes: ['customer_name'], include: [{ model: User, attributes: ['full_name'] }] }],
-        where: {
-          order_date: {
-            $gte: date_from || new Date(Date.now() - 30*24*60*60*1000),
-            $lte: date_to || new Date()
-          }
-        },
+        include: [{
+          model: Customer,
+          attributes: ['customer_id', 'user_id'],
+          include: [{ model: User, attributes: ['full_name', 'email'] }]
+        }],
+        where: date_from || date_to ? { order_date: dateRange } : {},
         order: [['order_date', 'DESC']]
       });
-      
-      const totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
+
+      const totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
       reportData = {
         type: 'Sales Report',
         total_orders: orders.length,
@@ -1291,31 +1298,30 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
       const products = await Product.findAll({
         attributes: ['product_id', 'product_name', 'stock_quantity', 'min_stock_level', 'price']
       });
-      
-      const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock_level);
+
+      const lowStockProducts = products.filter(p => Number(p.stock_quantity) <= Number(p.min_stock_level || 0));
       reportData = {
         type: 'Inventory Report',
         total_products: products.length,
         low_stock_count: lowStockProducts.length,
-        total_value: products.reduce((sum, p) => sum + (p.stock_quantity * p.price), 0).toFixed(2),
+        total_value: products.reduce((sum, p) => sum + (Number(p.stock_quantity || 0) * Number(p.price || 0)), 0).toFixed(2),
         data: products
       };
     } else if (report_type === 'appointments') {
       const appointments = await Appointment.findAll({
         attributes: ['appointment_id', 'service_type', 'status', 'appointment_date', 'appointment_time'],
         include: [
-          { model: Customer, attributes: ['customer_name'], include: [{ model: User, attributes: ['full_name'] }] },
-          { model: User, as: 'staff', attributes: ['full_name'] }
+          {
+            model: Customer,
+            attributes: ['customer_id', 'user_id'],
+            include: [{ model: User, attributes: ['full_name', 'email'] }]
+          },
+          { model: User, as: 'staff', attributes: ['user_id', 'full_name'] }
         ],
-        where: {
-          appointment_date: {
-            $gte: date_from || new Date(Date.now() - 30*24*60*60*1000),
-            $lte: date_to || new Date()
-          }
-        },
+        where: date_from || date_to ? { appointment_date: dateRange } : {},
         order: [['appointment_date', 'DESC']]
       });
-      
+
       reportData = {
         type: 'Appointments Report',
         total_appointments: appointments.length,
@@ -1325,24 +1331,26 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
         data: appointments
       };
     } else if (report_type === 'customers') {
-      const customers = await User.findAll({
-        attributes: ['user_id', 'full_name', 'email', 'phone', 'created_at'],
-        where: { role: 'customer' },
-        include: [{ model: Order, attributes: ['order_id', 'total_amount'] }]
+      const customers = await Customer.findAll({
+        attributes: ['customer_id', 'user_id'],
+        include: [
+          { model: User, attributes: ['user_id', 'full_name', 'email', 'phone', 'created_at'] },
+          { model: Order, attributes: ['order_id', 'total_amount', 'order_date'] }
+        ]
       });
-      
+
       reportData = {
         type: 'Customers Report',
         total_customers: customers.length,
         total_orders: customers.reduce((sum, c) => sum + (c.Orders?.length || 0), 0),
-        total_revenue: customers.reduce((sum, c) => sum + (c.Orders?.reduce((s, o) => s + parseFloat(o.total_amount), 0) || 0), 0).toFixed(2),
+        total_revenue: customers.reduce((sum, c) => sum + (c.Orders?.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0) || 0), 0).toFixed(2),
         data: customers
       };
     } else if (report_type === 'products') {
       const products = await Product.findAll({
-      attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_hex', 'color_int', 'price', 'stock_quantity', 'created_at'],
+        attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_hex', 'color_int', 'price', 'stock_quantity', 'created_at']
       });
-      
+
       reportData = {
         type: 'Products Report',
         total_products: products.length,
@@ -1352,7 +1360,8 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
 
       // Count by category
       products.forEach(p => {
-        reportData.by_category[p.category] = (reportData.by_category[p.category] || 0) + 1;
+        const category = p.category || 'Uncategorized';
+        reportData.by_category[category] = (reportData.by_category[category] || 0) + 1;
       });
     }
 
@@ -1363,7 +1372,7 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
       report_type,
       generated_date: currentDate,
       generated_by: req.user.user_id,
-      date_from: date_from || new Date(Date.now() - 30*24*60*60*1000).toISOString(),
+      date_from: date_from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       date_to: date_to || new Date().toISOString(),
       summary: reportData,
       status: 'completed'
