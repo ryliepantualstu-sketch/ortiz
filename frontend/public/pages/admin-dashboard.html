@@ -3666,8 +3666,11 @@ This will deactivate the account and keep the user record for history.`)) {
                                 <button class="btn btn-sm btn-primary" onclick="viewReportDetails(${index})" title="View details">
                                     <i class="fas fa-eye"></i> View
                                 </button>
-                                <button class="btn btn-sm btn-info" onclick="downloadReport(${index})" title="Download as CSV">
-                                    <i class="fas fa-download"></i> Export
+                                <button class="btn btn-sm btn-success" onclick="downloadReport(${index}, 'csv')" title="Download as Excel-compatible CSV">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="printReport(${index})" title="Print report">
+                                    <i class="fas fa-print"></i> Print
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${index})" title="Delete report">
                                     <i class="fas fa-trash"></i>
@@ -3909,20 +3912,166 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('reportDetailsPanel').style.display = 'none';
         }
 
-        function downloadReport(index) {
+        function escapeCsvValue(value) {
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value).replace(/\r?\n/g, ' ');
+            if (/[",]/.test(stringValue) || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        }
+
+        function buildReportCsv(report) {
+            const rows = [];
+            const summary = report.summary || {};
+
+            rows.push(['Report ID', report.report_id]);
+            rows.push(['Report Type', report.type]);
+            rows.push(['Generated Date', report.generated_date]);
+            rows.push(['Date From', report.date_from]);
+            rows.push(['Date To', report.date_to]);
+            rows.push([]);
+
+            if (summary.by_category) {
+                rows.push(['Summary Type', 'Value']);
+                Object.entries(summary.by_category).forEach(([category, count]) => {
+                    rows.push(['Category: ' + category, count]);
+                });
+                if (summary.total_products !== undefined) {
+                    rows.push(['Total Products', summary.total_products]);
+                }
+                rows.push([]);
+            } else {
+                rows.push(['Summary Type', 'Value']);
+                Object.entries(summary).forEach(([key, value]) => {
+                    if (key === 'data') return;
+                    if (value && typeof value === 'object' && !Array.isArray(value)) {
+                        rows.push([key, JSON.stringify(value)]);
+                    } else {
+                        rows.push([key, value]);
+                    }
+                });
+                rows.push([]);
+            }
+
+            const data = Array.isArray(summary.data) ? summary.data : [];
+            if (data.length > 0) {
+                const headers = Object.keys(data[0] || {}).filter(key => key !== 'createdAt' && key !== 'updatedAt');
+                rows.push(headers);
+                data.forEach(item => {
+                    const row = headers.map((header) => {
+                        const value = item?.[header];
+                        if (value && typeof value === 'object') {
+                            return escapeCsvValue(JSON.stringify(value));
+                        }
+                        return escapeCsvValue(value);
+                    });
+                    rows.push(row);
+                });
+            }
+
+            return rows.map(row => row.map(escapeCsvValue).join(',')).join('\n');
+        }
+
+        function downloadReport(index, format = 'csv') {
             const report = generatedReports[index];
             if (!report) return;
 
-            const csvContent = JSON.stringify(report.summary, null, 2);
+            if (format !== 'csv') {
+                printReport(index);
+                return;
+            }
+
+            const csvContent = buildReportCsv(report);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
             const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csvContent));
-            element.setAttribute('download', `${report.report_id}.txt`);
+            element.setAttribute('href', url);
+            element.setAttribute('download', `${report.report_id}.csv`);
             element.style.display = 'none';
             document.body.appendChild(element);
             element.click();
             document.body.removeChild(element);
+            URL.revokeObjectURL(url);
 
-            alert('✅ Report exported successfully!');
+            alert('✅ Report exported successfully as Excel-compatible CSV!');
+        }
+
+        function buildPrintableReportHtml(report) {
+            const summary = report.summary || {};
+            const summaryHtml = Object.entries(summary).filter(([key]) => key !== 'data').map(([key, value]) => {
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    return `<li><strong>${key}:</strong> ${JSON.stringify(value)}</li>`;
+                }
+                return `<li><strong>${key}:</strong> ${value}</li>`;
+            }).join('');
+
+            let dataHtml = '';
+            const data = Array.isArray(summary.data) ? summary.data : [];
+            if (data.length > 0) {
+                const headers = Object.keys(data[0] || {}).filter(key => key !== 'createdAt' && key !== 'updatedAt');
+                dataHtml = `
+                    <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                ${headers.map(header => `<th>${header}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(item => `
+                                <tr>
+                                    ${headers.map(header => `<td>${item?.[header] ?? ''}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            return `
+                <html>
+                    <head>
+                        <title>${report.report_id}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 24px; color: #222; }
+                            h1, h2 { margin-bottom: 12px; }
+                            .meta { margin-bottom: 18px; }
+                            ul { line-height: 1.8; }
+                            table { font-size: 12px; }
+                            @media print { body { padding: 0; } }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${report.type}</h1>
+                        <div class="meta">
+                            <p><strong>Report ID:</strong> ${report.report_id}</p>
+                            <p><strong>Generated:</strong> ${new Date(report.generated_date).toLocaleString()}</p>
+                            <p><strong>Period:</strong> ${new Date(report.date_from).toLocaleDateString()} to ${new Date(report.date_to).toLocaleDateString()}</p>
+                        </div>
+                        <h2>Summary</h2>
+                        <ul>${summaryHtml || '<li>No summary available</li>'}</ul>
+                        ${dataHtml}
+                    </body>
+                </html>
+            `;
+        }
+
+        function printReport(index) {
+            const report = generatedReports[index];
+            if (!report) return;
+
+            const printWindow = window.open('', '_blank', 'width=1100,height=900');
+            if (!printWindow) {
+                alert('⚠️ Your browser blocked the print window. Please allow pop-ups and try again.');
+                return;
+            }
+
+            printWindow.document.write(buildPrintableReportHtml(report));
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 300);
         }
 
         function deleteReport(index) {
@@ -3969,7 +4118,8 @@ This will deactivate the account and keep the user record for history.`)) {
                             <td><span class="badge bg-success">${report.status}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-primary" onclick="viewReportDetails(${actualIndex})">View</button>
-                                <button class="btn btn-sm btn-info" onclick="downloadReport(${actualIndex})">Export</button>
+                                <button class="btn btn-sm btn-success" onclick="downloadReport(${actualIndex}, 'csv')">Excel</button>
+                                <button class="btn btn-sm btn-secondary" onclick="printReport(${actualIndex})">Print</button>
                             </td>
                         </tr>
                     `;
