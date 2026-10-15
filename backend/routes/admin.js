@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const User = require('../models/User');
+const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 const Product = require('../models/Product');
 const Appointment = require('../models/Appointment');
 const Order = require('../models/Order');
@@ -296,7 +297,8 @@ router.get('/users', authMiddleware, requireRole('admin'), async (req, res) => {
 // Create user
 router.post('/users', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const { full_name, email, password, phone, role, is_active } = req.body;
+    const { email, password, phone, role, is_active } = req.body;
+    const full_name = role === 'customer' ? normalizeCustomerName(req.body.full_name) : req.body.full_name;
     const normalizedPhone = typeof phone === 'string'
       ? phone.trim().replace(/[\s-]/g, '')
       : '';
@@ -312,6 +314,13 @@ router.post('/users', authMiddleware, requireRole('admin'), async (req, res) => 
       return res.status(400).json({
         success: false,
         message: 'Phone number must contain 7 to 15 digits, with optional leading +'
+      });
+    }
+
+    if (role === 'customer' && await findCustomerNameConflict(User, full_name)) {
+      return res.status(409).json({
+        success: false,
+        message: 'A customer account with this name already exists. Please use that account or choose a different name.'
       });
     }
 
@@ -361,7 +370,8 @@ router.put('/users/:id', authMiddleware, requireRole('admin'), async (req, res) 
       });
     }
 
-    const { full_name, email, password, phone, role, is_active } = req.body;
+    const { email, password, phone, role, is_active } = req.body;
+    const full_name = role === 'customer' ? normalizeCustomerName(req.body.full_name) : req.body.full_name;
     const normalizedPhone = typeof phone === 'string'
       ? phone.trim().replace(/[\s-]/g, '')
       : '';
@@ -377,6 +387,13 @@ router.put('/users/:id', authMiddleware, requireRole('admin'), async (req, res) 
       return res.status(400).json({
         success: false,
         message: 'Phone number must contain 7 to 15 digits, with optional leading +'
+      });
+    }
+
+    if (role === 'customer' && await findCustomerNameConflict(User, full_name, user.user_id)) {
+      return res.status(409).json({
+        success: false,
+        message: 'A customer account with this name already exists. Please use that account or choose a different name.'
       });
     }
 

@@ -6,6 +6,7 @@ const { OAuth2Client } = require('google-auth-library');
 const sequelize = require('../config/database');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
+const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
@@ -72,11 +73,15 @@ router.post('/google', async (req, res) => {
   try {
     const email = payload.email.toLowerCase();
 
-    const user = await sequelize.transaction(async (transaction) => {
+    const result = await sequelize.transaction(async (transaction) => {
       let existingUser = await User.findOne({ where: { email }, transaction });
       if (!existingUser) {
+        const fullName = normalizeCustomerName(payload.name || email.split('@')[0]);
+        const nameConflict = await findCustomerNameConflict(User, fullName, null, transaction);
+        if (nameConflict) return { nameConflict: true };
+
         existingUser = await User.create({
-          full_name: payload.name || email.split('@')[0],
+          full_name: fullName,
           email,
           password: crypto.randomBytes(32).toString('hex'),
           role: 'customer'
@@ -93,8 +98,16 @@ router.post('/google', async (req, res) => {
         }
       }
 
-      return existingUser;
+      return { user: existingUser };
     });
+
+    if (result.nameConflict) {
+      return res.status(409).json({
+        success: false,
+        message: 'A customer account with this name already exists. Please use your existing account.'
+      });
+    }
+    const user = result.user;
 
     if (!user.is_active) {
       return res.status(401).json({
@@ -126,7 +139,8 @@ router.post('/google', async (req, res) => {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { full_name, password, confirm_password, phone, birthday, address } = req.body;
+    const { password, confirm_password, phone, birthday, address } = req.body;
+    const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
     const normalizedPhone = typeof phone === 'string'
@@ -138,6 +152,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please fill all required fields'
+      });
+    }
+
+    const duplicateName = await findCustomerNameConflict(User, full_name);
+    if (duplicateName) {
+      return res.status(409).json({
+        success: false,
+        message: 'A customer account with this name already exists. Please use your existing account.'
       });
     }
 

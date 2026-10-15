@@ -21,6 +21,7 @@ const { isValidPickupDate } = require('../utils/orderPickup');
 
 const { getPriceByLensOption } = require('../utils/pricing');
 const { normalizePrescription } = require('../utils/prescription');
+const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 
 function calculateCustomerDiscount(customer, amount) {
   const isSenior = Boolean(customer?.is_senior);
@@ -1290,13 +1291,21 @@ router.get('/profile', authMiddleware, requireRole('customer'), async (req, res)
 router.put('/profile', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { full_name, email, phone, birthday, address, discount_card_image_data, discount_card_image_name } = req.body;
+    const { email, phone, birthday, address, discount_card_image_data, discount_card_image_name } = req.body;
+    const full_name = normalizeCustomerName(req.body.full_name);
 
     // Validate required fields
     if (!full_name || !email || !phone) {
       return res.status(400).json({
         success: false,
         message: 'Please provide full_name, email, and phone'
+      });
+    }
+
+    if (await findCustomerNameConflict(User, full_name, userId)) {
+      return res.status(409).json({
+        success: false,
+        message: 'A customer account with this name already exists. Please use your existing account.'
       });
     }
 
