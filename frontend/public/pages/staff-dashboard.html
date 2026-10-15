@@ -1192,6 +1192,19 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
         }
 
+        function preventPrescriptionLetters(event) {
+            if (event.key.length === 1 && /[a-z]/i.test(event.key)) {
+                event.preventDefault();
+            }
+        }
+
+        function preventPrescriptionLetterPaste(event) {
+            const pastedText = event.clipboardData?.getData('text') || '';
+            if (/[a-z]/i.test(pastedText)) {
+                event.preventDefault();
+            }
+        }
+
         async function saveAppointmentPrescription(event) {
             event.preventDefault();
             const form = event.currentTarget;
@@ -2021,15 +2034,15 @@
           <p class="small text-muted">Enter the values from the examination. Sphere is required; axis is required when cylinder is not zero.</p>
           <div class="row g-2 align-items-end mb-3">
             <div class="col-4 fw-semibold">OD (Right)</div>
-            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><input class="form-control" id="rightSph" name="right_sph" type="number" step="0.25" required></div>
-            <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><input class="form-control" id="rightCyl" name="right_cyl" type="number" step="0.25" value="0"></div>
-            <div class="col-2"><label class="form-label small" for="rightAxis">AXIS</label><input class="form-control" id="rightAxis" name="right_axis" type="number" min="1" max="180" step="1"></div>
+            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><input class="form-control" id="rightSph" name="right_sph" type="number" step="0.25" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div>
+            <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><input class="form-control" id="rightCyl" name="right_cyl" type="number" step="0.25" value="0" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
+            <div class="col-2"><label class="form-label small" for="rightAxis">AXIS</label><input class="form-control" id="rightAxis" name="right_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>
           <div class="row g-2 align-items-end">
             <div class="col-4 fw-semibold">OS (Left)</div>
-            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><input class="form-control" id="leftSph" name="left_sph" type="number" step="0.25" required></div>
-            <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><input class="form-control" id="leftCyl" name="left_cyl" type="number" step="0.25" value="0"></div>
-            <div class="col-2"><label class="form-label small" for="leftAxis">AXIS</label><input class="form-control" id="leftAxis" name="left_axis" type="number" min="1" max="180" step="1"></div>
+            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><input class="form-control" id="leftSph" name="left_sph" type="number" step="0.25" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div>
+            <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><input class="form-control" id="leftCyl" name="left_cyl" type="number" step="0.25" value="0" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
+            <div class="col-2"><label class="form-label small" for="leftAxis">AXIS</label><input class="form-control" id="leftAxis" name="left_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>
         </div>
         <div class="modal-footer">
