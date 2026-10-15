@@ -1966,6 +1966,13 @@
                 if (result && result.success) {
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).hide();
                     showOrderReceipt(result.order);
+                    if (result.account_linked) {
+                        alert(`Sale recorded. Nakaugnay ang order sa customer account ni ${name}. Makikita niya ito sa kanyang order history.`);
+                    } else if (result.account_match_ambiguous) {
+                        alert('Sale recorded, pero hindi iniugnay sa account dahil higit sa isang customer ang may kaparehong pangalan. Staff lang muna ang makakakita ng order.');
+                    } else {
+                        alert('Sale recorded. Walang eksaktong katugmang customer account, kaya staff lang ang makakakita ng order.');
+                    }
                     loadOrders();
                 } else {
                     alert((result && result.message) || 'Failed to record sale');
@@ -2087,7 +2094,7 @@
       </div>
       <div class="modal-body">
         <div class="row g-2 mb-3">
-          <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required></div>
+          <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required><div class="form-text">Kung eksaktong tugma ang pangalan sa iisang active customer account, lalabas ang sale sa order history niya.</div></div>
           <div class="col-md-6"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress" maxlength="255"></div>
         </div>
         <div class="row g-2 mb-2 align-items-end">

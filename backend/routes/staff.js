@@ -14,6 +14,7 @@ const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notific
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
+const { resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -392,6 +393,20 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
       return res.status(400).json({ success: false, message: 'Add at least one item' });
     }
 
+    const matchingAccounts = await User.findAll({
+      attributes: ['user_id', 'full_name'],
+      where: {
+        role: 'customer',
+        is_active: true,
+        [Op.and]: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('full_name')),
+          customerName.toLowerCase()
+        )
+      },
+      include: [{ model: Customer, required: true, attributes: ['customer_id'] }]
+    });
+    const accountMatch = resolveWalkInCustomerMatch(matchingAccounts);
+
     const orderId = await sequelize.transaction(async (transaction) => {
       const lines = [];
       for (const entry of requestedItems) {
@@ -415,7 +430,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
 
       const order = await Order.create({
-        customer_id: null,
+        customer_id: accountMatch.customer_id,
         total_amount: Number((subtotal - discountAmount).toFixed(2)),
         discount_type: discountType,
         discount_amount: discountAmount,
@@ -450,7 +465,13 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
       ]
     });
 
-    res.status(201).json({ success: true, message: 'Walk-in sale recorded', order });
+    res.status(201).json({
+      success: true,
+      message: 'Walk-in sale recorded',
+      account_linked: Boolean(accountMatch.customer_id),
+      account_match_ambiguous: accountMatch.ambiguous,
+      order
+    });
   } catch (error) {
     res.status(error.status || 500).json({
       success: false,
