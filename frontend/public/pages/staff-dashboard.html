@@ -1188,6 +1188,7 @@
 
             const form = document.getElementById('appointmentPrescriptionForm');
             form.reset();
+            form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
             document.getElementById('prescriptionAppointmentId').value = appointmentId;
             bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
         }
@@ -1205,12 +1206,10 @@
             }
         }
 
-        function showPositivePrescriptionSign(event) {
-            const input = event.currentTarget;
+        function updatePositivePrescriptionSign(input) {
             const value = input.value.trim();
-            if (value && Number(value) > 0 && !value.startsWith('+')) {
-                input.value = `+${value}`;
-            }
+            const sign = input.parentElement.querySelector('.prescription-positive-sign');
+            sign.classList.toggle('d-none', !value || !Number.isFinite(Number(value)) || Number(value) <= 0);
         }
 
         async function saveAppointmentPrescription(event) {
@@ -2042,14 +2041,14 @@
           <p class="small text-muted">Enter the values from the examination. Sphere is required; axis is required when cylinder is not zero.</p>
           <div class="row g-2 align-items-end mb-3">
             <div class="col-4 fw-semibold">OD (Right)</div>
-            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><input class="form-control" id="rightSph" name="right_sph" type="text" inputmode="decimal" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" onblur="showPositivePrescriptionSign(event)" required></div>
-            <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><input class="form-control" id="rightCyl" name="right_cyl" type="text" inputmode="decimal" value="0" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" onblur="showPositivePrescriptionSign(event)"></div>
+            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="rightSph" name="right_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div></div>
+            <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="rightCyl" name="right_cyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-2"><label class="form-label small" for="rightAxis">AXIS</label><input class="form-control" id="rightAxis" name="right_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>
           <div class="row g-2 align-items-end">
             <div class="col-4 fw-semibold">OS (Left)</div>
-            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><input class="form-control" id="leftSph" name="left_sph" type="text" inputmode="decimal" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" onblur="showPositivePrescriptionSign(event)" required></div>
-            <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><input class="form-control" id="leftCyl" name="left_cyl" type="text" inputmode="decimal" value="0" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" onblur="showPositivePrescriptionSign(event)"></div>
+            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="leftSph" name="left_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div></div>
+            <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="leftCyl" name="left_cyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-2"><label class="form-label small" for="leftAxis">AXIS</label><input class="form-control" id="leftAxis" name="left_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>
         </div>
