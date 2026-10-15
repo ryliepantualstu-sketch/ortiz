@@ -1043,6 +1043,7 @@
                                     <tr>
                                         <th>Order ID</th>
                                         <th>Customer</th>
+                                        <th>Prescription</th>
                                         <th>Total</th>
                                         <th>Status</th>
                                         <th>Date</th>
@@ -1050,7 +1051,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="ordersTable">
-                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1442,6 +1443,7 @@
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
                             <td>${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
+                            <td>${getStaffOrderPrescriptionSummary(order)}</td>
                             <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
@@ -1468,11 +1470,11 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No orders found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No orders found.</td></tr>';
                 }
             } catch (error) {
                 console.error('Orders error:', error);
-                document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load orders.</td></tr>';
+                document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load orders.</td></tr>';
             }
         }
 
@@ -1657,6 +1659,19 @@
             return textNode.innerHTML;
         }
 
+        function getStaffOrderPrescriptionSummary(order) {
+            const prescription = order.prescription || order;
+            if (prescription.right_sph === null || prescription.right_sph === undefined ||
+                prescription.left_sph === null || prescription.left_sph === undefined) {
+                return '<span class="text-muted">No prescription</span>';
+            }
+
+            return `<span class="small d-inline-block">
+                <strong>OD</strong> ${Number(prescription.right_sph).toFixed(2)} / ${Number(prescription.right_cyl || 0).toFixed(2)} / ${prescription.right_axis ?? '—'}<br>
+                <strong>OS</strong> ${Number(prescription.left_sph).toFixed(2)} / ${Number(prescription.left_cyl || 0).toFixed(2)} / ${prescription.left_axis ?? '—'}
+            </span>`;
+        }
+
         // -- New: staff order view helper --
         async function viewStaffOrder(orderId) {
             if (!orderId) return;
@@ -1681,13 +1696,14 @@
                 document.getElementById('staffPickupBtn').classList.toggle('d-none', isFinal);
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
-                const hasSavedPrescription = order.right_sph !== null && order.right_sph !== undefined &&
-                    order.left_sph !== null && order.left_sph !== undefined;
+                const prescription = order.prescription || order;
+                const hasSavedPrescription = prescription.right_sph !== null && prescription.right_sph !== undefined &&
+                    prescription.left_sph !== null && prescription.left_sph !== undefined;
                 const prescriptionDetails = hasSavedPrescription ? `
                     <div class="border rounded p-3 mb-3 bg-light">
-                      <strong>${order.prescription_appointment_id ? `Prescription from eye checkup #${order.prescription_appointment_id}` : 'Customer-entered prescription'}</strong>
-                      <div>OD: SPH ${Number(order.right_sph).toFixed(2)}, CYL ${Number(order.right_cyl).toFixed(2)}, AXIS ${order.right_axis ?? '—'}</div>
-                      <div>OS: SPH ${Number(order.left_sph).toFixed(2)}, CYL ${Number(order.left_cyl).toFixed(2)}, AXIS ${order.left_axis ?? '—'}</div>
+                      <strong>${prescription.prescription_appointment_id ? `Prescription from eye checkup #${prescription.prescription_appointment_id}` : 'Customer-entered prescription'}</strong>
+                      <div>OD: SPH ${Number(prescription.right_sph).toFixed(2)}, CYL ${Number(prescription.right_cyl || 0).toFixed(2)}, AXIS ${prescription.right_axis ?? '—'}</div>
+                      <div>OS: SPH ${Number(prescription.left_sph).toFixed(2)}, CYL ${Number(prescription.left_cyl || 0).toFixed(2)}, AXIS ${prescription.left_axis ?? '—'}</div>
                     </div>
                 ` : '';
                 body.innerHTML = `

@@ -597,10 +597,23 @@ router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => 
       ],
       order: [['created_at', 'DESC']]
     });
+    const ordersWithPrescription = orders.map((order) => {
+      const orderData = order.toJSON();
+      orderData.prescription = {
+        prescription_appointment_id: orderData.prescription_appointment_id,
+        right_sph: orderData.right_sph,
+        right_cyl: orderData.right_cyl,
+        right_axis: orderData.right_axis,
+        left_sph: orderData.left_sph,
+        left_cyl: orderData.left_cyl,
+        left_axis: orderData.left_axis
+      };
+      return orderData;
+    });
 
     res.json({
       success: true,
-      orders
+      orders: ordersWithPrescription
     });
   } catch (error) {
     res.status(500).json({
@@ -621,7 +634,17 @@ router.get('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       ]
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    res.json({ success: true, order });
+    const orderData = order.toJSON();
+    orderData.prescription = {
+      prescription_appointment_id: orderData.prescription_appointment_id,
+      right_sph: orderData.right_sph,
+      right_cyl: orderData.right_cyl,
+      right_axis: orderData.right_axis,
+      left_sph: orderData.left_sph,
+      left_cyl: orderData.left_cyl,
+      left_axis: orderData.left_axis
+    };
+    res.json({ success: true, order: orderData });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch order', error: error.message });
   }
