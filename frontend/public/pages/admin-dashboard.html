@@ -3913,6 +3913,19 @@ This will deactivate the account and keep the user record for history.`)) {
             if (value == null) return '';
             if (typeof value !== 'object') return value;
 
+            if (Array.isArray(value)) {
+                if (value.length === 0) return 'No orders';
+                return value.map(order => {
+                    if (!order || typeof order !== 'object') return order;
+
+                    const orderDetails = [];
+                    if (order.order_id != null) orderDetails.push(`#${order.order_id}`);
+                    if (order.total_amount != null) orderDetails.push(`₱${Number(order.total_amount).toFixed(2)}`);
+                    if (order.order_date) orderDetails.push(new Date(order.order_date).toLocaleDateString());
+                    return orderDetails.join(' · ') || JSON.stringify(order);
+                }).join('; ');
+            }
+
             const user = value.User || value.user || value;
             const customerDetails = [user.full_name || user.name, user.email].filter(Boolean);
             return customerDetails.length ? customerDetails.join(' · ') : JSON.stringify(value);
