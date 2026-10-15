@@ -1843,7 +1843,7 @@
                             <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city" required></textarea>
                         </div>
                         <div class="mb-3 d-none" id="checkoutPrescriptionSection">
-                            <label for="checkoutPrescriptionAppointment" class="form-label fw-semibold">Prescription from your completed eye checkup</label>
+                            <label for="checkoutPrescriptionAppointment" class="form-label fw-semibold">Prescription from your completed eye checkup <span class="text-muted">(optional)</span></label>
                             <select id="checkoutPrescriptionAppointment" class="form-select rounded-3" onchange="updateCheckoutPrescriptionPreview()">
                                 <option value="">Choose a completed eye checkup</option>
                             </select>
@@ -3021,14 +3021,14 @@
             const preview = document.getElementById('checkoutPrescriptionPreview');
             const required = cartRequiresPrescription();
             section.classList.toggle('d-none', !required);
-            select.required = required;
+            select.required = false;
             select.innerHTML = '<option value="">Choose a completed eye checkup</option>';
             message.textContent = '';
             preview.classList.add('d-none');
             checkoutPrescriptionAppointments = new Map();
             if (!required) return;
 
-            message.textContent = 'A completed eye checkup prescription is required for prescription lenses.';
+            message.textContent = 'You can still place your order without an appointment. Choose a completed eye checkup if you want to attach its prescription.';
             const result = await apiCall('/customer/appointments');
             if (!result || !result.success) {
                 message.textContent = result?.message || 'Could not load completed eye checkups. Please try again.';
@@ -3043,7 +3043,7 @@
                 select.appendChild(option);
             });
             if (checkoutPrescriptionAppointments.size === 0) {
-                message.textContent = 'No completed eye checkup prescription found. Please finish an eye checkup before ordering prescription lenses.';
+                message.textContent = 'No completed eye checkup prescription found. You can continue without one.';
             }
         }
 
@@ -3083,7 +3083,7 @@
             const result = await apiCall('/customer/orders/checkout', 'POST', {
                 notes,
                 address,
-                ...(cartRequiresPrescription() ? {
+                ...(document.getElementById('checkoutPrescriptionAppointment').value ? {
                     prescription_appointment_id: Number(document.getElementById('checkoutPrescriptionAppointment').value)
                 } : {})
             });

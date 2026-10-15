@@ -1330,12 +1330,27 @@
             }
         }
 
+        let staffAppointmentsById = new Map();
+
+        function canCreateOrderFromAppointment(appointment) {
+            if (appointment.status !== 'completed' || appointment.service_type !== 'Eye Checkup') return false;
+            return ['right', 'left'].every(eye => {
+                const sphere = appointment[`${eye}_sph`];
+                const cylinder = Number(appointment[`${eye}_cyl`] || 0);
+                const axis = appointment[`${eye}_axis`];
+                return sphere !== null && sphere !== undefined && Number.isFinite(Number(sphere)) &&
+                    Number.isFinite(cylinder) &&
+                    (cylinder === 0 || (Number.isInteger(Number(axis)) && Number(axis) >= 1 && Number(axis) <= 180));
+            });
+        }
+
         async function loadAppointments() {
             try {
                 const result = await apiCall('/staff/appointments/today');
                 const tbody = document.getElementById('appointmentsTable');
 
                 if (result && result.success && result.appointments && result.appointments.length > 0) {
+                    result.appointments.forEach(appointment => staffAppointmentsById.set(Number(appointment.appointment_id), appointment));
                     tbody.innerHTML = result.appointments.map(apt => `
                         <tr>
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
@@ -1348,6 +1363,7 @@
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                    ${canCreateOrderFromAppointment(apt) ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="openAppointmentOrder(${apt.appointment_id})"><i class="fas fa-glasses me-1"></i>New glasses order</button>` : ''}
                                 </div>
                             </td>
                         </tr>
@@ -1367,6 +1383,7 @@
                 const tbody = document.getElementById('allAppointmentsTable');
 
                 if (result && result.success && result.appointments && result.appointments.length > 0) {
+                    staffAppointmentsById = new Map(result.appointments.map(appointment => [Number(appointment.appointment_id), appointment]));
                     tbody.innerHTML = result.appointments.map(apt => `
                         <tr>
                             <td>${formatAppointmentDate(apt.appointment_date || 'N/A')}</td>
@@ -1381,6 +1398,7 @@
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                    ${canCreateOrderFromAppointment(apt) ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="openAppointmentOrder(${apt.appointment_id})"><i class="fas fa-glasses me-1"></i>New glasses order</button>` : ''}
                                 </div>
                             </td>
                         </tr>
@@ -1758,6 +1776,123 @@
             viewStaffOrder(orderId);
         }
 
+        let appointmentOrderProducts = [];
+        let appointmentOrderItems = [];
+        let selectedPrescriptionAppointmentId = null;
+
+        async function openAppointmentOrder(appointmentId) {
+            const appointment = staffAppointmentsById.get(Number(appointmentId));
+            if (!appointment || !canCreateOrderFromAppointment(appointment)) {
+                alert('A completed eye checkup with a saved prescription is required.');
+                return;
+            }
+
+            selectedPrescriptionAppointmentId = Number(appointmentId);
+            appointmentOrderItems = [];
+            const customerName = appointment.Customer?.User?.full_name || 'Customer';
+            document.getElementById('appointmentOrderCustomer').textContent = `${customerName} — exam #${appointment.appointment_id}`;
+            document.getElementById('appointmentOrderPrescription').textContent =
+                `OD: SPH ${Number(appointment.right_sph).toFixed(2)}, CYL ${Number(appointment.right_cyl || 0).toFixed(2)}, AXIS ${appointment.right_axis ?? '—'} | ` +
+                `OS: SPH ${Number(appointment.left_sph).toFixed(2)}, CYL ${Number(appointment.left_cyl || 0).toFixed(2)}, AXIS ${appointment.left_axis ?? '—'}`;
+            document.getElementById('appointmentOrderQty').value = 1;
+            document.getElementById('appointmentOrderFeedback').textContent = '';
+            renderAppointmentOrderItems();
+
+            const result = await apiCall('/staff/products');
+            if (!result || !result.success) {
+                alert(result?.message || 'Failed to load products.');
+                return;
+            }
+            appointmentOrderProducts = (result.products || []).filter(product => product.is_active && Number(product.stock_quantity) > 0);
+            document.getElementById('appointmentOrderProduct').innerHTML = appointmentOrderProducts
+                .map(product => `<option value="${product.product_id}">${escapeStaffOrderText(product.product_name)}${product.color_name ? ` - ${escapeStaffOrderText(product.color_name)}` : ''} (stock: ${product.stock_quantity})</option>`)
+                .join('');
+            if (!appointmentOrderProducts.length) {
+                document.getElementById('appointmentOrderFeedback').textContent = 'Walang available na product sa stock.';
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentOrderModal')).show();
+        }
+
+        function addAppointmentOrderItem() {
+            const productId = Number(document.getElementById('appointmentOrderProduct').value);
+            const product = appointmentOrderProducts.find(item => Number(item.product_id) === productId);
+            const quantity = Number(document.getElementById('appointmentOrderQty').value);
+            const lens = document.getElementById('appointmentOrderLens').value;
+            const feedback = document.getElementById('appointmentOrderFeedback');
+            if (!product || !Number.isInteger(quantity) || quantity < 1) {
+                feedback.textContent = 'Pumili ng product at tamang quantity.';
+                return;
+            }
+            const alreadyAdded = appointmentOrderItems
+                .filter(item => Number(item.product.product_id) === productId)
+                .reduce((total, item) => total + item.quantity, 0);
+            if (alreadyAdded + quantity > Number(product.stock_quantity)) {
+                feedback.textContent = `Hindi sapat ang stock. Available: ${product.stock_quantity}.`;
+                return;
+            }
+            const existing = appointmentOrderItems.find(item => Number(item.product.product_id) === productId && item.lens === lens);
+            if (existing) existing.quantity += quantity;
+            else appointmentOrderItems.push({ product, lens, quantity });
+            feedback.textContent = '';
+            renderAppointmentOrderItems();
+        }
+
+        function removeAppointmentOrderItem(index) {
+            appointmentOrderItems.splice(index, 1);
+            renderAppointmentOrderItems();
+        }
+
+        function renderAppointmentOrderItems() {
+            const labels = { 'frame-only': 'Frame only', 'regular-lens': 'Regular lens', 'photochromic': 'Photochromic' };
+            const tbody = document.getElementById('appointmentOrderItems');
+            if (!tbody) return;
+            tbody.innerHTML = appointmentOrderItems.length
+                ? appointmentOrderItems.map((item, index) => {
+                    const price = walkInPrice(item.product, item.lens);
+                    return `<tr>
+                        <td>${escapeStaffOrderText(item.product.product_name)}</td><td>${labels[item.lens]}</td>
+                        <td class="text-end">₱${price.toFixed(2)}</td><td>${item.quantity}</td>
+                        <td class="text-end">₱${(price * item.quantity).toFixed(2)}</td>
+                        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAppointmentOrderItem(${index})" aria-label="Remove item">&times;</button></td>
+                    </tr>`;
+                }).join('')
+                : '<tr><td colspan="6" class="text-center text-muted">Wala pang napipiling item.</td></tr>';
+        }
+
+        async function submitAppointmentOrder() {
+            const feedback = document.getElementById('appointmentOrderFeedback');
+            const button = document.getElementById('appointmentOrderSubmit');
+            if (!appointmentOrderItems.length) {
+                feedback.textContent = 'Magdagdag muna ng kahit isang item.';
+                return;
+            }
+
+            button.disabled = true;
+            feedback.textContent = 'Sine-save ang order...';
+            try {
+                const result = await apiCall(`/staff/appointments/${selectedPrescriptionAppointmentId}/orders`, 'POST', {
+                    items: appointmentOrderItems.map(item => ({
+                        product_id: item.product.product_id,
+                        quantity: item.quantity,
+                        lens_option: item.lens
+                    }))
+                });
+                if (!result || !result.success) {
+                    feedback.textContent = result?.message || 'Hindi na-save ang order.';
+                    return;
+                }
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentOrderModal')).hide();
+                alert(`Nagawa ang order #${result.order.order_id} para kay ${result.order.Customer?.User?.full_name || 'customer'}. Ipagpatuloy ang processing sa Orders.`);
+                await loadOrders();
+                updateDashboardStats().catch(() => {});
+            } catch (error) {
+                console.error('Appointment order error:', error);
+                feedback.textContent = 'Hindi na-save ang order. Subukan ulit.';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
         // Walk-in sale
         let walkInProducts = [];
         let walkInItems = [];
@@ -1895,6 +2030,49 @@
           <button type="submit" class="btn btn-primary">Save Prescription &amp; Complete</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Staff-created order for a customer who just completed an eye checkup. -->
+<div class="modal fade" id="appointmentOrderModal" tabindex="-1" aria-labelledby="appointmentOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="appointmentOrderModalLabel"><i class="fas fa-glasses me-2"></i>New Glasses Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="border rounded p-3 mb-3 bg-light">
+          <div class="fw-semibold" id="appointmentOrderCustomer"></div>
+          <div class="small mt-1" id="appointmentOrderPrescription"></div>
+          <div class="form-text">Gagamitin ang prescription na naitala sa examination.</div>
+        </div>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-md-5"><label class="form-label" for="appointmentOrderProduct">Product</label><select class="form-select" id="appointmentOrderProduct"></select></div>
+          <div class="col-md-3"><label class="form-label" for="appointmentOrderLens">Lens</label>
+            <select class="form-select" id="appointmentOrderLens">
+              <option value="frame-only">Frame only</option>
+              <option value="regular-lens" selected>Regular lens</option>
+              <option value="photochromic">Photochromic</option>
+            </select>
+          </div>
+          <div class="col-md-2"><label class="form-label" for="appointmentOrderQty">Qty</label><input type="number" class="form-control" id="appointmentOrderQty" value="1" min="1"></div>
+          <div class="col-md-2"><button type="button" class="btn btn-outline-primary w-100" onclick="addAppointmentOrderItem()">Add</button></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Item</th><th>Lens</th><th class="text-end">Price</th><th>Qty</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+            <tbody id="appointmentOrderItems"></tbody>
+          </table>
+        </div>
+        <div id="appointmentOrderFeedback" class="small text-danger" aria-live="polite"></div>
+        <div class="form-text">Mase-save ang order bilang Pending at ibabawas lang ang stock kapag minarkahang Picked Up.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="appointmentOrderSubmit" onclick="submitAppointmentOrder()">Create Order</button>
+      </div>
     </div>
   </div>
 </div>

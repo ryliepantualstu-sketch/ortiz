@@ -1017,17 +1017,15 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       });
     }
 
-    const needsPrescription = cartItems.some(item => (item.lens_option || 'regular-lens') !== 'frame-only');
     let orderPrescription = null;
-    if (needsPrescription) {
+    if (req.body.prescription_appointment_id) {
       const appointmentId = Number(req.body.prescription_appointment_id);
       if (!Number.isInteger(appointmentId) || appointmentId < 1) {
         return res.status(400).json({
           success: false,
-          message: 'Choose a completed eye checkup so we can use your prescription'
+          message: 'Choose a valid completed eye checkup'
         });
       }
-
       const appointment = await Appointment.findOne({
         where: {
           appointment_id: appointmentId,

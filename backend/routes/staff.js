@@ -460,6 +460,109 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
   }
 });
 
+// Create a customer order from a completed eye checkup while the customer is in the clinic.
+router.post('/appointments/:id/orders', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const appointment = await Appointment.findByPk(req.params.id);
+    if (!appointment || appointment.status !== 'completed' || appointment.service_type !== 'Eye Checkup') {
+      return res.status(404).json({
+        success: false,
+        message: 'Completed eye checkup not found'
+      });
+    }
+
+    const { prescription, error } = normalizePrescription(appointment);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'This eye checkup does not have a complete prescription'
+      });
+    }
+
+    const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
+    if (requestedItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+
+    const orderId = await sequelize.transaction(async (transaction) => {
+      const lines = [];
+      for (const entry of requestedItems) {
+        const productId = Number(entry.product_id);
+        const quantity = Number(entry.quantity);
+        const lensOption = entry.lens_option || 'regular-lens';
+        if (!Number.isInteger(productId) || productId < 1) {
+          throw Object.assign(new Error('Choose a valid product'), { status: 400 });
+        }
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          throw Object.assign(new Error('Quantity must be at least 1'), { status: 400 });
+        }
+        if (!['frame-only', 'regular-lens', 'photochromic'].includes(lensOption)) {
+          throw Object.assign(new Error('Choose a valid lens option'), { status: 400 });
+        }
+
+        const product = await Product.findByPk(productId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!product || !product.is_active) {
+          throw Object.assign(new Error('Product not found or unavailable'), { status: 404 });
+        }
+        if ((product.stock_quantity || 0) < quantity) {
+          throw Object.assign(new Error(`Not enough stock for ${product.product_name} (available: ${product.stock_quantity || 0})`), { status: 409 });
+        }
+        lines.push({
+          product,
+          quantity,
+          lensOption,
+          price: Number(getPriceByLensOption(product, lensOption))
+        });
+      }
+
+      const totalAmount = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+      const order = await Order.create({
+        customer_id: appointment.customer_id,
+        ...prescription,
+        prescription_appointment_id: appointment.appointment_id,
+        total_amount: Number(totalAmount.toFixed(2)),
+        discount_amount: 0,
+        customer_name: null,
+        delivery_address: null,
+        is_walk_in: false,
+        status: 'pending',
+        notes: `Created by staff after eye checkup #${appointment.appointment_id}`
+      }, { transaction });
+
+      for (const line of lines) {
+        await OrderItem.create({
+          order_id: order.order_id,
+          product_id: line.product.product_id,
+          quantity: line.quantity,
+          price: line.price,
+          subtotal: line.price * line.quantity,
+          lens_option: line.lensOption
+        }, { transaction });
+      }
+
+      return order.order_id;
+    });
+
+    const order = await Order.findByPk(orderId, {
+      include: [
+        { model: OrderItem, include: [{ model: Product }] },
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+      ]
+    });
+
+    res.status(201).json({ success: true, message: 'Customer order created', order });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to create customer order',
+      ...(error.status ? {} : { error: error.message })
+    });
+  }
+});
+
 // Get all orders
 router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
