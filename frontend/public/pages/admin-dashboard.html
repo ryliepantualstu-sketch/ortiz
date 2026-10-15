@@ -3909,6 +3909,15 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('reportDetailsPanel').style.display = 'none';
         }
 
+        function formatReportCellValue(value) {
+            if (value == null) return '';
+            if (typeof value !== 'object') return value;
+
+            const user = value.User || value.user || value;
+            const customerDetails = [user.full_name || user.name, user.email].filter(Boolean);
+            return customerDetails.length ? customerDetails.join(' · ') : JSON.stringify(value);
+        }
+
         function buildPrintableReportHtml(report) {
             const summary = report.summary || {};
             const summaryHtml = Object.entries(summary).filter(([key]) => key !== 'data').map(([key, value]) => {
@@ -3932,7 +3941,7 @@ This will deactivate the account and keep the user record for history.`)) {
                         <tbody>
                             ${data.map(item => `
                                 <tr>
-                                    ${headers.map(header => `<td>${item?.[header] ?? ''}</td>`).join('')}
+                                    ${headers.map(header => `<td>${formatReportCellValue(item?.[header])}</td>`).join('')}
                                 </tr>
                             `).join('')}
                         </tbody>
