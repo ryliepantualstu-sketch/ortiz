@@ -27,6 +27,12 @@ const Appointment = sequelize.define('Appointment', {
     type: DataTypes.STRING(100),
     allowNull: false
   },
+  right_sph: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  right_cyl: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  right_axis: { type: DataTypes.INTEGER, allowNull: true },
+  left_sph: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  left_cyl: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  left_axis: { type: DataTypes.INTEGER, allowNull: true },
   status: {
     type: DataTypes.ENUM('pending', 'confirmed', 'completed', 'cancelled'),
     defaultValue: 'pending'

@@ -1841,7 +1841,16 @@
                         <div class="mb-3">
                             <label for="orderAddress" class="form-label fw-semibold">Your address <span class="text-danger">*</span></label>
                             <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city" required></textarea>
-                        </div>                        <div class="mb-3">
+                        </div>
+                        <div class="mb-3 d-none" id="checkoutPrescriptionSection">
+                            <label for="checkoutPrescriptionAppointment" class="form-label fw-semibold">Prescription from your completed eye checkup</label>
+                            <select id="checkoutPrescriptionAppointment" class="form-select rounded-3" onchange="updateCheckoutPrescriptionPreview()">
+                                <option value="">Choose a completed eye checkup</option>
+                            </select>
+                            <div id="checkoutPrescriptionMessage" class="form-text text-muted mt-1"></div>
+                            <div id="checkoutPrescriptionPreview" class="small border rounded-3 p-2 mt-2 d-none" aria-live="polite"></div>
+                        </div>
+                        <div class="mb-3">
                             <label for="orderNotes" class="form-label fw-semibold">Pickup instructions / Notes</label>
                             <textarea id="orderNotes" class="form-control rounded-3" rows="3" placeholder="Optional notes for your order (e.g. pickup day, questions)"></textarea>
                             <div class="form-text text-muted mt-2">
@@ -2971,6 +2980,75 @@
             await loadCart();
         }
 
+        function cartRequiresPrescription() {
+            return cartItems.some(item => (item.lens_option || 'regular-lens') !== 'frame-only');
+        }
+
+        function isCompleteEyePrescription(appointment) {
+            if ((appointment.status || '').toLowerCase() !== 'completed' || appointment.service_type !== 'Eye Checkup') return false;
+            for (const eye of ['right', 'left']) {
+                const sphere = appointment[`${eye}_sph`];
+                const cylinder = Number(appointment[`${eye}_cyl`] || 0);
+                const axis = appointment[`${eye}_axis`];
+                if (sphere === null || sphere === undefined || !Number.isFinite(Number(sphere)) || !Number.isFinite(cylinder)) return false;
+                if (cylinder !== 0 && (!Number.isInteger(Number(axis)) || Number(axis) < 0 || Number(axis) > 180)) return false;
+            }
+            return true;
+        }
+
+        function formatPrescriptionValue(value) {
+            return value === null || value === undefined ? '—' : Number(value).toFixed(2);
+        }
+
+        function updateCheckoutPrescriptionPreview() {
+            const select = document.getElementById('checkoutPrescriptionAppointment');
+            const preview = document.getElementById('checkoutPrescriptionPreview');
+            const appointment = checkoutPrescriptionAppointments.get(Number(select.value));
+            if (!appointment) {
+                preview.classList.add('d-none');
+                preview.textContent = '';
+                return;
+            }
+
+            preview.textContent = `OD: SPH ${formatPrescriptionValue(appointment.right_sph)}, CYL ${formatPrescriptionValue(appointment.right_cyl)}, AXIS ${appointment.right_axis ?? '—'} | OS: SPH ${formatPrescriptionValue(appointment.left_sph)}, CYL ${formatPrescriptionValue(appointment.left_cyl)}, AXIS ${appointment.left_axis ?? '—'}`;
+            preview.classList.remove('d-none');
+        }
+
+        async function loadCheckoutPrescriptions() {
+            const section = document.getElementById('checkoutPrescriptionSection');
+            const select = document.getElementById('checkoutPrescriptionAppointment');
+            const message = document.getElementById('checkoutPrescriptionMessage');
+            const preview = document.getElementById('checkoutPrescriptionPreview');
+            const required = cartRequiresPrescription();
+            section.classList.toggle('d-none', !required);
+            select.required = required;
+            select.innerHTML = '<option value="">Choose a completed eye checkup</option>';
+            message.textContent = '';
+            preview.classList.add('d-none');
+            checkoutPrescriptionAppointments = new Map();
+            if (!required) return;
+
+            message.textContent = 'A completed eye checkup prescription is required for prescription lenses.';
+            const result = await apiCall('/customer/appointments');
+            if (!result || !result.success) {
+                message.textContent = result?.message || 'Could not load completed eye checkups. Please try again.';
+                return;
+            }
+
+            result.appointments.filter(isCompleteEyePrescription).forEach(appointment => {
+                checkoutPrescriptionAppointments.set(Number(appointment.appointment_id), appointment);
+                const option = document.createElement('option');
+                option.value = appointment.appointment_id;
+                option.textContent = `Exam #${appointment.appointment_id} — ${formatDate(appointment.appointment_date)}`;
+                select.appendChild(option);
+            });
+            if (checkoutPrescriptionAppointments.size === 0) {
+                message.textContent = 'No completed eye checkup prescription found. Please finish an eye checkup before ordering prescription lenses.';
+            }
+        }
+
+        let checkoutPrescriptionAppointments = new Map();
+
         async function openCheckoutModal() {
             if (cartItems.length === 0) return;
             if (!checkoutModalInstance) {
@@ -2978,6 +3056,7 @@
             }
             document.getElementById('checkoutForm').reset();
             checkoutModalInstance.show();
+            await loadCheckoutPrescriptions();
             try {
                 const profile = await apiCall('/customer/profile');
                 const addressInput = document.getElementById('orderAddress');
@@ -3003,7 +3082,10 @@
 
             const result = await apiCall('/customer/orders/checkout', 'POST', {
                 notes,
-                address
+                address,
+                ...(cartRequiresPrescription() ? {
+                    prescription_appointment_id: Number(document.getElementById('checkoutPrescriptionAppointment').value)
+                } : {})
             });
 
             submitButton.disabled = false;
@@ -3493,6 +3575,13 @@
             const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || item.price || 0), 0);
             const discountLabel = order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None';
             const isReadyForPickup = normalizeStatus(order.status) === 'ready for pickup';
+            const prescriptionDetails = order.prescription_appointment_id ? `
+                <div class="border rounded-3 p-3 mb-3 bg-light small">
+                    <strong>Prescription from eye checkup #${order.prescription_appointment_id}</strong>
+                    <div>OD: SPH ${formatPrescriptionValue(order.right_sph)}, CYL ${formatPrescriptionValue(order.right_cyl)}, AXIS ${order.right_axis ?? '—'}</div>
+                    <div>OS: SPH ${formatPrescriptionValue(order.left_sph)}, CYL ${formatPrescriptionValue(order.left_cyl)}, AXIS ${order.left_axis ?? '—'}</div>
+                </div>
+            ` : '';
 
             body.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -3508,6 +3597,7 @@
                     <div class="mb-1"><strong>Notes:</strong> ${escapeText(order.notes || 'None')}</div>
                     <div><strong>Last updated:</strong> ${formatDateTime(order.updated_at)}</div>
                 </div>
+                ${prescriptionDetails}
                 ${canCancelOrder(order) ? `<div class="mb-3"><button type="button" class="btn btn-outline-danger btn-sm" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1"></i>Cancel Order</button></div>` : ''}
                 ${isReadyForPickup ? `
                     <div class="border rounded-3 p-3 mb-3 bg-light">

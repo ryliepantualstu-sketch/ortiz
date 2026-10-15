@@ -24,6 +24,16 @@ const Order = sequelize.define('Order', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
+  prescription_appointment_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  right_sph: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  right_cyl: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  right_axis: { type: DataTypes.INTEGER, allowNull: true },
+  left_sph: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  left_cyl: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  left_axis: { type: DataTypes.INTEGER, allowNull: true },
   status: {
     type: DataTypes.ENUM('pending', 'processing', 'ready for pickup', 'picked up', 'completed', 'cancelled'),
     defaultValue: 'pending'

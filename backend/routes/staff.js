@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
+const { normalizePrescription } = require('../utils/prescription');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
@@ -325,7 +326,16 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     }
 
     const updates = {};
-    if (status) updates.status = status;
+    if (status) {
+      updates.status = status;
+      if (status.toLowerCase() === 'completed' && appointment.service_type.toLowerCase() === 'eye checkup') {
+        const { prescription, error } = normalizePrescription(req.body.prescription);
+        if (error) {
+          return res.status(400).json({ success: false, message: error });
+        }
+        Object.assign(updates, prescription);
+      }
+    }
     if (typeof staff_confirm !== 'undefined') {
       updates.staff_confirmed = Boolean(staff_confirm);
       updates.staff_confirmed_by = staff_confirm ? (req.user.user_id || staff_id) : null;

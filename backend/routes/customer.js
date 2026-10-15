@@ -20,6 +20,7 @@ const { Op } = require('sequelize');
 const { isValidPickupDate } = require('../utils/orderPickup');
 
 const { getPriceByLensOption } = require('../utils/pricing');
+const { normalizePrescription } = require('../utils/prescription');
 
 function calculateCustomerDiscount(customer, amount) {
   const isSenior = Boolean(customer?.is_senior);
@@ -991,7 +992,6 @@ router.patch('/appointments/:id/cancel', authMiddleware, requireRole('customer')
 // Create order from cart
 router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
-    console.log('POST /customer/orders/checkout', { user: req.user && req.user.user_id, body: req.body });
     const { notes } = req.body;
     const submittedAddress = typeof req.body.address === 'string' ? req.body.address.trim() : '';
     const user = await User.findByPk(req.user.user_id);
@@ -1015,6 +1015,45 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
         success: false,
         message: 'Cart is empty'
       });
+    }
+
+    const needsPrescription = cartItems.some(item => (item.lens_option || 'regular-lens') !== 'frame-only');
+    let orderPrescription = null;
+    if (needsPrescription) {
+      const appointmentId = Number(req.body.prescription_appointment_id);
+      if (!Number.isInteger(appointmentId) || appointmentId < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Choose a completed eye checkup so we can use your prescription'
+        });
+      }
+
+      const appointment = await Appointment.findOne({
+        where: {
+          appointment_id: appointmentId,
+          customer_id: customer.customer_id,
+          status: 'completed',
+          service_type: 'Eye Checkup'
+        }
+      });
+      if (!appointment) {
+        return res.status(400).json({
+          success: false,
+          message: 'The selected appointment is not a completed eye checkup for your account'
+        });
+      }
+
+      const { prescription, error } = normalizePrescription(appointment);
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'The selected appointment does not have a complete prescription'
+        });
+      }
+      orderPrescription = {
+        prescription_appointment_id: appointment.appointment_id,
+        ...prescription
+      };
     }
 
     const orderAddress = submittedAddress || (customer.address || '').trim();
@@ -1045,6 +1084,7 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
     // Create order (no customer-applied discount)
     const order = await Order.create({
       customer_id: customer.customer_id,
+      ...(orderPrescription || {}),
       total_amount: discount.total_amount,
       discount_type: discount.discount_type,
       discount_amount: discount.discount_amount,

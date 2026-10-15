@@ -286,6 +286,34 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.TEXT('long'),
       allowNull: true
     });
+    for (const columnName of ['right_sph', 'right_cyl', 'left_sph', 'left_cyl']) {
+      await addColumnIfMissing('appointments', columnName, {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true
+      });
+      await addColumnIfMissing('orders', columnName, {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true
+      });
+    }
+    for (const columnName of ['right_axis', 'left_axis']) {
+      await addColumnIfMissing('appointments', columnName, {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      });
+    }
+    await addColumnIfMissing('orders', 'prescription_appointment_id', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing('orders', 'right_axis', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing('orders', 'left_axis', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
     await changeColumnIfDifferent('customers', 'discount_card_image_url', {
       type: DataTypes.TEXT('long'),
       allowNull: true

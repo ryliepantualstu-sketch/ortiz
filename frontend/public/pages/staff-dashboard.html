@@ -1180,9 +1180,33 @@
         }
 
 
-        async function updateAppointmentStatus(appointmentId, status) {
+        function completeAppointment(appointmentId, requiresPrescription) {
+            if (!requiresPrescription) {
+                updateAppointmentStatus(appointmentId, 'completed');
+                return;
+            }
+
+            const form = document.getElementById('appointmentPrescriptionForm');
+            form.reset();
+            document.getElementById('prescriptionAppointmentId').value = appointmentId;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
+        }
+
+        async function saveAppointmentPrescription(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const prescription = Object.fromEntries(new FormData(form).entries());
+            const appointmentId = document.getElementById('prescriptionAppointmentId').value;
+            submitButton.disabled = true;
+            await updateAppointmentStatus(appointmentId, 'completed', prescription);
+            submitButton.disabled = false;
+        }
+
+        async function updateAppointmentStatus(appointmentId, status, prescription) {
             console.log('updateAppointmentStatus called', { appointmentId, status });
             const payload = { status };
+            if (prescription) payload.prescription = prescription;
             if ((status || '').toLowerCase() === 'confirmed') {
                 payload.staff_confirm = true;
             }
@@ -1190,6 +1214,9 @@
             if (!result.success) {
                 alert(result.message || 'Failed to update appointment.');
                 return;
+            }
+            if (prescription) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).hide();
             }
 
             // Refresh only the visible section to avoid switching views
@@ -1319,7 +1346,7 @@
                                 <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
                                 </div>
                             </td>
@@ -1352,7 +1379,7 @@
                                 <div class="small text-muted mt-2">${getAppointmentQrMessage(apt)}</div>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'completed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
                                 </div>
                             </td>
@@ -1616,6 +1643,13 @@
                 document.getElementById('staffPickupBtn').classList.toggle('d-none', isFinal);
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
+                const prescriptionDetails = order.prescription_appointment_id ? `
+                    <div class="border rounded p-3 mb-3 bg-light">
+                      <strong>Prescription from eye checkup #${order.prescription_appointment_id}</strong>
+                      <div>OD: SPH ${Number(order.right_sph).toFixed(2)}, CYL ${Number(order.right_cyl).toFixed(2)}, AXIS ${order.right_axis ?? '—'}</div>
+                      <div>OS: SPH ${Number(order.left_sph).toFixed(2)}, CYL ${Number(order.left_cyl).toFixed(2)}, AXIS ${order.left_axis ?? '—'}</div>
+                    </div>
+                ` : '';
                 body.innerHTML = `
                     <h5>Order #${order.order_id}</h5>
                     <p><strong>Customer:</strong> ${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}${order.is_walk_in ? '' : ` (${escapeStaffOrderText(order.Customer?.User?.email || '')})`}</p>
@@ -1625,6 +1659,7 @@
                     <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
+                    ${prescriptionDetails}
                     <div class="mb-3">
                         <strong>Customer Instructions:</strong>
                         <div class="border rounded p-3 mt-1 bg-light" style="white-space: pre-wrap;">${order.notes?.trim() ? escapeStaffOrderText(order.notes) : '<span class="text-muted">No instructions provided.</span>'}</div>
@@ -1826,6 +1861,40 @@
                 <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prescription entry is required when completing an eye checkup. -->
+<div class="modal fade" id="appointmentPrescriptionModal" tabindex="-1" aria-labelledby="appointmentPrescriptionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="appointmentPrescriptionModalLabel">Enter Eye Checkup Prescription</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="appointmentPrescriptionForm" onsubmit="saveAppointmentPrescription(event)">
+        <div class="modal-body">
+          <input type="hidden" id="prescriptionAppointmentId">
+          <p class="small text-muted">Enter the values from the examination. Sphere is required; axis is required when cylinder is not zero.</p>
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-4 fw-semibold">OD (Right)</div>
+            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><input class="form-control" id="rightSph" name="right_sph" type="number" step="0.25" required></div>
+            <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><input class="form-control" id="rightCyl" name="right_cyl" type="number" step="0.25" value="0"></div>
+            <div class="col-2"><label class="form-label small" for="rightAxis">AXIS</label><input class="form-control" id="rightAxis" name="right_axis" type="number" min="1" max="180" step="1"></div>
+          </div>
+          <div class="row g-2 align-items-end">
+            <div class="col-4 fw-semibold">OS (Left)</div>
+            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><input class="form-control" id="leftSph" name="left_sph" type="number" step="0.25" required></div>
+            <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><input class="form-control" id="leftCyl" name="left_cyl" type="number" step="0.25" value="0"></div>
+            <div class="col-2"><label class="form-label small" for="leftAxis">AXIS</label><input class="form-control" id="leftAxis" name="left_axis" type="number" min="1" max="180" step="1"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Prescription &amp; Complete</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
