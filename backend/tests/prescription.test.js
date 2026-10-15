@@ -23,6 +23,23 @@ test('normalizePrescription accepts a complete prescription with no cylinder', (
   });
 });
 
+test('normalizePrescription accepts positive values with an explicit plus sign', () => {
+  const result = normalizePrescription({
+    right_sph: '+1.25',
+    right_cyl: '+0.50',
+    right_axis: '90',
+    left_sph: '+0.75',
+    left_cyl: '0',
+    left_axis: ''
+  });
+
+  assert.equal(result.error, null);
+  assert.equal(result.prescription.right_sph, 1.25);
+  assert.equal(result.prescription.right_cyl, 0.5);
+  assert.equal(result.prescription.right_axis, 90);
+  assert.equal(result.prescription.left_sph, 0.75);
+});
+
 test('normalizePrescription requires an axis for a non-zero cylinder', () => {
   const result = normalizePrescription({
     right_sph: '-1.25',

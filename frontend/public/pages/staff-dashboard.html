@@ -1681,9 +1681,11 @@
                 document.getElementById('staffPickupBtn').classList.toggle('d-none', isFinal);
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
-                const prescriptionDetails = order.prescription_appointment_id ? `
+                const hasSavedPrescription = order.right_sph !== null && order.right_sph !== undefined &&
+                    order.left_sph !== null && order.left_sph !== undefined;
+                const prescriptionDetails = hasSavedPrescription ? `
                     <div class="border rounded p-3 mb-3 bg-light">
-                      <strong>Prescription from eye checkup #${order.prescription_appointment_id}</strong>
+                      <strong>${order.prescription_appointment_id ? `Prescription from eye checkup #${order.prescription_appointment_id}` : 'Customer-entered prescription'}</strong>
                       <div>OD: SPH ${Number(order.right_sph).toFixed(2)}, CYL ${Number(order.right_cyl).toFixed(2)}, AXIS ${order.right_axis ?? '—'}</div>
                       <div>OS: SPH ${Number(order.left_sph).toFixed(2)}, CYL ${Number(order.left_cyl).toFixed(2)}, AXIS ${order.left_axis ?? '—'}</div>
                     </div>

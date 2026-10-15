@@ -1020,6 +1020,12 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
 
     let orderPrescription = null;
     if (req.body.prescription_appointment_id) {
+      if (req.body.prescription) {
+        return res.status(400).json({
+          success: false,
+          message: 'Choose either an exam prescription or enter a prescription manually'
+        });
+      }
       const appointmentId = Number(req.body.prescription_appointment_id);
       if (!Number.isInteger(appointmentId) || appointmentId < 1) {
         return res.status(400).json({
@@ -1053,6 +1059,15 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
         prescription_appointment_id: appointment.appointment_id,
         ...prescription
       };
+    } else if (req.body.prescription) {
+      const { prescription, error } = normalizePrescription(req.body.prescription);
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: error
+        });
+      }
+      orderPrescription = prescription;
     }
 
     const orderAddress = submittedAddress || (customer.address || '').trim();
