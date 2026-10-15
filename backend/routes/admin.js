@@ -1299,6 +1299,13 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
           model: Customer,
           attributes: ['customer_id', 'user_id'],
           include: [{ model: User, attributes: ['full_name', 'email'] }]
+        }, {
+          model: OrderItem,
+          attributes: ['quantity', 'price', 'subtotal', 'lens_option'],
+          include: [{
+            model: Product,
+            attributes: ['product_id', 'product_name', 'category']
+          }]
         }],
         where: date_from || date_to ? { order_date: dateRange } : {},
         order: [['order_date', 'DESC']]
