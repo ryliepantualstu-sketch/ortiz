@@ -23,6 +23,63 @@ const { getPriceByLensOption } = require('../utils/pricing');
 const { normalizePrescription } = require('../utils/prescription');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 
+router.put('/password', authMiddleware, requireRole('customer'), async (req, res) => {
+  try {
+    const { current_password, new_password, confirm_password } = req.body;
+    if (
+      typeof current_password !== 'string' || !current_password ||
+      typeof new_password !== 'string' || !new_password ||
+      typeof confirm_password !== 'string' || !confirm_password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your current password and fill in all new password fields'
+      });
+    }
+
+    if (typeof new_password !== 'string' || new_password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters'
+      });
+    }
+
+    if (new_password !== confirm_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (current_password === new_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from your current password'
+      });
+    }
+
+    const user = await User.findByPk(req.user.user_id);
+    if (!user || !(await user.comparePassword(current_password))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    await user.update({ password: new_password });
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Failed to change customer password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
+    });
+  }
+});
+
 function calculateCustomerDiscount(customer, amount) {
   const isSenior = Boolean(customer?.is_senior);
   const isPwd = Boolean(customer?.is_pwd);

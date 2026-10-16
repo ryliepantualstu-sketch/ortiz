@@ -1705,7 +1705,7 @@
 
     <!-- 1. Profile Edit Modal -->
     <div id="profileModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">Edit Profile</h5>
@@ -1716,6 +1716,7 @@
                         <span id="profileEditErrorMsg"></span>
                         <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
                     </div>
+                    <div id="passwordChangeFeedback" class="alert" role="alert" style="display: none;"></div>
                     <form id="profileForm">
                         <div class="form-group mb-3">
                             <label class="form-label fw-semibold" for="editFullName">
@@ -1755,6 +1756,23 @@
                             <small class="text-muted">Upload your senior/PWD card so it can be saved to your profile.</small>
                         </div>
                     </form>
+                    <hr class="my-4">
+                    <h6 class="fw-bold mb-3">Change Password</h6>
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold" for="currentPassword">Current Password</label>
+                        <input type="password" class="form-control rounded-3" id="currentPassword" autocomplete="current-password">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold" for="newPassword">New Password</label>
+                        <input type="password" class="form-control rounded-3" id="newPassword" autocomplete="new-password" minlength="6">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold" for="confirmNewPassword">Confirm New Password</label>
+                        <input type="password" class="form-control rounded-3" id="confirmNewPassword" autocomplete="new-password" minlength="6">
+                    </div>
+                    <button type="button" class="btn btn-outline-primary rounded-3" id="changePasswordButton" onclick="changeCustomerPassword()">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Cancel</button>
@@ -3856,6 +3874,10 @@
             const cardInput = document.getElementById('discountCardImage');
             if (cardInput) cardInput.value = '';
             document.getElementById('profileEditError').style.display = 'none';
+            document.getElementById('passwordChangeFeedback').style.display = 'none';
+            ['currentPassword', 'newPassword', 'confirmNewPassword'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
 
             if (!profileModalInstance) {
                 const profileModal = document.getElementById('profileModal');
@@ -3921,6 +3943,59 @@
                 alert('Profile updated successfully!');
             } else {
                 showProfileError(result.message || 'Failed to update profile');
+            }
+        }
+
+        async function changeCustomerPassword() {
+            const current_password = document.getElementById('currentPassword').value;
+            const new_password = document.getElementById('newPassword').value;
+            const confirm_password = document.getElementById('confirmNewPassword').value;
+            const feedback = document.getElementById('passwordChangeFeedback');
+            const button = document.getElementById('changePasswordButton');
+
+            feedback.style.display = 'none';
+            if (!current_password || !new_password || !confirm_password) {
+                feedback.className = 'alert alert-danger';
+                feedback.textContent = 'Please fill in all password fields.';
+                feedback.style.display = 'block';
+                return;
+            }
+            if (new_password.length < 6) {
+                feedback.className = 'alert alert-danger';
+                feedback.textContent = 'New password must be at least 6 characters.';
+                feedback.style.display = 'block';
+                return;
+            }
+            if (new_password !== confirm_password) {
+                feedback.className = 'alert alert-danger';
+                feedback.textContent = 'New passwords do not match.';
+                feedback.style.display = 'block';
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const result = await apiCall('/customer/password', 'PUT', {
+                    current_password,
+                    new_password,
+                    confirm_password
+                });
+                feedback.className = result.success ? 'alert alert-success' : 'alert alert-danger';
+                feedback.textContent = result.message || (result.success ? 'Password changed successfully.' : 'Failed to change password.');
+                feedback.style.display = 'block';
+
+                if (result.success) {
+                    ['currentPassword', 'newPassword', 'confirmNewPassword'].forEach(id => {
+                        document.getElementById(id).value = '';
+                    });
+                }
+            } catch (error) {
+                console.error('Password change error:', error);
+                feedback.className = 'alert alert-danger';
+                feedback.textContent = 'Failed to change password. Please try again.';
+                feedback.style.display = 'block';
+            } finally {
+                button.disabled = false;
             }
         }
 
