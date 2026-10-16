@@ -4004,8 +4004,6 @@ This will deactivate the account and keep the user record for history.`)) {
                 `;
             }
 
-            const currentUser = JSON.parse(localStorage.getItem('user') || 'null') || {};
-            const preparedBy = currentUser.full_name || 'Authorized Representative';
             const generatedDate = formatPrintDate(report.generated_date);
             const generatedTime = report.generated_date && !Number.isNaN(new Date(report.generated_date).getTime())
                 ? new Date(report.generated_date).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })
@@ -4031,7 +4029,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             .report-data { border-collapse: collapse; font-size: 10px; margin-top: 18px; width: 100%; }
                             .report-data th, .report-data td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
                             .report-data th { background: #eaf0f6; color: #17365d; }
-                            .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 46px; page-break-inside: avoid; }
+                            .signatures { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; margin-top: 46px; page-break-inside: avoid; }
                             .signature { border-top: 1px solid #374151; padding-top: 7px; text-align: center; }
                             .signature-name { font-weight: 700; min-height: 16px; }
                             .signature-label { color: #53657d; font-size: 10px; margin-top: 3px; }
@@ -4057,10 +4055,6 @@ This will deactivate the account and keep the user record for history.`)) {
                         <ul>${summaryHtml || '<li>No summary available</li>'}</ul>
                         ${dataHtml}
                         <div class="signatures">
-                            <div class="signature">
-                                <div class="signature-name">${escapePrintHtml(preparedBy)}</div>
-                                <div class="signature-label">Prepared by</div>
-                            </div>
                             <div class="signature">
                                 <div class="signature-name">&nbsp;</div>
                                 <div class="signature-label">Reviewed by</div>
