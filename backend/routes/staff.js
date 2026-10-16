@@ -14,7 +14,8 @@ const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notific
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
-const { resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
+const { normalizePhoneNumber, resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
+const { normalizeCustomerName } = require('../utils/customerName');
 const { createWalkInClaimCode, findWalkInClaim, normalizeWalkInClaimCode } = require('../utils/walkInClaim');
 
 function normalizeAppointmentDate(value) {
@@ -382,7 +383,8 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 // Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
 router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
-    const customerName = typeof req.body.customer_name === 'string' ? req.body.customer_name.trim() : '';
+    const customerName = normalizeCustomerName(req.body.customer_name);
+    const customerPhone = normalizePhoneNumber(req.body.customer_phone);
     const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
     const rawExistingClaimCode = req.body.existing_claim_code;
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
@@ -392,6 +394,9 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     if (!customerName) {
       return res.status(400).json({ success: false, message: 'Customer name is required' });
     }
+    if (!/^\+?\d{7,15}$/.test(customerPhone)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid customer phone number (7 to 15 digits)' });
+    }
     if (requestedItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
     }
@@ -400,7 +405,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     }
 
     const matchingAccounts = await User.findAll({
-      attributes: ['user_id', 'full_name'],
+      attributes: ['user_id', 'full_name', 'phone'],
       where: {
         role: 'customer',
         is_active: true,
@@ -409,9 +414,9 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
           customerName.toLowerCase()
         )
       },
-      include: [{ model: Customer, required: true, attributes: ['customer_id'] }]
+      include: [{ model: Customer, required: true, attributes: ['customer_id', 'phone'] }]
     });
-    const accountMatch = resolveWalkInCustomerMatch(matchingAccounts);
+    const accountMatch = resolveWalkInCustomerMatch(matchingAccounts, customerPhone);
 
     const orderId = await sequelize.transaction(async (transaction) => {
       const existingClaim = existingClaimCode
@@ -454,6 +459,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         discount_type: discountType,
         discount_amount: discountAmount,
         customer_name: customerName,
+        walk_in_phone: customerPhone,
         delivery_address: address || null,
         is_walk_in: true,
         walk_in_claim_code: walkInClaimCode,

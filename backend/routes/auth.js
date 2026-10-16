@@ -8,7 +8,8 @@ const User = require('../models/User');
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
-const { parseWalkInClaimCodes, claimWalkInOrder } = require('../utils/walkInClaim');
+const { parseWalkInClaimCodes, claimWalkInOrder, claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
+const { normalizePhoneNumber } = require('../utils/walkInCustomerMatch');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
@@ -147,9 +148,7 @@ router.post('/register', async (req, res) => {
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
     const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
-    const normalizedPhone = typeof phone === 'string'
-      ? phone.trim().replace(/[\s-]/g, '')
-      : '';
+    const normalizedPhone = normalizePhoneNumber(phone);
 
     // Validation
     if (!full_name || !email || !password || !confirm_password || !normalizedPhone) {
@@ -230,6 +229,14 @@ router.post('/register', async (req, res) => {
           );
         }
       }
+
+      await claimWalkInOrdersByIdentity(
+        Order,
+        customer.customer_id,
+        full_name,
+        normalizedPhone,
+        transaction
+      );
 
       return { user };
     });

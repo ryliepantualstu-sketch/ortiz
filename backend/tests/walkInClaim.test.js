@@ -7,6 +7,7 @@ const {
   normalizeWalkInClaimCode,
   parseWalkInClaimCodes,
   claimWalkInOrder,
+  claimWalkInOrdersByIdentity,
   findWalkInClaim
 } = require('../utils/walkInClaim');
 
@@ -98,4 +99,39 @@ test('existing walk-in code resolves to its already linked customer', async () =
   };
 
   assert.deepEqual(await findWalkInClaim(fakeOrder, 'ABCD2345EFGH', {}), { customer_id: 42 });
+});
+
+test('registration links unclaimed walk-ins only by exact name and normalized phone', async () => {
+  let updateArgs;
+  const transaction = { id: 'registration' };
+  const fakeOrder = {
+    update: async (...args) => {
+      updateArgs = args;
+      return [2];
+    }
+  };
+
+  const count = await claimWalkInOrdersByIdentity(
+    fakeOrder,
+    42,
+    '  Maria   Santos ',
+    '(0917) 123-4567',
+    transaction
+  );
+
+  assert.equal(count, 2);
+  assert.deepEqual(updateArgs[0], { customer_id: 42 });
+  assert.equal(updateArgs[1].where.is_walk_in, true);
+  assert.equal(updateArgs[1].where.customer_id, null);
+  assert.equal(updateArgs[1].where.walk_in_phone, '09171234567');
+  assert.equal(updateArgs[1].where[require('sequelize').Op.and].logic, 'maria santos');
+  assert.equal(updateArgs[1].transaction, transaction);
+});
+
+test('identity matching does nothing without both name and phone', async () => {
+  let updated = false;
+  const fakeOrder = { update: async () => { updated = true; return [1]; } };
+
+  assert.equal(await claimWalkInOrdersByIdentity(fakeOrder, 42, 'Maria Santos', '', {}), 0);
+  assert.equal(updated, false);
 });

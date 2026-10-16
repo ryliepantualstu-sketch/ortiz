@@ -1,5 +1,7 @@
 const crypto = require('crypto');
-const { Op } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
+const { normalizeCustomerName } = require('./customerName');
+const { normalizePhoneNumber } = require('./walkInCustomerMatch');
 
 const CLAIM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CLAIM_CODE_LENGTH = 12;
@@ -58,6 +60,27 @@ async function claimWalkInOrder(Order, customerId, claimCode, transaction) {
   return claimedCount > 0;
 }
 
+async function claimWalkInOrdersByIdentity(Order, customerId, customerName, phone, transaction) {
+  const normalizedName = normalizeCustomerName(customerName);
+  const normalizedPhone = normalizePhoneNumber(phone);
+  if (!normalizedName || !normalizedPhone) return 0;
+
+  const [claimedCount] = await Order.update(
+    { customer_id: customerId },
+    {
+      where: {
+        is_walk_in: true,
+        customer_id: null,
+        walk_in_phone: normalizedPhone,
+        [Op.and]: where(fn('LOWER', col('customer_name')), normalizedName.toLowerCase())
+      },
+      transaction
+    }
+  );
+
+  return claimedCount;
+}
+
 async function findWalkInClaim(Order, claimCode, transaction) {
   const normalizedCode = normalizeWalkInClaimCode(claimCode);
   if (!normalizedCode) return null;
@@ -93,5 +116,6 @@ module.exports = {
   normalizeWalkInClaimCode,
   parseWalkInClaimCodes,
   claimWalkInOrder,
+  claimWalkInOrdersByIdentity,
   findWalkInClaim
 };

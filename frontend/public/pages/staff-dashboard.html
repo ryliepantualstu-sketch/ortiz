@@ -1942,7 +1942,7 @@
 
         async function openWalkInSale() {
             walkInItems = [];
-            ['wiName', 'wiAddress', 'wiExistingClaimCode'].forEach(id => { document.getElementById(id).value = ''; });
+            ['wiName', 'wiPhone', 'wiAddress', 'wiExistingClaimCode'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiQty').value = 1;
             document.getElementById('wiDiscNone').checked = true;
             renderWalkInItems();
@@ -1991,12 +1991,18 @@
         async function submitWalkInSale() {
             const name = document.getElementById('wiName').value.trim();
             if (!name) { alert('Enter the customer name'); return; }
+            const phone = document.getElementById('wiPhone').value.trim();
+            if (!/^\+?[0-9\s()-]{7,20}$/.test(phone) || phone.replace(/[\s()-]/g, '').replace(/^\+/, '').length < 7 || phone.replace(/[\s()-]/g, '').replace(/^\+/, '').length > 15) {
+                alert('Enter a valid customer phone number (7 to 15 digits)');
+                return;
+            }
             if (!walkInItems.length) { alert('Add at least one item'); return; }
             const btn = document.getElementById('wiSubmit');
             btn.disabled = true;
             try {
                 const result = await apiCall('/staff/orders/walk-in', 'POST', {
                     customer_name: name,
+                    customer_phone: phone,
                     address: document.getElementById('wiAddress').value.trim(),
                     existing_claim_code: document.getElementById('wiExistingClaimCode').value.trim().toUpperCase(),
                     discount_type: document.querySelector('input[name="wiDiscount"]:checked').value || null,
@@ -2008,9 +2014,9 @@
                     if (result.account_linked) {
                         alert(`Sale recorded. Nakaugnay ang order sa customer account ni ${name}. Makikita niya ito sa kanyang order history.`);
                     } else if (result.account_match_ambiguous) {
-                        alert('Sale recorded, pero hindi iniugnay sa account dahil higit sa isang customer ang may kaparehong pangalan. Itago ang claim code sa resibo; magagamit ito sa registration para maidagdag ang walk-in sale sa order history.');
+                        alert('Sale recorded, pero hindi iniugnay sa account dahil may higit sa isang tugma sa pangalan at phone. Maaaring gamitin ang claim code sa resibo sa registration para maidagdag ang walk-in sale sa order history.');
                     } else {
-                        alert('Sale recorded. Walang katugmang customer account. Itago ang claim code sa resibo; magagamit ito sa registration para maidagdag ang walk-in sale sa order history.');
+                        alert('Sale recorded. Kung wala pang account, awtomatikong mahahanap ang order sa registration gamit ang parehong pangalan at phone. Maaari ring gamitin ang claim code sa resibo.');
                     }
                     loadOrders();
                 } else {
@@ -2133,8 +2139,9 @@
       </div>
       <div class="modal-body">
         <div class="row g-2 mb-3">
-          <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required><div class="form-text">Kung walang account na maiuugnay, may claim code sa resibo para maidagdag ng customer ang walk-in sale pagkatapos mag-register.</div></div>
-          <div class="col-md-6"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress" maxlength="255"></div>
+          <div class="col-md-4"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required><div class="form-text">Gagamitin kasama ng phone para mahanap ang walk-in orders kapag nag-register.</div></div>
+          <div class="col-md-4"><label class="form-label">Phone Number *</label><input type="tel" class="form-control" id="wiPhone" maxlength="20" inputmode="tel" required></div>
+          <div class="col-md-4"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress" maxlength="255"></div>
         </div>
         <div class="mb-3">
           <label class="form-label" for="wiExistingClaimCode">Existing walk-in receipt claim code <span class="text-muted">(optional)</span></label>

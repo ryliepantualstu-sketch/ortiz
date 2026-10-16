@@ -72,6 +72,10 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING(12),
     allowNull: true
   },
+  walk_in_phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
   pickup_reschedule_count: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -96,7 +100,7 @@ const Order = sequelize.define('Order', {
   }
 }, {
   tableName: 'orders',
-  indexes: [{ fields: ['walk_in_claim_code'] }],
+  indexes: [{ fields: ['walk_in_claim_code'], name: 'idx_orders_walk_in_claim_code' }],
   timestamps: false
 });
 

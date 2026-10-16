@@ -352,6 +352,10 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.STRING(12),
       allowNull: true
     });
+    await addColumnIfMissing('orders', 'walk_in_phone', {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    });
     const claimCodeIndexes = await qi.showIndex('orders');
     const isClaimCodeIndex = (index) => {
       const fields = (index.fields || []).map((field) => field.attribute || field.name);
