@@ -60,10 +60,15 @@ async function claimWalkInOrder(Order, customerId, claimCode, transaction) {
   return claimedCount > 0;
 }
 
-async function claimWalkInOrdersByIdentity(Order, customerId, customerName, phone, transaction) {
+async function claimWalkInOrdersByIdentity(Order, customerId, customerName, phone, transaction, includeLegacyWithoutPhone = false) {
   const normalizedName = normalizeCustomerName(customerName);
   const normalizedPhone = normalizePhoneNumber(phone);
   if (!normalizedName || !normalizedPhone) return 0;
+
+  const identityConditions = [{ walk_in_phone: normalizedPhone }];
+  if (includeLegacyWithoutPhone) {
+    identityConditions.push({ walk_in_phone: null });
+  }
 
   const [claimedCount] = await Order.update(
     { customer_id: customerId },
@@ -71,8 +76,10 @@ async function claimWalkInOrdersByIdentity(Order, customerId, customerName, phon
       where: {
         is_walk_in: true,
         customer_id: null,
-        walk_in_phone: normalizedPhone,
-        [Op.and]: where(fn('LOWER', col('customer_name')), normalizedName.toLowerCase())
+        [Op.and]: [
+          where(fn('LOWER', col('customer_name')), normalizedName.toLowerCase()),
+          { [Op.or]: identityConditions }
+        ]
       },
       transaction
     }

@@ -123,9 +123,36 @@ test('registration links unclaimed walk-ins only by exact name and normalized ph
   assert.deepEqual(updateArgs[0], { customer_id: 42 });
   assert.equal(updateArgs[1].where.is_walk_in, true);
   assert.equal(updateArgs[1].where.customer_id, null);
-  assert.equal(updateArgs[1].where.walk_in_phone, '09171234567');
-  assert.equal(updateArgs[1].where[require('sequelize').Op.and].logic, 'maria santos');
+  assert.equal(updateArgs[1].where[require('sequelize').Op.and][0].logic, 'maria santos');
+  assert.deepEqual(updateArgs[1].where[require('sequelize').Op.and][1], {
+    [require('sequelize').Op.or]: [{ walk_in_phone: '09171234567' }]
+  });
   assert.equal(updateArgs[1].transaction, transaction);
+});
+
+test('a valid receipt code also links matching legacy orders without stored phone numbers', async () => {
+  let updateArgs;
+  const fakeOrder = {
+    update: async (...args) => {
+      updateArgs = args;
+      return [1];
+    }
+  };
+  const sequelize = require('sequelize');
+
+  await claimWalkInOrdersByIdentity(
+    fakeOrder,
+    42,
+    'Maria Santos',
+    '09171234567',
+    {},
+    true
+  );
+
+  assert.deepEqual(
+    updateArgs[1].where[sequelize.Op.and][1][sequelize.Op.or],
+    [{ walk_in_phone: '09171234567' }, { walk_in_phone: null }]
+  );
 });
 
 test('identity matching does nothing without both name and phone', async () => {

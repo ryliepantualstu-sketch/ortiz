@@ -235,7 +235,8 @@ router.post('/register', async (req, res) => {
         customer.customer_id,
         full_name,
         normalizedPhone,
-        transaction
+        transaction,
+        walkInClaimCodes.length > 0
       );
 
       return { user };
