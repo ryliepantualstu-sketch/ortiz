@@ -15,7 +15,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
 const { resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
-const { createWalkInClaimCode } = require('../utils/walkInClaim');
+const { createWalkInClaimCode, findWalkInClaim, normalizeWalkInClaimCode } = require('../utils/walkInClaim');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -384,14 +384,19 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
   try {
     const customerName = typeof req.body.customer_name === 'string' ? req.body.customer_name.trim() : '';
     const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+    const rawExistingClaimCode = req.body.existing_claim_code;
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
     const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
+    const existingClaimCode = rawExistingClaimCode ? normalizeWalkInClaimCode(rawExistingClaimCode) : null;
 
     if (!customerName) {
       return res.status(400).json({ success: false, message: 'Customer name is required' });
     }
     if (requestedItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+    if (rawExistingClaimCode && !existingClaimCode) {
+      return res.status(400).json({ success: false, message: 'Enter a valid 12-character code from a walk-in receipt' });
     }
 
     const matchingAccounts = await User.findAll({
@@ -409,6 +414,13 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     const accountMatch = resolveWalkInCustomerMatch(matchingAccounts);
 
     const orderId = await sequelize.transaction(async (transaction) => {
+      const existingClaim = existingClaimCode
+        ? await findWalkInClaim(Order, existingClaimCode, transaction)
+        : null;
+      if (existingClaimCode && !existingClaim) {
+        throw Object.assign(new Error('Walk-in claim code not found'), { status: 404 });
+      }
+
       const lines = [];
       for (const entry of requestedItems) {
         const quantity = Number.parseInt(entry.quantity, 10);
@@ -429,10 +441,15 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
       const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
-      const walkInClaimCode = accountMatch.customer_id ? null : createWalkInClaimCode();
+      const customerId = existingClaimCode
+        ? existingClaim.customer_id
+        : accountMatch.customer_id;
+      const walkInClaimCode = customerId
+        ? null
+        : existingClaimCode || createWalkInClaimCode();
 
       const order = await Order.create({
-        customer_id: accountMatch.customer_id,
+        customer_id: customerId,
         total_amount: Number((subtotal - discountAmount).toFixed(2)),
         discount_type: discountType,
         discount_amount: discountAmount,
@@ -471,7 +488,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     res.status(201).json({
       success: true,
       message: 'Walk-in sale recorded',
-      account_linked: Boolean(accountMatch.customer_id),
+      account_linked: Boolean(order.customer_id),
       account_match_ambiguous: accountMatch.ambiguous,
       order
     });

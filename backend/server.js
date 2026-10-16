@@ -350,9 +350,20 @@ const ensureSchemaColumns = async () => {
     });
     await addColumnIfMissing('orders', 'walk_in_claim_code', {
       type: DataTypes.STRING(12),
-      allowNull: true,
-      unique: true
+      allowNull: true
     });
+    const claimCodeIndexes = await qi.showIndex('orders');
+    const isClaimCodeIndex = (index) => {
+      const fields = (index.fields || []).map((field) => field.attribute || field.name);
+      return fields.length === 1 && fields[0] === 'walk_in_claim_code';
+    };
+    for (const index of claimCodeIndexes.filter((item) => item.unique && isClaimCodeIndex(item))) {
+      await qi.removeIndex('orders', index.name);
+    }
+    const remainingClaimCodeIndexes = await qi.showIndex('orders');
+    if (!remainingClaimCodeIndexes.some(isClaimCodeIndex)) {
+      await qi.addIndex('orders', ['walk_in_claim_code'], { name: 'idx_orders_walk_in_claim_code' });
+    }
     await addColumnIfMissing('orders', 'pickup_reschedule_count', {
       type: DataTypes.INTEGER,
       allowNull: false,

@@ -8,7 +8,7 @@ const User = require('../models/User');
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
-const { normalizeWalkInClaimCode, claimWalkInOrder } = require('../utils/walkInClaim');
+const { parseWalkInClaimCodes, claimWalkInOrder } = require('../utils/walkInClaim');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
@@ -142,11 +142,11 @@ router.post('/google', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { password, confirm_password, phone, birthday, address } = req.body;
-    const rawClaimCode = req.body.walk_in_claim_code;
+    const rawClaimCodes = req.body.walk_in_claim_codes ?? req.body.walk_in_claim_code;
     const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
-    const walkInClaimCode = rawClaimCode ? normalizeWalkInClaimCode(rawClaimCode) : null;
+    const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
     const normalizedPhone = typeof phone === 'string'
       ? phone.trim().replace(/[\s-]/g, '')
       : '';
@@ -159,10 +159,10 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (rawClaimCode && !walkInClaimCode) {
+    if (walkInClaimCodes === null) {
       return res.status(400).json({
         success: false,
-        message: 'Enter a valid 12-character claim code from a walk-in receipt'
+        message: 'Enter up to 10 valid 12-character claim codes from walk-in receipts, separated by commas'
       });
     }
 
@@ -221,16 +221,11 @@ router.post('/register', async (req, res) => {
       if (address) customerPayload.address = address;
       const customer = await Customer.create(customerPayload, { transaction });
 
-      if (walkInClaimCode) {
-        const claimed = await claimWalkInOrder(
-          Order,
-          customer.customer_id,
-          walkInClaimCode,
-          transaction
-        );
+      for (const claimCode of walkInClaimCodes) {
+        const claimed = await claimWalkInOrder(Order, customer.customer_id, claimCode, transaction);
         if (!claimed) {
           throw Object.assign(
-            new Error('This claim code is invalid, already used, or is not for an unclaimed walk-in sale'),
+            new Error(`Walk-in claim code ${claimCode} is invalid, already used, or is not for an unclaimed walk-in sale`),
             { status: 400 }
           );
         }

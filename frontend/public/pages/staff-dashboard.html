@@ -1942,7 +1942,7 @@
 
         async function openWalkInSale() {
             walkInItems = [];
-            ['wiName', 'wiAddress'].forEach(id => { document.getElementById(id).value = ''; });
+            ['wiName', 'wiAddress', 'wiExistingClaimCode'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiQty').value = 1;
             document.getElementById('wiDiscNone').checked = true;
             renderWalkInItems();
@@ -1998,6 +1998,7 @@
                 const result = await apiCall('/staff/orders/walk-in', 'POST', {
                     customer_name: name,
                     address: document.getElementById('wiAddress').value.trim(),
+                    existing_claim_code: document.getElementById('wiExistingClaimCode').value.trim().toUpperCase(),
                     discount_type: document.querySelector('input[name="wiDiscount"]:checked').value || null,
                     items: walkInItems.map(i => ({ product_id: i.product.product_id, quantity: i.qty, lens_option: i.lens }))
                 });
@@ -2134,6 +2135,11 @@
         <div class="row g-2 mb-3">
           <div class="col-md-6"><label class="form-label">Customer Name *</label><input type="text" class="form-control" id="wiName" maxlength="150" required><div class="form-text">Kung walang account na maiuugnay, may claim code sa resibo para maidagdag ng customer ang walk-in sale pagkatapos mag-register.</div></div>
           <div class="col-md-6"><label class="form-label">Address</label><input type="text" class="form-control" id="wiAddress" maxlength="255"></div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="wiExistingClaimCode">Existing walk-in receipt claim code <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control text-uppercase" id="wiExistingClaimCode" maxlength="12" autocomplete="off" placeholder="Enter the code from the customer's earlier walk-in receipt">
+          <div class="form-text">Ilagay ang dating code kung iuugnay ang bagong sale sa mga naunang walk-in order ng customer.</div>
         </div>
         <div class="row g-2 mb-2 align-items-end">
           <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
