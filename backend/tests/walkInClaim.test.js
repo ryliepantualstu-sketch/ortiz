@@ -8,7 +8,8 @@ const {
   parseWalkInClaimCodes,
   claimWalkInOrder,
   claimWalkInOrdersByIdentity,
-  findWalkInClaim
+  findWalkInClaim,
+  findLatestWalkInClaimCodeByIdentity
 } = require('../utils/walkInClaim');
 
 test('walk-in claim codes use the expected length and unambiguous alphabet', () => {
@@ -161,4 +162,35 @@ test('identity matching does nothing without both name and phone', async () => {
 
   assert.equal(await claimWalkInOrdersByIdentity(fakeOrder, 42, 'Maria Santos', '', {}), 0);
   assert.equal(updated, false);
+});
+
+test('staff lookup finds the latest unclaimed code for an exact name and phone', async () => {
+  let query;
+  const fakeOrder = {
+    findOne: async (options) => {
+      query = options;
+      return { walk_in_claim_code: 'ABCD2345EFGH' };
+    }
+  };
+
+  assert.equal(
+    await findLatestWalkInClaimCodeByIdentity(fakeOrder, '  Maria   Santos ', '(0917) 123-4567'),
+    'ABCD2345EFGH'
+  );
+  assert.equal(query.where.customer_name, undefined);
+  assert.equal(query.where.walk_in_phone, '09171234567');
+  assert.equal(query.where.is_walk_in, true);
+  assert.equal(query.where.customer_id, null);
+  assert.deepEqual(query.order, [['order_id', 'DESC']]);
+});
+
+test('staff lookup returns no code for an invalid identity or missing match', async () => {
+  let queried = false;
+  const fakeOrder = {
+    findOne: async () => { queried = true; return null; }
+  };
+
+  assert.equal(await findLatestWalkInClaimCodeByIdentity(fakeOrder, '', '09171234567'), null);
+  assert.equal(queried, false);
+  assert.equal(await findLatestWalkInClaimCodeByIdentity(fakeOrder, 'Maria Santos', '09171234567'), null);
 });

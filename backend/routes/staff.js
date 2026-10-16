@@ -16,7 +16,12 @@ const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
 const { normalizePhoneNumber, resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
 const { normalizeCustomerName } = require('../utils/customerName');
-const { createWalkInClaimCode, findWalkInClaim, normalizeWalkInClaimCode } = require('../utils/walkInClaim');
+const {
+  createWalkInClaimCode,
+  findWalkInClaim,
+  findLatestWalkInClaimCodeByIdentity,
+  normalizeWalkInClaimCode
+} = require('../utils/walkInClaim');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -381,6 +386,28 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 });
 
 // Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
+router.get('/orders/walk-in/claim-code', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const customerName = normalizeCustomerName(req.query.customer_name);
+    const customerPhone = normalizePhoneNumber(req.query.customer_phone);
+    if (!customerName || !/^\+?\d{7,15}$/.test(customerPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A customer name and valid phone number are required'
+      });
+    }
+
+    const claimCode = await findLatestWalkInClaimCodeByIdentity(Order, customerName, customerPhone);
+    res.json({ success: true, claim_code: claimCode });
+  } catch (error) {
+    console.error('Failed to look up walk-in claim code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to look up walk-in claim code'
+    });
+  }
+});
+
 router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
     const customerName = normalizeCustomerName(req.body.customer_name);

@@ -117,6 +117,26 @@ async function findWalkInClaim(Order, claimCode, transaction) {
   return { customer_id: customerIds[0] || null };
 }
 
+async function findLatestWalkInClaimCodeByIdentity(Order, customerName, phone) {
+  const normalizedName = normalizeCustomerName(customerName);
+  const normalizedPhone = normalizePhoneNumber(phone);
+  if (!normalizedName || !normalizedPhone) return null;
+
+  const order = await Order.findOne({
+    attributes: ['walk_in_claim_code'],
+    where: {
+      is_walk_in: true,
+      customer_id: null,
+      walk_in_phone: normalizedPhone,
+      walk_in_claim_code: { [Op.ne]: null },
+      [Op.and]: where(fn('LOWER', fn('TRIM', col('customer_name'))), normalizedName.toLowerCase())
+    },
+    order: [['order_id', 'DESC']]
+  });
+
+  return order ? normalizeWalkInClaimCode(order.walk_in_claim_code) : null;
+}
+
 module.exports = {
   CLAIM_CODE_LENGTH,
   createWalkInClaimCode,
@@ -124,5 +144,6 @@ module.exports = {
   parseWalkInClaimCodes,
   claimWalkInOrder,
   claimWalkInOrdersByIdentity,
-  findWalkInClaim
+  findWalkInClaim,
+  findLatestWalkInClaimCodeByIdentity
 };

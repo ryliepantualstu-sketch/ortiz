@@ -1934,15 +1934,77 @@
         // Walk-in sale
         let walkInProducts = [];
         let walkInItems = [];
+        let walkInClaimLookupTimer = null;
+        let walkInClaimLookupSequence = 0;
+        let walkInAutoClaimCode = '';
+        let walkInAutoClaimIdentity = '';
 
         function walkInPrice(product, lens) {
             const map = { 'frame-only': product.frame_only_price, 'regular-lens': product.regular_lens_price, 'photochromic': product.photochromic_price };
             return Number(map[lens] || product.price || 0);
         }
 
+        function scheduleWalkInClaimCodeLookup() {
+            clearTimeout(walkInClaimLookupTimer);
+            const requestSequence = ++walkInClaimLookupSequence;
+            walkInClaimLookupTimer = setTimeout(async () => {
+                const name = document.getElementById('wiName').value.trim();
+                const phone = document.getElementById('wiPhone').value.trim();
+                const claimCodeInput = document.getElementById('wiExistingClaimCode');
+                const feedback = document.getElementById('wiClaimCodeFeedback');
+                const normalizedPhone = phone.replace(/[\s()-]/g, '');
+                if (!name || !/^\+?\d{7,15}$/.test(normalizedPhone)) {
+                    if (claimCodeInput.value.trim().toUpperCase() === walkInAutoClaimCode) {
+                        claimCodeInput.value = '';
+                        walkInAutoClaimCode = '';
+                    }
+                    feedback.textContent = '';
+                    return;
+                }
+
+                const identityKey = `${name.replace(/\s+/g, ' ').toLowerCase()}|${normalizedPhone}`;
+                if (walkInAutoClaimIdentity && identityKey !== walkInAutoClaimIdentity) {
+                    if (claimCodeInput.value.trim().toUpperCase() === walkInAutoClaimCode) {
+                        claimCodeInput.value = '';
+                    }
+                    walkInAutoClaimCode = '';
+                    walkInAutoClaimIdentity = '';
+                }
+                feedback.textContent = 'Hinahanap ang dating walk-in claim code...';
+
+                const result = await apiCall(
+                    `/staff/orders/walk-in/claim-code?customer_name=${encodeURIComponent(name)}&customer_phone=${encodeURIComponent(normalizedPhone)}`
+                );
+                if (requestSequence !== walkInClaimLookupSequence) return;
+
+                if (!result || !result.success) {
+                    feedback.textContent = result?.message || 'Hindi mahanap ang dating claim code. Maaari itong ilagay nang mano-mano.';
+                    return;
+                }
+
+                const currentCode = claimCodeInput.value.trim().toUpperCase();
+                if (currentCode && currentCode !== walkInAutoClaimCode) {
+                    feedback.textContent = 'Hindi pinalitan ang claim code na inilagay ng staff.';
+                    return;
+                }
+
+                walkInAutoClaimCode = result.claim_code || '';
+                walkInAutoClaimIdentity = walkInAutoClaimCode ? identityKey : '';
+                claimCodeInput.value = walkInAutoClaimCode;
+                feedback.textContent = walkInAutoClaimCode
+                    ? 'Nahanap at inilagay ang claim code mula sa dating walk-in sale.'
+                    : 'Walang dating walk-in claim code para sa pangalan at phone na ito.';
+            }, 400);
+        }
+
         async function openWalkInSale() {
             walkInItems = [];
+            walkInAutoClaimCode = '';
+            walkInAutoClaimIdentity = '';
+            walkInClaimLookupSequence += 1;
+            clearTimeout(walkInClaimLookupTimer);
             ['wiName', 'wiPhone', 'wiAddress', 'wiExistingClaimCode'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('wiClaimCodeFeedback').textContent = '';
             document.getElementById('wiQty').value = 1;
             document.getElementById('wiDiscNone').checked = true;
             renderWalkInItems();
@@ -2028,6 +2090,12 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('wiName').addEventListener('input', scheduleWalkInClaimCodeLookup);
+            document.getElementById('wiPhone').addEventListener('input', scheduleWalkInClaimCodeLookup);
+            document.getElementById('wiExistingClaimCode').addEventListener('input', () => {
+                const currentCode = document.getElementById('wiExistingClaimCode').value.trim().toUpperCase();
+                if (currentCode !== walkInAutoClaimCode) walkInAutoClaimCode = '';
+            });
             loadUserInfo();
             loadDashboard();
         });
@@ -2146,7 +2214,7 @@
         <div class="mb-3">
           <label class="form-label" for="wiExistingClaimCode">Existing walk-in receipt claim code <span class="text-muted">(optional)</span></label>
           <input type="text" class="form-control text-uppercase" id="wiExistingClaimCode" maxlength="12" autocomplete="off" placeholder="Enter the code from the customer's earlier walk-in receipt">
-          <div class="form-text">Ilagay ang dating code kung iuugnay ang bagong sale sa mga naunang walk-in order ng customer.</div>
+          <div class="form-text" id="wiClaimCodeFeedback" aria-live="polite">Awtomatikong hahanapin ang dating code kapag nailagay ang pangalan at phone number.</div>
         </div>
         <div class="row g-2 mb-2 align-items-end">
           <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
