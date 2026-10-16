@@ -342,6 +342,14 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label" for="registerWalkInClaimCode">
+                                <i class="fas fa-receipt"></i> Walk-in Receipt Claim Code <span class="text-muted">(optional)</span>
+                            </label>
+                            <input type="text" class="form-control text-uppercase" id="registerWalkInClaimCode" name="walk_in_claim_code" placeholder="12-character code on your walk-in receipt" maxlength="12" autocomplete="off">
+                            <small class="form-text text-muted">Para lang ito sa walk-in sale na hindi pa naka-link sa account. Makikita ang code sa resibo.</small>
+                        </div>
+
+                        <div class="form-group">
                             <label class="form-label" for="registerBirthday">
                                 <i class="fas fa-birthday-cake"></i> Birthday
                             </label>
@@ -576,6 +584,7 @@
             const phone = document.getElementById('registerPhone').value.trim();
             const birthday = document.getElementById('registerBirthday').value;
             const address = document.getElementById('registerAddress').value.trim();
+            const walk_in_claim_code = document.getElementById('registerWalkInClaimCode').value.trim().toUpperCase();
             const password = document.getElementById('registerPassword').value;
             const confirm_password = document.getElementById('registerConfirm').value;
 
@@ -610,6 +619,7 @@
                 phone,
                 birthday,
                 address,
+                walk_in_claim_code,
                 password,
                 confirm_password
             });

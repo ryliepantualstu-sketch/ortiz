@@ -112,6 +112,7 @@ CREATE TABLE appointments (
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NULL,
+    walk_in_claim_code VARCHAR(12) NULL UNIQUE,
     order_date DATE NOT NULL,
     order_time TIME NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,

@@ -15,6 +15,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
 const { resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
+const { createWalkInClaimCode } = require('../utils/walkInClaim');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -428,6 +429,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
       const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
+      const walkInClaimCode = accountMatch.customer_id ? null : createWalkInClaimCode();
 
       const order = await Order.create({
         customer_id: accountMatch.customer_id,
@@ -437,6 +439,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         customer_name: customerName,
         delivery_address: address || null,
         is_walk_in: true,
+        walk_in_claim_code: walkInClaimCode,
         status: 'picked up'
       }, { transaction });
 

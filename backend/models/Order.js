@@ -68,6 +68,11 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: false
   },
+  walk_in_claim_code: {
+    type: DataTypes.STRING(12),
+    allowNull: true,
+    unique: true
+  },
   pickup_reschedule_count: {
     type: DataTypes.INTEGER,
     allowNull: false,

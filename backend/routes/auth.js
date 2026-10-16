@@ -6,7 +6,9 @@ const { OAuth2Client } = require('google-auth-library');
 const sequelize = require('../config/database');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
+const Order = require('../models/Order');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
+const { normalizeWalkInClaimCode, claimWalkInOrder } = require('../utils/walkInClaim');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
@@ -140,9 +142,11 @@ router.post('/google', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { password, confirm_password, phone, birthday, address } = req.body;
+    const rawClaimCode = req.body.walk_in_claim_code;
     const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
+    const walkInClaimCode = rawClaimCode ? normalizeWalkInClaimCode(rawClaimCode) : null;
     const normalizedPhone = typeof phone === 'string'
       ? phone.trim().replace(/[\s-]/g, '')
       : '';
@@ -152,6 +156,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please fill all required fields'
+      });
+    }
+
+    if (rawClaimCode && !walkInClaimCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a valid 12-character claim code from a walk-in receipt'
       });
     }
 
@@ -193,31 +204,41 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Create user
-    const user = await User.create({
-      full_name,
-      email,
-      password,
-      phone: normalizedPhone,
-      role
-    });
+    const registration = await sequelize.transaction(async (transaction) => {
+      const user = await User.create({
+        full_name,
+        email,
+        password,
+        phone: normalizedPhone,
+        role
+      }, { transaction });
 
-    // If customer, create customer record and preserve birthday/address if available
-    if (user.role === 'customer') {
       const customerPayload = {
         user_id: user.user_id,
         phone: normalizedPhone
       };
+      if (birthday) customerPayload.date_of_birth = birthday;
+      if (address) customerPayload.address = address;
+      const customer = await Customer.create(customerPayload, { transaction });
 
-      if (birthday) {
-        customerPayload.date_of_birth = birthday;
-      }
-      if (address) {
-        customerPayload.address = address;
+      if (walkInClaimCode) {
+        const claimed = await claimWalkInOrder(
+          Order,
+          customer.customer_id,
+          walkInClaimCode,
+          transaction
+        );
+        if (!claimed) {
+          throw Object.assign(
+            new Error('This claim code is invalid, already used, or is not for an unclaimed walk-in sale'),
+            { status: 400 }
+          );
+        }
       }
 
-      await Customer.create(customerPayload);
-    }
+      return { user };
+    });
+    const { user } = registration;
 
     // Generate token
     const token = createAuthToken(user);
@@ -235,10 +256,10 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      message: 'Registration failed',
-      error: error.message
+      message: error.status ? error.message : 'Registration failed',
+      ...(error.status ? {} : { error: error.message })
     });
   }
 });
