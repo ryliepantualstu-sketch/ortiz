@@ -1894,7 +1894,7 @@
                         <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAppointmentOrderItem(${index})" aria-label="Remove item">&times;</button></td>
                     </tr>`;
                 }).join('')
-                : '<tr><td colspan="6" class="text-center text-muted">Wala pang napipiling item.</td></tr>';
+                : '<tr><td colspan="6" class="text-center text-muted">No items selected yet.</td></tr>';
         }
 
         async function submitAppointmentOrder() {
@@ -2166,7 +2166,6 @@
         <div class="border rounded p-3 mb-3 bg-light">
           <div class="fw-semibold" id="appointmentOrderCustomer"></div>
           <div class="small mt-1" id="appointmentOrderPrescription"></div>
-          <div class="form-text">Gagamitin ang prescription na naitala sa examination.</div>
         </div>
         <div class="row g-2 mb-3 align-items-end">
           <div class="col-md-5"><label class="form-label" for="appointmentOrderProduct">Product</label><select class="form-select" id="appointmentOrderProduct"></select></div>
@@ -2187,7 +2186,6 @@
           </table>
         </div>
         <div id="appointmentOrderFeedback" class="small text-danger" aria-live="polite"></div>
-        <div class="form-text">Mase-save ang order bilang Pending at ibabawas lang ang stock kapag minarkahang Picked Up.</div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
