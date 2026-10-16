@@ -1684,10 +1684,6 @@
                             <label class="form-label">Supplier</label>
                             <input type="text" class="form-control" id="productSupplier">
                         </div>
-                        <div class="alert alert-info small" role="alert">
-                            Example product: `Rayban Wayfarer`, category `Glasses`, price `199.99`, stock `15`, minimum stock `5`, supplier `Rayban Inc`.
-                        </div>
-                        <button type="button" class="btn btn-outline-secondary w-100 mb-3" onclick="fillExampleProduct()">Use Example Product</button>
                         <div class="mb-3">
                             <label class="form-label">Product Pictures</label>
                             <input type="file" class="form-control" id="productImage" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
@@ -2082,24 +2078,6 @@
             setProductImagePreview(getProductImageUrls(product));
 
             productModalInstance.show();
-        }
-
-        function fillExampleProduct() {
-            document.getElementById('productName').value = 'Rayban Wayfarer';
-            document.getElementById('productCategory').value = 'Glasses';
-            document.getElementById('productDescription').value = 'Classic Rayban frames with a timeless everyday look.';
-            document.getElementById('productFrameMaterial').value = 'Acetate';
-            document.getElementById('productLensType').value = 'Anti-Reflective';
-            document.getElementById('productFrameShape').value = 'Wayfarer';
-            document.getElementById('productColorName').value = 'Black';
-            document.getElementById('productColorHex').value = '#000000';
-            document.getElementById('productPrice').value = '199.99';
-            document.getElementById('productFrameOnlyPrice').value = '149.99';
-            document.getElementById('productRegularLensPrice').value = '199.99';
-            document.getElementById('productPhotochromicPrice').value = '229.99';
-            document.getElementById('productStock').value = '15';
-            document.getElementById('productMinStock').value = '5';
-            document.getElementById('productSupplier').value = 'Rayban Inc';
         }
 
         async function submitUserForm(event) {
