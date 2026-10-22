@@ -337,11 +337,22 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     if (status) {
       updates.status = status;
       if (status.toLowerCase() === 'completed' && appointment.service_type.toLowerCase() === 'eye checkup') {
-        const { prescription, error } = normalizePrescription(req.body.prescription);
-        if (error) {
-          return res.status(400).json({ success: false, message: error });
+        const prescriptionInput = req.body.prescription;
+        if (prescriptionInput !== undefined && prescriptionInput !== null) {
+          if (typeof prescriptionInput !== 'object' || Array.isArray(prescriptionInput)) {
+            return res.status(400).json({ success: false, message: 'Prescription must be an object' });
+          }
+
+          const hasPrescriptionValues = Object.values(prescriptionInput)
+            .some(value => value !== null && String(value).trim() !== '');
+          if (hasPrescriptionValues) {
+            const { prescription, error } = normalizePrescription(prescriptionInput);
+            if (error) {
+              return res.status(400).json({ success: false, message: error });
+            }
+            Object.assign(updates, prescription);
+          }
         }
-        Object.assign(updates, prescription);
       }
     }
     if (typeof staff_confirm !== 'undefined') {
