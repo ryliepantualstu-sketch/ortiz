@@ -537,6 +537,86 @@
             letter-spacing: 0.3px;
         }
 
+        #ordersSection .order-status-cell {
+            min-width: 165px;
+        }
+
+        #ordersSection .order-status-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 7px;
+        }
+
+        #ordersSection .order-status-pill,
+        #ordersSection .order-pickup-alert {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            width: fit-content;
+            padding: 7px 11px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
+        #ordersSection .order-status-pill i {
+            font-size: 0.75rem;
+        }
+
+        #ordersSection .order-status-pending {
+            color: #885600;
+            background: #fff5d8;
+            border-color: #ffe4a0;
+        }
+
+        #ordersSection .order-status-processing {
+            color: #14539a;
+            background: #eaf3ff;
+            border-color: #c9defa;
+        }
+
+        #ordersSection .order-status-ready {
+            color: #087c83;
+            background: #e4f8f6;
+            border-color: #b7e9e4;
+        }
+
+        #ordersSection .order-status-complete {
+            color: #187044;
+            background: #e8f7ed;
+            border-color: #c4e9d0;
+        }
+
+        #ordersSection .order-status-cancelled {
+            color: #a52e38;
+            background: #fff0f0;
+            border-color: #f3c7ca;
+        }
+
+        #ordersSection .order-status-unknown {
+            color: #515c68;
+            background: #f0f2f4;
+            border-color: #dce1e5;
+        }
+
+        #ordersSection .order-pickup-alert {
+            color: #a52e38;
+            background: #fff0f0;
+            border-color: #f3c7ca;
+            font-size: 0.7rem;
+        }
+
+        #ordersSection .order-pickup-date {
+            color: #697887;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
         .btn-sm {
             padding: 8px 16px;
             font-weight: 700;
@@ -2871,7 +2951,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <td>#${order.order_id}</td>
                             <td>${order.customer_name || order.Customer?.User?.full_name || 'N/A'}</td>
                             <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                            <td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${order.pickup_date}</div>` : ''}</td>
+                            <td class="order-status-cell">${renderAdminOrderStatus(order)}</td>
                             <td>${new Date(order.order_date).toLocaleDateString()}</td>
                             <td><button class="btn btn-sm btn-info" onclick="viewAdminOrder(${order.order_id})">View</button></td>
                         </tr>
@@ -2882,6 +2962,39 @@ This will deactivate the account and keep the user record for history.`)) {
             } catch (error) {
                 console.error('All orders error:', error);
             }
+        }
+
+        function renderAdminOrderStatus(order) {
+            const status = (order.status || 'pending').trim().toLowerCase();
+            const statusDetails = {
+                pending: { label: 'Pending', className: 'order-status-pending', icon: 'fa-clock' },
+                processing: { label: 'Processing', className: 'order-status-processing', icon: 'fa-gear' },
+                'ready for pickup': { label: 'Ready for Pickup', className: 'order-status-ready', icon: 'fa-box' },
+                ready: { label: 'Ready', className: 'order-status-ready', icon: 'fa-box' },
+                'picked up': { label: 'Picked Up', className: 'order-status-complete', icon: 'fa-check' },
+                'picked-up': { label: 'Picked Up', className: 'order-status-complete', icon: 'fa-check' },
+                completed: { label: 'Completed', className: 'order-status-complete', icon: 'fa-check' },
+                delivered: { label: 'Delivered', className: 'order-status-complete', icon: 'fa-check' },
+                cancelled: { label: 'Cancelled', className: 'order-status-cancelled', icon: 'fa-xmark' },
+                returned: { label: 'Returned', className: 'order-status-cancelled', icon: 'fa-rotate-left' }
+            };
+            const details = statusDetails[status] || {
+                label: escapeAdminOrderText(order.status || 'Pending'),
+                className: 'order-status-unknown',
+                icon: 'fa-circle-info'
+            };
+            const pickupAlert = order.pickup_missed
+                ? '<span class="order-pickup-alert"><i class="fas fa-triangle-exclamation"></i> Missed Pickup</span>'
+                : '';
+            const pickupDate = order.pickup_date
+                ? `<span class="order-pickup-date"><i class="far fa-calendar me-1"></i>Pickup: ${escapeAdminOrderText(order.pickup_date)}</span>`
+                : '';
+
+            return `<div class="order-status-details">
+                <span class="order-status-pill ${details.className}"><i class="fas ${details.icon}"></i>${details.label}</span>
+                ${pickupAlert}
+                ${pickupDate}
+            </div>`;
         }
 
         function getOrderStatusBadgeClass(status) {
