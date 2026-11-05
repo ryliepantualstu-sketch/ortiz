@@ -58,7 +58,7 @@ async function startQrScanner() {
         await video.play();
         if (startButton) startButton.classList.add('d-none');
         if (stopButton) stopButton.classList.remove('d-none');
-        setQrCameraMessage('Point the camera at the appointment QR code.');
+        setQrCameraMessage('Point the camera at an order or appointment QR code.');
         scanQrFrame(video, canvas);
     } catch (error) {
         console.error('QR camera error:', error);
@@ -80,8 +80,13 @@ function scanQrFrame(video, canvas) {
         const input = document.getElementById('qrCodeInput');
         if (input) input.value = code.data;
         stopQrScanner();
-        setVerificationResult('info', 'QR code scanned. Finding the appointment...');
-        verifyAppointmentQr();
+        if (code.data.startsWith('ORDER:')) {
+            setVerificationResult('info', 'Order QR code scanned. Finding the order...');
+            verifyOrderQr(code.data);
+        } else {
+            setVerificationResult('info', 'QR code scanned. Finding the appointment...');
+            verifyAppointmentQr();
+        }
         return;
     }
 
@@ -95,6 +100,28 @@ function setVerificationResult(type, message) {
     resultEl.className = `alert mt-3 mb-0 alert-${type}`;
     resultEl.textContent = message || '';
     resultEl.classList.remove('d-none');
+}
+
+async function verifyOrderQr(qrCodeData) {
+    pendingQrAppointment = null;
+    const confirmButton = document.getElementById('confirmScannedAppointmentButton');
+    if (confirmButton) confirmButton.classList.add('d-none');
+
+    try {
+        const result = await apiCall('/staff/orders/verify-qr', 'POST', {
+            qr_code_data: qrCodeData
+        });
+        if (!result?.success || !result.order) {
+            setVerificationResult('danger', result?.message || 'Order QR code could not be verified.');
+            return;
+        }
+
+        setVerificationResult('success', `Order #${result.order.order_id} found. Review the order details to confirm pickup.`);
+        await viewStaffOrder(result.order.order_id);
+    } catch (error) {
+        console.error('Order QR verification error:', error);
+        setVerificationResult('danger', 'Order QR code could not be verified.');
+    }
 }
 
 function hideVerificationDetails() {

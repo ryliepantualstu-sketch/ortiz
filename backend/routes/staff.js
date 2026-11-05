@@ -11,6 +11,7 @@ const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { normalizePrescription } = require('../utils/prescription');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
+const { createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
@@ -503,6 +504,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         walk_in_claim_code: walkInClaimCode,
         status: 'picked up'
       }, { transaction });
+      await createOrderQrCode(order, { transaction });
 
       for (const line of lines) {
         await OrderItem.create({
@@ -528,13 +530,14 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
       ]
     });
+    const [orderWithQr] = await attachOrderQrDetails([order]);
 
     res.status(201).json({
       success: true,
       message: 'Walk-in sale recorded',
       account_linked: Boolean(order.customer_id),
       account_match_ambiguous: accountMatch.ambiguous,
-      order
+      order: orderWithQr
     });
   } catch (error) {
     res.status(error.status || 500).json({
@@ -616,6 +619,7 @@ router.post('/appointments/:id/orders', authMiddleware, requireRole('staff'), as
         status: 'pending',
         notes: `Created by staff after eye checkup #${appointment.appointment_id}`
       }, { transaction });
+      await createOrderQrCode(order, { transaction });
 
       for (const line of lines) {
         await OrderItem.create({
@@ -637,8 +641,9 @@ router.post('/appointments/:id/orders', authMiddleware, requireRole('staff'), as
         { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
       ]
     });
+    const [orderWithQr] = await attachOrderQrDetails([order]);
 
-    res.status(201).json({ success: true, message: 'Customer order created', order });
+    res.status(201).json({ success: true, message: 'Customer order created', order: orderWithQr });
   } catch (error) {
     res.status(error.status || 500).json({
       success: false,
@@ -688,6 +693,46 @@ router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => 
   }
 });
 
+router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), async (req, res) => {
+  try {
+    const qrCodeData = typeof req.body?.qr_code_data === 'string'
+      ? req.body.qr_code_data.trim()
+      : '';
+    if (!qrCodeData) {
+      return res.status(400).json({ success: false, message: 'Order QR code data is required' });
+    }
+
+    const qrCode = await QRCode.findOne({
+      where: {
+        code_type: 'Order',
+        qr_code_data: qrCodeData
+      }
+    });
+    if (!qrCode) {
+      return res.status(404).json({ success: false, message: 'Order QR code not found' });
+    }
+
+    const order = await Order.findByPk(qrCode.reference_id, {
+      include: [
+        { model: OrderItem, include: [{ model: Product }] },
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+      ]
+    });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found for this QR code' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Order QR code verified',
+      order: order.toJSON()
+    });
+  } catch (error) {
+    console.error('Failed to verify order QR code:', error);
+    res.status(500).json({ success: false, message: 'Failed to verify order QR code' });
+  }
+});
+
 // Update order status
 router.get('/orders/:id', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
@@ -698,7 +743,7 @@ router.get('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       ]
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    const orderData = order.toJSON();
+    const [orderData] = await attachOrderQrDetails([order]);
     orderData.prescription = {
       prescription_appointment_id: orderData.prescription_appointment_id,
       right_sph: orderData.right_sph,

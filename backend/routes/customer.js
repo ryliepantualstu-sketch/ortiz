@@ -16,6 +16,7 @@ const BlockedSlot = require('../models/BlockedSlot');
 const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime, isSundayDate } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
+const { createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const { isValidPickupDate } = require('../utils/orderPickup');
 
@@ -1177,15 +1178,12 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
     }
 
     // Generate QR code
-    const qrData = `ORDER:${order.order_id}|${user.full_name}|${totalAmount}`;
     let qrUrl = null;
+    let qrPayload = null;
     try {
-      qrUrl = await QrcodeLibrary.toDataURL(qrData);
-      await QRCode.create({
-        code_type: 'Order',
-        reference_id: order.order_id,
-        qr_code_data: qrData
-      });
+      const qrDetails = await createOrderQrCode(order);
+      qrUrl = await QrcodeLibrary.toDataURL(qrDetails.qr_payload);
+      qrPayload = qrDetails.qr_payload;
     } catch (qrError) {
       console.warn('QR generation failed:', qrError.message);
     }
@@ -1210,6 +1208,7 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
         total_amount: order.total_amount,
         status: 'pending',
         qr_code: qrUrl,
+        qr_payload: qrPayload,
         items_count: cartItems.length
       }
     });
@@ -1307,9 +1306,11 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
       order: [['created_at', 'DESC']]
     });
 
+    const ordersWithQr = await attachOrderQrDetails(orders);
+
     res.json({
       success: true,
-      orders
+      orders: ordersWithQr
     });
   } catch (error) {
     res.status(500).json({
