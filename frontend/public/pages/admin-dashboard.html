@@ -3132,6 +3132,8 @@ This will deactivate the account and keep the user record for history.`)) {
         }
 
         async function loadStockHistory() {
+            if (!isDateRangeValid('stockHistoryDateFrom', 'stockHistoryDateTo')) return;
+
             try {
                 const productId = document.getElementById('stockHistoryProductFilter').value;
                 const dateFrom = document.getElementById('stockHistoryDateFrom').value;
@@ -3224,11 +3226,51 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('stockHistoryProductFilter').value = '';
             document.getElementById('stockHistoryDateFrom').value = '';
             document.getElementById('stockHistoryDateTo').value = '';
+            syncDateRangeConstraints('stockHistoryDateFrom', 'stockHistoryDateTo');
             stockHistoryCurrentPage = 0;
             loadStockHistory();
         }
 
+        function syncDateRangeConstraints(fromId, toId) {
+            const fromInput = document.getElementById(fromId);
+            const toInput = document.getElementById(toId);
+            if (!fromInput || !toInput) return;
+
+            fromInput.max = toInput.value || '';
+            toInput.min = fromInput.value || '';
+
+            const invalidRange = Boolean(fromInput.value && toInput.value && fromInput.value > toInput.value);
+            const message = invalidRange ? 'From date must be on or before to date.' : '';
+            fromInput.setCustomValidity(message);
+            toInput.setCustomValidity(message);
+        }
+
+        function isDateRangeValid(fromId, toId) {
+            syncDateRangeConstraints(fromId, toId);
+            const fromInput = document.getElementById(fromId);
+            const toInput = document.getElementById(toId);
+            if (fromInput.checkValidity() && toInput.checkValidity()) return true;
+
+            (fromInput.validationMessage ? fromInput : toInput).reportValidity();
+            return false;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
+            [
+                ['stockHistoryDateFrom', 'stockHistoryDateTo'],
+                ['reportDateFrom', 'reportDateTo'],
+                ['archiveDateFrom', 'archiveDateTo']
+            ].forEach(([fromId, toId]) => {
+                const fromInput = document.getElementById(fromId);
+                const toInput = document.getElementById(toId);
+                if (!fromInput || !toInput) return;
+
+                const syncConstraints = () => syncDateRangeConstraints(fromId, toId);
+                fromInput.addEventListener('change', syncConstraints);
+                toInput.addEventListener('change', syncConstraints);
+                syncConstraints();
+            });
+
             userModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal'));
             productModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('productModal'));
             document.getElementById('userForm').addEventListener('submit', submitUserForm);
@@ -3810,10 +3852,7 @@ This will deactivate the account and keep the user record for history.`)) {
             const dateTo = document.getElementById('reportDateTo').value;
 
             // Validation
-            if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-                alert('❌ Error: "From Date" must be before "To Date"');
-                return;
-            }
+            if (!isDateRangeValid('reportDateFrom', 'reportDateTo')) return;
 
             try {
                 const result = await apiCall('/admin/reports/generate', 'POST', {
@@ -4331,6 +4370,8 @@ This will deactivate the account and keep the user record for history.`)) {
         }
 
         function filterArchived() {
+            if (!isDateRangeValid('archiveDateFrom', 'archiveDateTo')) return;
+
             const archiveType = document.getElementById('archiveType').value;
             const dateFrom = document.getElementById('archiveDateFrom').value;
             const dateTo = document.getElementById('archiveDateTo').value;

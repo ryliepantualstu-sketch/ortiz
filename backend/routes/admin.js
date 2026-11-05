@@ -4,6 +4,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+const { isValidDateRange } = require('../utils/dateRange');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const User = require('../models/User');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
@@ -1280,6 +1281,13 @@ router.get('/available-slots', authMiddleware, requireRole('admin'), async (req,
 router.post('/reports/generate', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { report_type, date_from, date_to } = req.body;
+    if (!isValidDateRange(date_from, date_to)) {
+      return res.status(400).json({
+        success: false,
+        message: 'From date must be on or before to date'
+      });
+    }
+
     let reportData = {};
     const currentDate = new Date().toISOString();
 
@@ -1432,6 +1440,12 @@ router.get('/reports', authMiddleware, requireRole('admin'), async (req, res) =>
 router.get('/archived', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { archive_type, date_from, date_to } = req.query;
+    if (!isValidDateRange(date_from, date_to)) {
+      return res.status(400).json({
+        success: false,
+        message: 'From date must be on or before to date'
+      });
+    }
 
     const archivedProducts = await Product.findAll({
       where: { is_active: false },
@@ -1595,6 +1609,12 @@ router.delete('/archived/:id', authMiddleware, requireRole('admin'), async (req,
 router.get('/stock-history', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const { product_id, limit = 50, offset = 0, date_from, date_to } = req.query;
+    if (!isValidDateRange(date_from, date_to)) {
+      return res.status(400).json({
+        success: false,
+        message: 'From date must be on or before to date'
+      });
+    }
 
     let whereClause = {};
     if (product_id) {
