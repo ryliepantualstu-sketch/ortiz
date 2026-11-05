@@ -9,7 +9,6 @@ const Customer = require('../models/Customer');
 const Order = require('../models/Order');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 const { parseWalkInClaimCodes, claimWalkInOrder, claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
-const { normalizePhoneNumber } = require('../utils/walkInCustomerMatch');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
@@ -148,7 +147,7 @@ router.post('/register', async (req, res) => {
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
     const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
-    const normalizedPhone = normalizePhoneNumber(phone);
+    const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
 
     // Validation
     if (!full_name || !email || !password || !confirm_password || !normalizedPhone) {
@@ -173,10 +172,10 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (!/^\+?\d{7,15}$/.test(normalizedPhone)) {
+    if (!/^\d{7,15}$/.test(normalizedPhone)) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number must contain 7 to 15 digits, with optional leading +'
+        message: 'Phone number must contain 7 to 15 digits only'
       });
     }
 

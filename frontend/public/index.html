@@ -338,7 +338,7 @@
                             <label class="form-label" for="registerPhone">
                                 <i class="fas fa-phone"></i> Phone Number
                             </label>
-                            <input type="tel" class="form-control" id="registerPhone" name="phone" placeholder="09XXXXXXXXX" inputmode="numeric" pattern="\+?[0-9]{7,15}" title="Enter 7 to 15 digits, optionally starting with +" required>
+                            <input type="tel" class="form-control" id="registerPhone" name="phone" placeholder="09XXXXXXXXX" inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15" title="Enter 7 to 15 digits" required>
                         </div>
 
                         <div class="form-group">
@@ -592,8 +592,8 @@
                 return;
             }
 
-            if (!/^\+?\d{7,15}$/.test(phone)) {
-                showError('register', 'Phone number must contain 7 to 15 digits and may start with +');
+            if (!/^\d{7,15}$/.test(phone)) {
+                showError('register', 'Phone number must contain 7 to 15 digits only');
                 return;
             }
 
@@ -634,6 +634,24 @@
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        const registerPhoneInput = document.getElementById('registerPhone');
+        registerPhoneInput.addEventListener('beforeinput', (event) => {
+            if (event.data && /\D/.test(event.data)) {
+                event.preventDefault();
+            }
+        });
+        registerPhoneInput.addEventListener('input', () => {
+            const caretPosition = registerPhoneInput.selectionStart;
+            const digitsBeforeCaret = registerPhoneInput.value
+                .slice(0, caretPosition)
+                .replace(/\D/g, '')
+                .length;
+            const digitsOnly = registerPhoneInput.value.replace(/\D/g, '').slice(0, 15);
+            if (registerPhoneInput.value !== digitsOnly) {
+                registerPhoneInput.value = digitsOnly;
+                registerPhoneInput.setSelectionRange(digitsBeforeCaret, digitsBeforeCaret);
+            }
+        });
         document.querySelectorAll('.password-toggle').forEach((button) => {
             button.addEventListener('click', () => togglePasswordVisibility(button));
         });
