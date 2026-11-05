@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Auto-push tracked files on save",
+      "type": "npm",
+      "script": "auto-push",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "auto-push",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Auto-push watcher started",
+          "endsPattern": "^Auto-push watcher stopped"
+        }
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

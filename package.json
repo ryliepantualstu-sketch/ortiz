@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "start": "node backend/server.js",
-    "test": "npm test --workspace backend"
+    "test": "npm test --workspace backend",
+    "auto-push": "node scripts/auto-push-on-save.js"
   }
 }

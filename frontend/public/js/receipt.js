@@ -114,7 +114,6 @@
         <div class="iv-by">BY: <span class="iv-fill iv-wide"></span><div class="iv-small iv-c">Cashier/Authorized<br>Representative</div></div>
       </div>
       ${order.is_walk_in && order.walk_in_claim_code ? `<div class="iv-c iv-bold" style="margin-top:8px;">WALK-IN ORDER CLAIM CODE: ${esc(order.walk_in_claim_code)}<div class="iv-small">Walk-in orders are normally matched during registration using name and phone. Enter this code if that does not work.</div></div>` : ''}
-      ${order.qr_code ? `<div class="iv-c" style="margin-top:8px;"><div class="iv-bold iv-small">ORDER PICKUP QR CODE</div><img src="${esc(order.qr_code)}" alt="Order pickup QR code" width="120" height="120"></div>` : ''}
       <div class="iv-c iv-small iv-bold" style="margin-top:8px;">"THIS DOCUMENT IS NOT VALID<br>FOR CLAIM OF INPUT TAXES"</div>
       <div class="iv-printed">PRINTED RECEIPT<div class="iv-small">Printed on: ${esc(formatDateTime(new Date()))}</div></div>`;
   }
