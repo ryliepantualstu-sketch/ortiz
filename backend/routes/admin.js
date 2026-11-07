@@ -30,7 +30,7 @@ const ALLOWED_IMAGE_TYPES = {
   'image/webp': 'webp',
   'image/gif': 'gif'
 };
-const ALLOWED_PRODUCT_CATEGORIES = ['Glasses'];
+const ALLOWED_PRODUCT_CATEGORIES = ['Frame'];
 
 function sanitizeUser(user) {
   if (!user) {

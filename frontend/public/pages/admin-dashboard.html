@@ -1702,7 +1702,7 @@
                             <label class="form-label">Category</label>
                             <select class="form-control" id="productCategory" required>
                                 <option value="">Select a category</option>
-                                <option value="Glasses">Glasses</option>
+                                <option value="Frame">Frame</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -2302,7 +2302,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     return;
                 }
 
-                if (!['Glasses'].includes(payload.category)) {
+                if (!['Frame'].includes(payload.category)) {
                     alert('Please choose a valid product category.');
                     return;
                 }

@@ -26,7 +26,7 @@ const seedAdmin = async () => {
 const exampleProducts = [
   {
     product_name: 'Classic Aviator Sunglasses',
-    category: 'Glasses',
+    category: 'Frame',
     description: 'Timeless aviator style sunglasses with UV protection. Perfect for everyday wear.',
     frame_material: 'Metal',
     lens_type: 'UV Protection',
@@ -42,7 +42,7 @@ const exampleProducts = [
   },
   {
     product_name: 'Blue Light Blocking Glasses',
-    category: 'Glasses',
+    category: 'Frame',
     description: 'Reduce eye strain from digital screens with our blue light blocking technology.',
     frame_material: 'Acetate',
     lens_type: 'Blue Light Blocking',
@@ -58,7 +58,7 @@ const exampleProducts = [
   },
   {
     product_name: 'Prescription Reading Glasses',
-    category: 'Glasses',
+    category: 'Frame',
     description: 'Custom prescription reading glasses. Comfortable for extended reading sessions.',
     frame_material: 'Titanium',
     lens_type: 'Prescription',
@@ -74,7 +74,7 @@ const exampleProducts = [
   },
   {
     product_name: 'Sports Performance Sunglasses',
-    category: 'Glasses',
+    category: 'Frame',
     description: 'Lightweight and durable sunglasses designed for active sports and outdoor activities.',
     frame_material: 'Nylon',
     lens_type: 'Polarized',
@@ -90,7 +90,7 @@ const exampleProducts = [
   },
   {
     product_name: 'Fashion Oversized Sunglasses',
-    category: 'Glasses',
+    category: 'Frame',
     description: 'Trendy oversized sunglasses that combine style with UV protection.',
     frame_material: 'Acetate',
     lens_type: 'UV Protection',

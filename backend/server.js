@@ -286,6 +286,13 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.TEXT('long'),
       allowNull: true
     });
+    if (sequelize.getDialect() === 'mysql') {
+      await sequelize.query("ALTER TABLE products MODIFY COLUMN category ENUM('Glasses', 'Frame') NOT NULL");
+    }
+    await Product.update({ category: 'Frame' }, { where: { category: 'Glasses' } });
+    if (sequelize.getDialect() === 'mysql') {
+      await sequelize.query("ALTER TABLE products MODIFY COLUMN category ENUM('Frame') NOT NULL");
+    }
     for (const columnName of ['right_sph', 'right_cyl', 'left_sph', 'left_cyl']) {
       await addColumnIfMissing('appointments', columnName, {
         type: DataTypes.DECIMAL(5, 2),

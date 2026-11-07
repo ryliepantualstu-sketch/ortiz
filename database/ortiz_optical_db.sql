@@ -50,7 +50,7 @@ CREATE TABLE staff (
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(100) NOT NULL,
-    category ENUM('Glasses') NOT NULL,
+    category ENUM('Frame') NOT NULL,
     description TEXT,
     frame_material VARCHAR(100),
     lens_type VARCHAR(100),
@@ -302,11 +302,11 @@ INSERT INTO customers (user_id, address, city, state, zip_code, gender) VALUES
 (3, '123 Main Street', 'Springfield', 'IL', '62701', 'Female');
 
 INSERT INTO products (product_name, category, description, frame_material, lens_type, frame_shape, color_name, color_hex, color_int, price, supplier) VALUES
-('Rayban Wayfarer', 'Glasses', 'Classic Rayban frames', 'Acetate', 'Anti-Reflective', 'Wayfarer', 'Black', '#000000', 16711680, 199.99, 'Rayban Inc'),
-('Anti-Reflective Coating', 'Glasses', 'Premium anti-reflective coating', 'Metal', 'Anti-Reflective', 'Rectangular', 'Gunmetal', '#2F4F4F', 8421504, 50.00, 'Essilor'),
-('Blue Light Blocker', 'Glasses', 'Blue light filtering lenses', 'Plastic', 'Blue Light Blocking', 'Classic', 'Blue', '#0000FF', 255, 75.00, 'Crizal'),
-('Microfiber Cleaning Cloth', 'Glasses', 'High quality microfiber cloth', 'N/A', 'Cleaning', 'N/A', 'Gray', '#7F7F7F', 12632256, 5.99, 'Various'),
-('Saline Solution', 'Glasses', 'Lens cleaning solution', 'N/A', 'Lens Care', 'N/A', 'Clear', '#FFFFFF', 16777215, 12.99, 'Alcon');
+('Rayban Wayfarer', 'Frame', 'Classic Rayban frames', 'Acetate', 'Anti-Reflective', 'Wayfarer', 'Black', '#000000', 16711680, 199.99, 'Rayban Inc'),
+('Anti-Reflective Coating', 'Frame', 'Premium anti-reflective coating', 'Metal', 'Anti-Reflective', 'Rectangular', 'Gunmetal', '#2F4F4F', 8421504, 50.00, 'Essilor'),
+('Blue Light Blocker', 'Frame', 'Blue light filtering lenses', 'Plastic', 'Blue Light Blocking', 'Classic', 'Blue', '#0000FF', 255, 75.00, 'Crizal'),
+('Microfiber Cleaning Cloth', 'Frame', 'High quality microfiber cloth', 'N/A', 'Cleaning', 'N/A', 'Gray', '#7F7F7F', 12632256, 5.99, 'Various'),
+('Saline Solution', 'Frame', 'Lens cleaning solution', 'N/A', 'Lens Care', 'N/A', 'Clear', '#FFFFFF', 16777215, 12.99, 'Alcon');
 
 INSERT INTO inventory (product_id, stock_quantity, min_stock_level) VALUES
 (1, 25, 10),

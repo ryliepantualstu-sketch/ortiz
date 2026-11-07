@@ -14,3 +14,7 @@ ALTER TABLE order_items
 
 ALTER TABLE orders
     ADD COLUMN checkup_fee DECIMAL(10, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE products MODIFY COLUMN category ENUM('Glasses', 'Frame') NOT NULL;
+UPDATE products SET category = 'Frame' WHERE category = 'Glasses';
+ALTER TABLE products MODIFY COLUMN category ENUM('Frame') NOT NULL;
