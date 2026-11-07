@@ -373,6 +373,19 @@ const ensureSchemaColumns = async () => {
       allowNull: false,
       defaultValue: 0
     });
+    await addColumnIfMissing('orders', 'reservation_only', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
+    await addColumnIfMissing('appointments', 'reservation_order_id', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    const reservationAppointmentIndexes = await qi.showIndex('appointments');
+    if (!reservationAppointmentIndexes.some((index) => (index.fields || []).some((field) => (field.attribute || field.name) === 'reservation_order_id'))) {
+      await qi.addIndex('appointments', ['reservation_order_id'], { name: 'idx_appointments_reservation_order' });
+    }
     await addColumnIfMissing('schedules', 'schedule_date', {
       type: DataTypes.DATEONLY,
       allowNull: true
