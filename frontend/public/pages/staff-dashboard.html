@@ -2200,7 +2200,7 @@
             document.getElementById('wiDiscountAmt').textContent = '\u20B1' + discount.toFixed(2);
             document.getElementById('wiTotal').textContent = '\u20B1' + (subtotal - discount + checkupFee).toFixed(2);
             const saleNeedsCustomization = walkInItems.length ? hasCustomItem : needsCheckupFields;
-            document.getElementById('wiSubmit').textContent = saleNeedsCustomization ? 'Collect Payment & Start Custom Order' : 'Collect Payment & Prepare Frame';
+            document.getElementById('wiSubmit').textContent = saleNeedsCustomization ? 'Collect Payment & Start Custom Order' : 'Complete Frame-Only Order';
         }
 
         async function submitWalkInSale() {
@@ -2242,7 +2242,9 @@
                 if (result && result.success) {
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).hide();
                     showOrderReceipt(result.order);
-                    if (result.account_linked) {
+                    if (!hasCustomizedLenses) {
+                        alert(`Frame-only order completed for ${name}. Paid receipt recorded; the frame was released at the counter.`);
+                    } else if (result.account_linked) {
                         alert(`Paid order recorded for ${name}. Makikita niya ito sa My Orders at magagamit ang order QR kapag ready na ang product.`);
                     } else if (result.account_match_ambiguous) {
                         alert('Paid order recorded, pero hindi iniugnay sa account dahil may higit sa isang tugma sa pangalan at phone. Gamitin ang claim code sa receipt para maidagdag ito sa account; i-verify ang order QR sa pag-claim.');

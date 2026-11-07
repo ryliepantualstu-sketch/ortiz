@@ -727,8 +727,8 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         delivery_address: address || null,
         is_walk_in: true,
         walk_in_claim_code: walkInClaimCode,
-        status: isCustomizedLensSale ? 'processing' : 'ready for pickup',
-        notes: isCustomizedLensSale ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.' : 'Paid walk-in frame-only sale; ready for QR-verified pickup.'
+        status: isCustomizedLensSale ? 'processing' : 'picked up',
+        notes: isCustomizedLensSale ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.' : 'Completed paid walk-in frame-only sale; frame handed to customer at the counter.'
       }, { transaction });
       await createOrderQrCode(order, { transaction });
 
@@ -760,7 +760,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
     res.status(201).json({
       success: true,
-      message: isCustomizedLensSale ? 'Walk-in check-up and customized-lens order recorded' : 'Walk-in frame sale recorded',
+      message: isCustomizedLensSale ? 'Walk-in check-up and customized-lens order recorded' : 'Walk-in frame-only order completed',
       account_linked: Boolean(order.customer_id),
       account_match_ambiguous: accountMatch.ambiguous,
       order: orderWithQr
