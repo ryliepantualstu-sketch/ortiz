@@ -402,6 +402,17 @@
         .admin-metric-value { margin-top:12px; color:#102a43; font-size:1.8rem; font-weight:850; line-height:1; white-space:nowrap; }
         .admin-metric-money { font-size:1.45rem; }
         .admin-metric-foot { margin-top:8px; color:#94a3b8; font-size:.72rem; }
+        #statsContainer { grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; }
+        #statsContainer > div { width:100% !important; min-width:0; margin:0 !important; padding:0 !important; flex:none !important; }
+        #statsContainer .admin-metric-card { width:100%; min-height:185px; padding:24px; border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; }
+        #statsContainer .admin-metric-top { font-size:.92rem; }
+        #statsContainer .admin-metric-icon { width:44px; height:44px; border-radius:14px; font-size:1rem; }
+        #statsContainer .admin-metric-value { margin-top:20px; font-size:2.3rem; }
+        #statsContainer .admin-metric-money { font-size:1.9rem; }
+        #statsContainer .admin-metric-foot { margin-top:12px; font-size:.82rem; }
+        @media (max-width: 1199.98px) { #statsContainer { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+        @media (max-width: 767.98px) { #statsContainer { grid-template-columns:repeat(2,minmax(0,1fr)); } #statsContainer .admin-metric-card { min-height:165px; padding:18px; } }
+        @media (max-width: 479.98px) { #statsContainer { grid-template-columns:1fr; } }
         .admin-quick-actions { display:grid; grid-template-columns:1.2fr repeat(3,minmax(150px,1fr)); gap:10px; align-items:stretch; padding:13px; border:1px solid #e7edf3; border-radius:15px; background:#fff; box-shadow:0 5px 15px rgba(22,48,66,.04); }
         .admin-quick-actions > div { display:flex; flex-direction:column; justify-content:center; padding:5px 10px; }
         .admin-quick-title { color:#102a43; font-weight:800; }
