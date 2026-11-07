@@ -621,6 +621,8 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     const rawExistingClaimCode = req.body.existing_claim_code;
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
     const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
+    const paymentMethod = req.body.payment_method || 'Cash';
+    const isCustomizedLensSale = requestedItems.some(item => item.lens_option !== 'frame-only');
     const existingClaimCode = rawExistingClaimCode ? normalizeWalkInClaimCode(rawExistingClaimCode) : null;
 
     if (!customerName) {
@@ -631,6 +633,28 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     }
     if (requestedItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+    if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
+    }
+    let checkupFee = 0;
+    let prescription = {};
+    if (isCustomizedLensSale) {
+      if (req.body.checkup_fee === undefined || String(req.body.checkup_fee).trim() === '') {
+        return res.status(400).json({ success: false, message: 'Enter the eye check-up fee for customized lenses' });
+      }
+      checkupFee = Number(req.body.checkup_fee);
+      if (!Number.isFinite(checkupFee) || checkupFee < 0 || checkupFee >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid check-up fee of zero or more' });
+      }
+      const normalized = normalizePrescription(req.body.prescription || {});
+      if (normalized.error) {
+        return res.status(400).json({ success: false, message: normalized.error });
+      }
+      prescription = normalized.prescription;
+      if (!Object.keys(prescription).length) {
+        return res.status(400).json({ success: false, message: 'Enter the customer’s eye-check results before ordering customized lenses' });
+      }
     }
     if (rawExistingClaimCode && !existingClaimCode) {
       return res.status(400).json({ success: false, message: 'Enter a valid 12-character code from a walk-in receipt' });
@@ -665,19 +689,23 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
           throw Object.assign(new Error('Quantity must be at least 1'), { status: 400 });
         }
         const product = await Product.findByPk(entry.product_id, { transaction, lock: transaction.LOCK.UPDATE });
-        if (!product) {
-          throw Object.assign(new Error('Product not found'), { status: 404 });
+        if (!product || !product.is_active) {
+          throw Object.assign(new Error('Product not found or unavailable'), { status: 404 });
         }
         if ((product.stock_quantity || 0) < quantity) {
           throw Object.assign(new Error(`Not enough stock for ${product.product_name} (available: ${product.stock_quantity || 0})`), { status: 409 });
         }
         const lensOption = entry.lens_option || 'regular-lens';
+        if (!['frame-only', 'regular-lens', 'photochromic'].includes(lensOption)) {
+          throw Object.assign(new Error('Choose a valid lens customization'), { status: 400 });
+        }
         const price = Number(getPriceByLensOption(product, lensOption));
         lines.push({ product, quantity, lensOption, price });
       }
 
       const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
+      const totalAmount = Number((subtotal - discountAmount + checkupFee).toFixed(2));
       const customerId = existingClaimCode
         ? existingClaim.customer_id
         : accountMatch.customer_id;
@@ -687,15 +715,20 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
       const order = await Order.create({
         customer_id: customerId,
-        total_amount: Number((subtotal - discountAmount).toFixed(2)),
+        ...prescription,
+        total_amount: totalAmount,
         discount_type: discountType,
         discount_amount: discountAmount,
+        checkup_fee: Number(checkupFee.toFixed(2)),
+        payment_status: 'Paid',
+        payment_method: paymentMethod,
         customer_name: customerName,
         walk_in_phone: customerPhone,
         delivery_address: address || null,
         is_walk_in: true,
         walk_in_claim_code: walkInClaimCode,
-        status: 'picked up'
+        status: isCustomizedLensSale ? 'processing' : 'ready for pickup',
+        notes: isCustomizedLensSale ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.' : 'Paid walk-in frame-only sale; ready for QR-verified pickup.'
       }, { transaction });
       await createOrderQrCode(order, { transaction });
 
@@ -727,7 +760,7 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
     res.status(201).json({
       success: true,
-      message: 'Walk-in sale recorded',
+      message: isCustomizedLensSale ? 'Walk-in check-up and customized-lens order recorded' : 'Walk-in frame sale recorded',
       account_linked: Boolean(order.customer_id),
       account_match_ambiguous: accountMatch.ambiguous,
       order: orderWithQr

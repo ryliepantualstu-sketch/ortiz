@@ -1096,7 +1096,7 @@
                 <div id="ordersSection" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="mb-0">Order Management</h4>
-                        <button class="btn btn-primary" onclick="openWalkInSale()"><i class="fas fa-cash-register me-1"></i>Walk-in Sale</button>
+                        <button class="btn btn-primary" onclick="openWalkInSale()"><i class="fas fa-cash-register me-1"></i>Walk-in Check-up / Order</button>
                     </div>
                     <div class="table-container">
                         <div class="table-responsive">
@@ -2141,6 +2141,10 @@
             ['wiName', 'wiPhone', 'wiAddress', 'wiExistingClaimCode'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiClaimCodeFeedback').textContent = '';
             document.getElementById('wiQty').value = 1;
+            document.getElementById('wiLens').value = 'regular-lens';
+            document.getElementById('wiCheckupFee').value = '';
+            document.getElementById('wiPaymentMethod').value = 'Cash';
+            ['wiRightSph', 'wiRightCyl', 'wiRightAxis', 'wiLeftSph', 'wiLeftCyl', 'wiLeftAxis'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiDiscNone').checked = true;
             renderWalkInItems();
             const result = await apiCall('/staff/products');
@@ -2149,7 +2153,12 @@
                 .filter(p => (p.stock_quantity || 0) > 0)
                 .map(p => `<option value="${p.product_id}">${escapeStaffOrderText(p.product_name)}${p.color_name ? ' - ' + escapeStaffOrderText(p.color_name) : ''} (stock: ${p.stock_quantity})</option>`)
                 .join('');
+            toggleWalkInCheckupFields();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).show();
+        }
+
+        function toggleWalkInCheckupFields() {
+            renderWalkInItems();
         }
 
         function addWalkInItem() {
@@ -2179,10 +2188,19 @@
                 return `<tr><td>${escapeStaffOrderText(i.product.product_name)}</td><td>${lensLabels[i.lens]}</td><td class="text-end">&#8369;${price.toFixed(2)}</td><td>${i.qty}</td><td class="text-end">&#8369;${(price * i.qty).toFixed(2)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeWalkInItem(${idx})">&times;</button></td></tr>`;
             }).join('') : '<tr><td colspan="6" class="text-center text-muted">No items yet</td></tr>';
             const subtotal = walkInItems.reduce((s, i) => s + walkInPrice(i.product, i.lens) * i.qty, 0);
+            const hasCustomItem = walkInItems.some(item => item.lens !== 'frame-only');
+            const needsCheckupFields = hasCustomItem || (!walkInItems.length && document.getElementById('wiLens').value !== 'frame-only');
+            document.getElementById('wiCheckupFields').classList.toggle('d-none', !needsCheckupFields);
+            document.getElementById('wiCheckupFee').required = needsCheckupFields;
+            document.getElementById('wiRightSph').required = needsCheckupFields;
+            document.getElementById('wiLeftSph').required = needsCheckupFields;
+            const checkupFee = hasCustomItem ? Number(document.getElementById('wiCheckupFee').value || 0) : 0;
             const discount = document.querySelector('input[name="wiDiscount"]:checked').value ? Number((subtotal * 0.2).toFixed(2)) : 0;
             document.getElementById('wiSubtotal').textContent = '\u20B1' + subtotal.toFixed(2);
             document.getElementById('wiDiscountAmt').textContent = '\u20B1' + discount.toFixed(2);
-            document.getElementById('wiTotal').textContent = '\u20B1' + (subtotal - discount).toFixed(2);
+            document.getElementById('wiTotal').textContent = '\u20B1' + (subtotal - discount + checkupFee).toFixed(2);
+            const saleNeedsCustomization = walkInItems.length ? hasCustomItem : needsCheckupFields;
+            document.getElementById('wiSubmit').textContent = saleNeedsCustomization ? 'Collect Payment & Start Custom Order' : 'Collect Payment & Prepare Frame';
         }
 
         async function submitWalkInSale() {
@@ -2194,6 +2212,19 @@
                 return;
             }
             if (!walkInItems.length) { alert('Add at least one item'); return; }
+            const hasCustomizedLenses = walkInItems.some(item => item.lens !== 'frame-only');
+            const prescription = {
+                right_sph: document.getElementById('wiRightSph').value,
+                right_cyl: document.getElementById('wiRightCyl').value,
+                right_axis: document.getElementById('wiRightAxis').value,
+                left_sph: document.getElementById('wiLeftSph').value,
+                left_cyl: document.getElementById('wiLeftCyl').value,
+                left_axis: document.getElementById('wiLeftAxis').value
+            };
+            if (hasCustomizedLenses && (!prescription.right_sph || !prescription.left_sph || document.getElementById('wiCheckupFee').value === '')) {
+                alert('Enter the check-up fee and both eye sphere results before ordering customized lenses.');
+                return;
+            }
             const btn = document.getElementById('wiSubmit');
             btn.disabled = true;
             try {
@@ -2203,17 +2234,20 @@
                     address: document.getElementById('wiAddress').value.trim(),
                     existing_claim_code: document.getElementById('wiExistingClaimCode').value.trim().toUpperCase(),
                     discount_type: document.querySelector('input[name="wiDiscount"]:checked').value || null,
+                    payment_method: document.getElementById('wiPaymentMethod').value,
+                    checkup_fee: hasCustomizedLenses ? document.getElementById('wiCheckupFee').value : 0,
+                    prescription: hasCustomizedLenses ? prescription : undefined,
                     items: walkInItems.map(i => ({ product_id: i.product.product_id, quantity: i.qty, lens_option: i.lens }))
                 });
                 if (result && result.success) {
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInModal')).hide();
                     showOrderReceipt(result.order);
                     if (result.account_linked) {
-                        alert(`Sale recorded. Nakaugnay ang order sa customer account ni ${name}. Makikita niya ito sa kanyang order history.`);
+                        alert(`Paid order recorded for ${name}. Makikita niya ito sa My Orders at magagamit ang order QR kapag ready na ang product.`);
                     } else if (result.account_match_ambiguous) {
-                        alert('Sale recorded, pero hindi iniugnay sa account dahil may higit sa isang tugma sa pangalan at phone. Maaaring gamitin ang claim code sa resibo sa registration para maidagdag ang walk-in sale sa order history.');
+                        alert('Paid order recorded, pero hindi iniugnay sa account dahil may higit sa isang tugma sa pangalan at phone. Gamitin ang claim code sa receipt para maidagdag ito sa account; i-verify ang order QR sa pag-claim.');
                     } else {
-                        alert('Sale recorded. Kung wala pang account, awtomatikong mahahanap ang order sa registration gamit ang parehong pangalan at phone. Maaari ring gamitin ang claim code sa resibo.');
+                        alert('Paid order recorded. Kung wala pang account, gamitin ang claim code sa receipt kapag nag-register; i-verify ang order QR kapag kukunin na ang tapos na product.');
                     }
                     loadOrders();
                 } else {
@@ -2335,7 +2369,7 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>Walk-in Sale</h5>
+        <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>Walk-in Check-up &amp; Sale</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -2349,16 +2383,35 @@
           <input type="text" class="form-control text-uppercase" id="wiExistingClaimCode" maxlength="12" autocomplete="off" placeholder="Enter the code from the customer's earlier walk-in receipt">
           <div class="form-text" id="wiClaimCodeFeedback" aria-live="polite">Awtomatikong hahanapin ang dating code kapag nailagay ang pangalan at phone number.</div>
         </div>
+        <div class="alert alert-info py-2"><i class="fas fa-info-circle me-1"></i>Customized lenses need the eye-check results and check-up fee. The paid order stays in processing until the finished product is ready for QR-verified pickup.</div>
         <div class="row g-2 mb-2 align-items-end">
           <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
           <div class="col-md-3"><label class="form-label">Lens</label>
-            <select class="form-select" id="wiLens">
+            <select class="form-select" id="wiLens" onchange="toggleWalkInCheckupFields()">
               <option value="frame-only">Frame only</option>
               <option value="regular-lens" selected>Regular lens</option>
               <option value="photochromic">Photochromic</option>
             </select></div>
           <div class="col-md-2"><label class="form-label">Qty</label><input type="number" class="form-control" id="wiQty" value="1" min="1"></div>
           <div class="col-md-2"><button type="button" class="btn btn-outline-primary w-100" onclick="addWalkInItem()">Add</button></div>
+        </div>
+        <div id="wiCheckupFields" class="border rounded-3 p-3 mb-3 bg-light">
+          <h6 class="fw-bold mb-3"><i class="fas fa-eye me-2 text-primary"></i>Eye Check-up &amp; Prescription</h6>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><label class="form-label" for="wiCheckupFee">Check-up fee (₱) *</label><input type="number" class="form-control" id="wiCheckupFee" min="0" step="0.01" oninput="renderWalkInItems()"></div>
+            <div class="col-md-4"><label class="form-label" for="wiPaymentMethod">Payment method *</label><select class="form-select" id="wiPaymentMethod"><option>Cash</option><option>Card</option><option>Online</option></select></div>
+            <div class="col-md-4 d-flex align-items-end"><span class="form-text">Payment is recorded when the customer places this custom order.</span></div>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 col-md-2 fw-bold align-self-center">Right eye (OD)</div>
+            <div class="col-4 col-md-3"><label class="form-label" for="wiRightSph">SPH *</label><input type="number" step="0.25" class="form-control" id="wiRightSph"></div>
+            <div class="col-4 col-md-3"><label class="form-label" for="wiRightCyl">CYL</label><input type="number" step="0.25" class="form-control" id="wiRightCyl"></div>
+            <div class="col-4 col-md-3"><label class="form-label" for="wiRightAxis">AXIS</label><input type="number" min="1" max="180" class="form-control" id="wiRightAxis"></div>
+            <div class="col-12 col-md-2 fw-bold align-self-center mt-2">Left eye (OS)</div>
+            <div class="col-4 col-md-3 mt-2"><label class="form-label" for="wiLeftSph">SPH *</label><input type="number" step="0.25" class="form-control" id="wiLeftSph"></div>
+            <div class="col-4 col-md-3 mt-2"><label class="form-label" for="wiLeftCyl">CYL</label><input type="number" step="0.25" class="form-control" id="wiLeftCyl"></div>
+            <div class="col-4 col-md-3 mt-2"><label class="form-label" for="wiLeftAxis">AXIS</label><input type="number" min="1" max="180" class="form-control" id="wiLeftAxis"></div>
+          </div>
         </div>
         <div class="table-responsive mb-3">
           <table class="table table-sm align-middle mb-0">
@@ -2380,7 +2433,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-success" id="wiSubmit" onclick="submitWalkInSale()">Complete Sale &amp; Print Receipt</button>
+        <button type="button" class="btn btn-success" id="wiSubmit" onclick="submitWalkInSale()">Collect Payment &amp; Start Custom Order</button>
       </div>
     </div>
   </div>
