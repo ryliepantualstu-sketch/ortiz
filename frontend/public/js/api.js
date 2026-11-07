@@ -77,7 +77,6 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 
     if (data) {
         options.body = JSON.stringify(data);
-        console.log('Request body:', data);
     }
 
     try {

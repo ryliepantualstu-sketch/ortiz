@@ -11,7 +11,7 @@ const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/cu
 const { parseWalkInClaimCodes, claimWalkInOrder, claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
-const { normalizeEmail, isGmailAddress } = require('../utils/emailOtp');
+const { normalizeEmail, isGmailAddress, issueOtp, verifyOtp, discardOtp } = require('../utils/emailOtp');
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -139,12 +139,54 @@ router.post('/google', async (req, res) => {
 });
 
 // Register
+router.post('/register/request-otp', async (req, res) => {
+  const email = normalizeEmail(req.body && req.body.email);
+  if (!isGmailAddress(email)) {
+    return res.status(400).json({ success: false, message: 'Please use a valid Gmail address (example@gmail.com)' });
+  }
+
+  try {
+    if (await User.findOne({ where: { email } })) {
+      return res.status(409).json({ success: false, message: 'Email already registered' });
+    }
+
+    const issued = issueOtp(email);
+    if (!issued.ok) {
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${issued.retryAfter} seconds before requesting another code`,
+        retry_after: issued.retryAfter
+      });
+    }
+
+    const sent = await sendEmailNotification({
+      to: email,
+      subject: 'Your Ortiz Optical verification code',
+      text: `Your email verification code is ${issued.code}. It expires in 10 minutes. If you did not request this, you can ignore this email.`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#243247"><h2>Verify your email</h2><p>Use this code to finish creating your Ortiz Optical account:</p><p style="font-size:30px;font-weight:bold;letter-spacing:8px;color:#167c80">${issued.code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`
+    });
+
+    if (!sent.success) {
+      discardOtp(email);
+      console.error('[REGISTRATION OTP EMAIL ERROR]', sent.error || sent.reason || 'Email delivery failed');
+      return res.status(503).json({ success: false, message: 'Unable to send a verification email right now. Please try again later.' });
+    }
+
+    return res.json({ success: true, message: 'Verification code sent. Check your Gmail inbox.' });
+  } catch (error) {
+    discardOtp(email);
+    console.error('[REGISTRATION OTP ERROR]', error);
+    return res.status(500).json({ success: false, message: 'Unable to send a verification email right now.' });
+  }
+});
+
 router.post('/register', async (req, res) => {
   try {
     const { password, confirm_password, phone, birthday, address } = req.body;
     const rawClaimCodes = req.body.walk_in_claim_codes ?? req.body.walk_in_claim_code;
     const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
+    const otp = req.body.otp;
     const role = 'customer';
     const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
@@ -200,6 +242,19 @@ router.post('/register', async (req, res) => {
         success: false,
         message: 'Email already registered'
       });
+    }
+
+    if (!otp) {
+      return res.status(400).json({ success: false, message: 'Verify your email with the 6-digit code before creating your account' });
+    }
+    const otpResult = verifyOtp(email, otp);
+    if (!otpResult.ok) {
+      const message = otpResult.reason === 'too_many_attempts'
+        ? 'Too many incorrect codes. Request a new verification code.'
+        : otpResult.reason === 'expired'
+          ? 'Verification code expired. Request a new code.'
+          : 'Incorrect verification code. Please check the email and try again.';
+      return res.status(400).json({ success: false, message });
     }
 
     const registration = await sequelize.transaction(async (transaction) => {

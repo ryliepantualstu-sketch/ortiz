@@ -6,7 +6,7 @@ const net = require('net');
 // Initialize Nodemailer transporter for Gmail / SMTP
 async function createEmailTransporter() {
   const user = process.env.GMAIL_USER || process.env.SMTP_USER;
-  const pass = process.env.GMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const pass = String(process.env.GMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 
   if (!user || !pass) {
     return null;

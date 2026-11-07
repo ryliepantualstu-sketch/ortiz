@@ -100,7 +100,6 @@ const Order = sequelize.define('Order', {
   }
 }, {
   tableName: 'orders',
-  indexes: [{ fields: ['walk_in_claim_code'], name: 'idx_orders_walk_in_claim_code' }],
   timestamps: false
 });
 
