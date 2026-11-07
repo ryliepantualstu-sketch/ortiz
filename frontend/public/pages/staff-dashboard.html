@@ -1197,6 +1197,8 @@
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionPaymentOptionRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
+            document.getElementById('prescriptionLensPrice').required = Boolean(appointment?.reservation_order_id);
+            document.getElementById('prescriptionCheckupFee').required = Boolean(appointment?.reservation_order_id);
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
                 ? 'Prescription, Lens & Payment'
                 : 'Optional Eye Checkup Prescription';
@@ -1230,9 +1232,10 @@
                 lensPriceInput.value = Math.max(0, configuredTotal - framePrice).toFixed(2);
             }
             const lensPrice = Number(lensPriceInput?.value || 0);
-            const total = frameTotal + lensPrice * quantity;
+            const checkupFee = Number(document.getElementById('prescriptionCheckupFee')?.value || 0);
+            const total = frameTotal + lensPrice * quantity + checkupFee;
             const amount = document.getElementById('prescriptionPaymentAmount');
-            if (amount) amount.textContent = `Fixed frame total: ₱${frameTotal.toFixed(2)} + lens: ₱${lensPrice.toFixed(2)} × ${quantity} = ₱${total.toFixed(2)}`;
+            if (amount) amount.textContent = `Frame: ₱${frameTotal.toFixed(2)} + lenses: ₱${(lensPrice * quantity).toFixed(2)} + check-up: ₱${checkupFee.toFixed(2)} = ₱${total.toFixed(2)}`;
         }
 
         function preventPrescriptionLetters(event) {
@@ -1277,10 +1280,11 @@
             console.log('updateAppointmentStatus called', { appointmentId, status });
             const payload = { status };
             if (prescription) {
-                const { lens_option, lens_price, payment_method, ...prescriptionValues } = prescription;
+                const { lens_option, lens_price, checkup_fee, payment_method, ...prescriptionValues } = prescription;
                 payload.prescription = prescriptionValues;
                 if (lens_option) payload.lens_option = lens_option;
                 if (lens_price !== undefined) payload.lens_price = lens_price;
+                if (checkup_fee !== undefined) payload.checkup_fee = checkup_fee;
                 if (payment_method) payload.payment_method = payment_method;
             }
             if ((status || '').toLowerCase() === 'confirmed') {
@@ -1747,6 +1751,7 @@
                 document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal || !isReadyAndPaid || !claimQrVerified);
                 document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];
+                const itemSubtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
                 const currentDiscountType = order.discount_type || null;
                 const prescription = order.prescription || order;
                 const hasSavedPrescription = prescription.right_sph !== null && prescription.right_sph !== undefined &&
@@ -1777,7 +1782,8 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-3"><strong>Subtotal:</strong> ₱${Number((order.discount_amount ? Number(order.total_amount) + Number(order.discount_amount) : order.total_amount) || 0).toFixed(2)}</div>
+                    <div class="mt-3"><strong>Frames and lenses:</strong> ₱${itemSubtotal.toFixed(2)}</div>
+                    ${Number(order.checkup_fee || 0) > 0 ? `<div class="mt-1"><strong>Eye check-up fee:</strong> ₱${Number(order.checkup_fee).toFixed(2)}</div>` : ''}
                     <div class="mt-1"><strong>Current Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount||0).toFixed(2)})` : 'None'}</div>
                     <div class="mt-1"><strong>Total:</strong> ₱${Number(order.total_amount||0).toFixed(2)}</div>
                     <hr />
@@ -2092,7 +2098,9 @@
             <div class="form-text">The frame price is fixed from the product record. Staff may adjust the lens price.</div>
           </div>
           <div class="mb-3 d-none" id="prescriptionPaymentOptionRow">
-            <div class="fw-bold fs-5 mb-2" id="prescriptionPaymentAmount">Amount to collect: ₱0.00</div>
+            <div class="fw-bold fs-5 mb-2" id="prescriptionPaymentAmount">Total: ₱0.00</div>
+            <label class="form-label fw-semibold" for="prescriptionCheckupFee">Eye check-up fee</label>
+            <input class="form-control mb-3" id="prescriptionCheckupFee" name="checkup_fee" type="number" min="0" step="0.01" placeholder="Enter check-up fee" oninput="updateReservationPaymentAmount()">
             <label class="form-label fw-semibold" for="prescriptionPaymentMethod">Payment method</label>
             <select class="form-select" id="prescriptionPaymentMethod" name="payment_method">
               <option value="Cash" selected>Cash</option>

@@ -11,3 +11,6 @@ ALTER TABLE appointments
 ALTER TABLE order_items
     ADD COLUMN frame_price DECIMAL(10, 2) NULL,
     ADD COLUMN lens_price DECIMAL(10, 2) NULL;
+
+ALTER TABLE orders
+    ADD COLUMN checkup_fee DECIMAL(10, 2) NOT NULL DEFAULT 0;

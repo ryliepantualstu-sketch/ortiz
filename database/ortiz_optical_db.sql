@@ -131,6 +131,7 @@ CREATE TABLE orders (
     status ENUM('Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Cancelled') DEFAULT 'Pending',
     payment_status ENUM('Unpaid', 'Paid', 'Refunded') DEFAULT 'Unpaid',
     payment_method ENUM('Cash', 'Card', 'Online') DEFAULT 'Cash',
+    checkup_fee DECIMAL(10, 2) NOT NULL DEFAULT 0,
     delivery_address VARCHAR(255),
     notes TEXT,
     pickup_date DATE NULL,

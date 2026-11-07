@@ -393,6 +393,13 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
         return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
       }
+      if (req.body.checkup_fee === undefined || String(req.body.checkup_fee).trim() === '') {
+        return res.status(400).json({ success: false, message: 'Enter the eye check-up fee before collecting payment' });
+      }
+      const checkupFee = Number(req.body.checkup_fee);
+      if (!Number.isFinite(checkupFee) || checkupFee < 0 || checkupFee >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid checkup fee of zero or more' });
+      }
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
       if (error) {
         return res.status(400).json({
@@ -420,7 +427,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         if (!items.length || items.some((item) => !item.Product)) {
           throw Object.assign(new Error('The reserved frame item could not be found'), { status: 409 });
         }
-        let totalAmount = 0;
+        let totalAmount = checkupFee;
         for (const item of items) {
           const framePrice = Number(item.frame_price ?? item.Product.frame_only_price ?? item.Product.price ?? 0);
           const price = Number((framePrice + lensPrice).toFixed(2));
@@ -434,6 +441,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           total_amount: Number(totalAmount.toFixed(2)),
           payment_status: 'Paid',
           payment_method: paymentMethod,
+          checkup_fee: Number(checkupFee.toFixed(2)),
           reservation_only: false,
           status: 'processing',
           notes: `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`

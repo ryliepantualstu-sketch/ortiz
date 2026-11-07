@@ -57,6 +57,10 @@
         <td class="iv-r">₱${peso(item.subtotal)}</td>
       </tr>`;
     });
+    if (Number(order.checkup_fee || 0) > 0) {
+      const fee = Number(order.checkup_fee);
+      rows.push(`<tr><td>Eye check-up fee</td><td class="iv-c">1</td><td class="iv-r">₱${peso(fee)}</td><td class="iv-r">₱${peso(fee)}</td></tr>`);
+    }
     while (rows.length < MIN_ROWS) rows.push('<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>');
 
     return `
