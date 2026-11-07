@@ -557,18 +557,18 @@ router.post('/products', authMiddleware, requireRole('admin'), async (req, res) 
 
     const product = await Product.create({
       product_name,
-      category,
+      category: 'Frame',
       description,
       frame_material,
-      lens_type,
+      lens_type: null,
       frame_shape,
       color_name: color_name?.trim() || null,
       color_hex: normalizedColorHex ? `#${normalizedColorHex}` : null,
       color_int: colorInt,
       price,
-      frame_only_price,
-      regular_lens_price,
-      photochromic_price,
+      frame_only_price: price,
+      regular_lens_price: null,
+      photochromic_price: null,
       stock_quantity,
       min_stock_level,
       supplier,
@@ -628,6 +628,12 @@ router.put('/products/:id', authMiddleware, requireRole('admin'), async (req, re
         message: `Invalid category. Use one of: ${ALLOWED_PRODUCT_CATEGORIES.join(', ')}`
       });
     }
+
+    updates.category = 'Frame';
+    updates.lens_type = null;
+    updates.regular_lens_price = null;
+    updates.photochromic_price = null;
+    if (updates.price !== undefined) updates.frame_only_price = updates.price;
 
     const imageDataItems = Array.isArray(updates.image_data_list) && updates.image_data_list.length
       ? updates.image_data_list

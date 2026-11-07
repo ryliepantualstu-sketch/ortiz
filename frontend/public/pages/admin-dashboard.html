@@ -1694,16 +1694,10 @@
                 <div class="modal-body">
                     <form id="productForm">
                         <input type="hidden" id="productId">
+                        <input type="hidden" id="productCategory" value="Frame">
                         <div class="mb-3">
-                            <label class="form-label">Product Name</label>
+                            <label class="form-label">Frame Name</label>
                             <input type="text" class="form-control" id="productName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-control" id="productCategory" required>
-                                <option value="">Select a category</option>
-                                <option value="Frame">Frame</option>
-                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
@@ -1712,10 +1706,6 @@
                         <div class="mb-3">
                             <label class="form-label">Frame Material</label>
                             <input type="text" class="form-control" id="productFrameMaterial" placeholder="e.g. Acetate">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Lens Type</label>
-                            <input type="text" class="form-control" id="productLensType" placeholder="e.g. Blue Light Blocking">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Frame Shape</label>
@@ -1728,24 +1718,11 @@
                         <div class="mb-3">
                             <label class="form-label">Color Hex</label>
                             <input type="text" class="form-control" id="productColorHex" placeholder="e.g. #000000">
-                            <div class="form-text">Optional precise color for glasses, using a hex value.</div>
+                            <div class="form-text">Optional precise frame color, using a hex value.</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Price</label>
+                            <label class="form-label">Frame Price</label>
                             <input type="number" class="form-control" id="productPrice" step="0.01" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Frame Only Price</label>
-                            <input type="number" class="form-control" id="productFrameOnlyPrice" step="0.01" placeholder="Optional">
-                            <div class="form-text">Leave blank to use the base product price if needed.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Regular Lens Price</label>
-                            <input type="number" class="form-control" id="productRegularLensPrice" step="0.01" placeholder="Optional">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Photochromic Price</label>
-                            <input type="number" class="form-control" id="productPhotochromicPrice" step="0.01" placeholder="Optional">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Stock Quantity</label>
@@ -1765,7 +1742,7 @@
                             <input type="text" class="form-control" id="productSupplier">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Product Pictures</label>
+                            <label class="form-label">Frame Pictures</label>
                             <input type="file" class="form-control" id="productImage" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
                             <div class="form-text">Upload 1 to 10 JPG, PNG, WEBP, or GIF images. Each image must be up to 5MB.</div>
                         </div>
@@ -2128,17 +2105,13 @@
             document.getElementById('productForm').reset();
             document.getElementById('productId').value = product?.product_id || '';
             document.getElementById('productName').value = product?.product_name || '';
-            document.getElementById('productCategory').value = product?.category || '';
+            document.getElementById('productCategory').value = 'Frame';
             document.getElementById('productDescription').value = product?.description || '';
             document.getElementById('productFrameMaterial').value = product?.frame_material || '';
-            document.getElementById('productLensType').value = product?.lens_type || '';
             document.getElementById('productFrameShape').value = product?.frame_shape || '';
             document.getElementById('productColorName').value = product?.color_name || '';
             document.getElementById('productColorHex').value = product?.color_hex || '';
-            document.getElementById('productPrice').value = product?.price || '';
-            document.getElementById('productFrameOnlyPrice').value = product?.frame_only_price || '';
-            document.getElementById('productRegularLensPrice').value = product?.regular_lens_price || '';
-            document.getElementById('productPhotochromicPrice').value = product?.photochromic_price || '';
+            document.getElementById('productPrice').value = product?.frame_only_price ?? product?.price ?? '';
             document.getElementById('productStock').value = product?.stock_quantity ?? 0;
             document.getElementById('productMinStock').value = product?.min_stock_level ?? 10;
             document.getElementById('productSupplier').value = product?.supplier || '';
@@ -2271,14 +2244,14 @@ This will deactivate the account and keep the user record for history.`)) {
                     category: document.getElementById('productCategory').value.trim(),
                     description: document.getElementById('productDescription').value.trim(),
                     frame_material: document.getElementById('productFrameMaterial').value.trim() || null,
-                    lens_type: document.getElementById('productLensType').value.trim() || null,
+                    lens_type: null,
                     frame_shape: document.getElementById('productFrameShape').value.trim() || null,
                     color_name: colorNameValue || null,
                     color_hex: normalizedColorHex ? `#${normalizedColorHex}` : null,
                     price: Number(document.getElementById('productPrice').value),
-                    frame_only_price: document.getElementById('productFrameOnlyPrice').value ? Number(document.getElementById('productFrameOnlyPrice').value) : null,
-                    regular_lens_price: document.getElementById('productRegularLensPrice').value ? Number(document.getElementById('productRegularLensPrice').value) : null,
-                    photochromic_price: document.getElementById('productPhotochromicPrice').value ? Number(document.getElementById('productPhotochromicPrice').value) : null,
+                    frame_only_price: Number(document.getElementById('productPrice').value),
+                    regular_lens_price: null,
+                    photochromic_price: null,
                     stock_quantity: Number(document.getElementById('productStock').value),
                     min_stock_level: Number(document.getElementById('productMinStock').value),
                     supplier: document.getElementById('productSupplier').value.trim() || null
