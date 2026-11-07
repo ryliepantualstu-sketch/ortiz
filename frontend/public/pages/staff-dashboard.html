@@ -1235,7 +1235,7 @@
             const checkupFee = Number(document.getElementById('prescriptionCheckupFee')?.value || 0);
             const total = frameTotal + lensPrice * quantity + checkupFee;
             const amount = document.getElementById('prescriptionPaymentAmount');
-            if (amount) amount.textContent = `Frame: ₱${frameTotal.toFixed(2)} + lenses: ₱${(lensPrice * quantity).toFixed(2)} + check-up: ₱${checkupFee.toFixed(2)} = ₱${total.toFixed(2)}`;
+            if (amount) amount.textContent = `Total: ₱${total.toFixed(2)}`;
         }
 
         function preventPrescriptionLetters(event) {
