@@ -20,6 +20,7 @@ const Holiday = require('../models/Holiday');
 const BlockedSlot = require('../models/BlockedSlot');
 const StaffServiceAssignment = require('../models/StaffServiceAssignment');
 const StockAuditLog = require('../models/StockAuditLog');
+const { getManilaToday } = require('../utils/orderPickup');
 const { archiveUser, restoreUser } = require('../utils/userLifecycle');
 const { WALK_IN_EMAIL } = require('../utils/walkIn');
 const PRODUCT_IMAGE_DIRECTORY = path.resolve(__dirname, '../../frontend/public/images/products');
@@ -250,9 +251,32 @@ router.get('/dashboard-stats', authMiddleware, requireRole('admin'), async (req,
     const totalUsers = await User.count();
     const activeUsers = await User.count({ where: { is_active: true } });
     const totalProducts = await Product.count();
-    const lowStockProducts = await Product.count({ where: { stock_quantity: { [require('sequelize').Op.lt]: 10 } } });
+    const inventory = await Product.findAll({ attributes: ['stock_quantity', 'min_stock_level', 'is_active'] });
+    const activeInventory = inventory.filter(product => product.is_active !== false);
+    const lowStockProducts = activeInventory.filter(product => Number(product.stock_quantity || 0) > 0 && Number(product.stock_quantity || 0) <= Number(product.min_stock_level || 10)).length;
+    const outOfStockProducts = activeInventory.filter(product => Number(product.stock_quantity || 0) <= 0).length;
     const totalOrders = await Order.count({ where: { reservation_only: false } });
     const pendingOrders = await Order.count({ where: { status: 'pending', reservation_only: false } });
+    const processingOrders = await Order.count({ where: { status: 'processing', reservation_only: false } });
+    const readyOrders = await Order.count({ where: { status: 'ready for pickup', reservation_only: false } });
+    const completedOrders = await Order.count({ where: { status: { [Op.in]: ['picked up', 'completed'] }, reservation_only: false } });
+    const totalCustomers = await Customer.count();
+    const appointmentsToday = await Appointment.count({
+      where: { appointment_date: getManilaToday(), status: { [Op.ne]: 'cancelled' } }
+    });
+    const paidOrderRevenue = await Order.sum('total_amount', { where: { payment_status: 'Paid', reservation_only: false } }) || 0;
+    const paidAppointments = await Appointment.findAll({
+      attributes: ['appointment_id', 'checkup_fee'],
+      where: { status: 'completed', payment_status: 'Paid', reservation_order_id: null }
+    });
+    const paidAppointmentIds = paidAppointments.map(appointment => appointment.appointment_id);
+    const appointmentsWithOrders = paidAppointmentIds.length
+      ? await Order.findAll({ attributes: ['prescription_appointment_id'], where: { prescription_appointment_id: { [Op.in]: paidAppointmentIds } } })
+      : [];
+    const appointmentIdsWithOrders = new Set(appointmentsWithOrders.map(order => Number(order.prescription_appointment_id)));
+    const standaloneCheckupRevenue = paidAppointments.reduce((sum, appointment) =>
+      appointmentIdsWithOrders.has(Number(appointment.appointment_id)) ? sum : sum + Number(appointment.checkup_fee || 0), 0);
+    const paidRevenue = Number(paidOrderRevenue) + standaloneCheckupRevenue;
 
     res.json({
       success: true,
@@ -260,9 +284,17 @@ router.get('/dashboard-stats', authMiddleware, requireRole('admin'), async (req,
         total_users: totalUsers,
         active_users: activeUsers,
         total_products: totalProducts,
+        active_products: activeInventory.length,
         low_stock_products: lowStockProducts,
         total_orders: totalOrders,
-        pending_orders: pendingOrders
+        pending_orders: pendingOrders,
+        processing_orders: processingOrders,
+        ready_orders: readyOrders,
+        completed_orders: completedOrders,
+        total_customers: totalCustomers,
+        appointments_today: appointmentsToday,
+        out_of_stock_products: outOfStockProducts,
+        paid_revenue: Number(paidRevenue)
       }
     });
   } catch (error) {
