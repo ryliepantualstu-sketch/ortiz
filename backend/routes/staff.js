@@ -366,13 +366,66 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     }
     if (staff_id) updates.assigned_staff_id = staff_id;
 
-    await appointment.update(updates);
+    let completedReservationOrder = null;
+    if (status && status.toLowerCase() === 'completed' && appointment.reservation_order_id) {
+      const lensOption = req.body.lens_option || 'regular-lens';
+      if (!['regular-lens', 'photochromic'].includes(lensOption)) {
+        return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
+      }
+      const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'A complete prescription is required to complete this reserved-frame checkup'
+        });
+      }
+      Object.assign(updates, prescription);
+
+      await sequelize.transaction(async (transaction) => {
+        await appointment.update(updates, { transaction });
+        const reservedOrder = await Order.findByPk(appointment.reservation_order_id, {
+          include: [{ model: OrderItem, include: [{ model: Product }] }],
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!reservedOrder || !reservedOrder.reservation_only || String(reservedOrder.status).toLowerCase() !== 'processing') {
+          throw Object.assign(new Error('The linked frame reservation is no longer available'), { status: 409 });
+        }
+
+        const items = reservedOrder.OrderItems || [];
+        if (!items.length || items.some((item) => !item.Product)) {
+          throw Object.assign(new Error('The reserved frame item could not be found'), { status: 409 });
+        }
+        let totalAmount = 0;
+        for (const item of items) {
+          const price = Number(getPriceByLensOption(item.Product, lensOption));
+          const subtotal = Number((price * Number(item.quantity || 0)).toFixed(2));
+          totalAmount += subtotal;
+          await item.update({ price, subtotal, lens_option: lensOption }, { transaction });
+        }
+        await reservedOrder.update({
+          ...prescription,
+          prescription_appointment_id: appointment.appointment_id,
+          total_amount: Number(totalAmount.toFixed(2)),
+          reservation_only: false,
+          status: 'processing',
+          notes: `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
+        }, { transaction });
+        completedReservationOrder = reservedOrder;
+      });
+    } else {
+      await appointment.update(updates);
+    }
 
     try {
       const customerRecord = await Customer.findByPk(appointment.customer_id, {
         include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }]
       });
       if (customerRecord && customerRecord.User) {
+        if (completedReservationOrder) {
+          notifyOrderUpdate({ user: customerRecord.User, order: completedReservationOrder, status: 'processing' })
+            .catch(e => console.error(e));
+        }
         notifyAppointmentUpdate({
           user: customerRecord.User,
           appointment,
@@ -385,11 +438,14 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 
     res.json({
       success: true,
-      message: 'Appointment updated successfully',
-      appointment
+      message: completedReservationOrder
+        ? 'Checkup completed. The reserved frame and prescription are saved as an order for lens customization.'
+        : 'Appointment updated successfully',
+      appointment,
+      order: completedReservationOrder
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
       message: 'Failed to update appointment',
       error: error.message
@@ -556,6 +612,12 @@ router.post('/appointments/:id/orders', authMiddleware, requireRole('staff'), as
       return res.status(404).json({
         success: false,
         message: 'Completed eye checkup not found'
+      });
+    }
+    if (appointment.reservation_order_id) {
+      return res.status(409).json({
+        success: false,
+        message: 'This checkup already updates the frame reserved by the customer. Do not create another glasses order.'
       });
     }
 
