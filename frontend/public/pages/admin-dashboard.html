@@ -1032,7 +1032,7 @@
                     <li><a class="nav-link" href="#" onclick="return loadSection('users', event)"><i class="fas fa-users"></i><span>Users</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('customers', event)"><i class="fas fa-user-friends"></i><span>Customers</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('products', event)"><i class="fas fa-cubes"></i><span>Products</span></a></li>
-                    <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-bag-shopping"></i><span>Orders</span></a></li>
+                    <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-glasses"></i><span>Reservations</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('schedule', event)"><i class="fas fa-calendar-alt"></i><span>Schedule Management</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('inventory', event)"><i class="fas fa-warehouse"></i><span>Inventory</span></a></li>
@@ -1066,14 +1066,14 @@
                         <div class="row g-3 mb-4" id="statsContainer">
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Customers</span><span class="admin-metric-icon blue"><i class="fas fa-user-group"></i></span></div><div class="admin-metric-value" id="stat-customers">—</div><div class="admin-metric-foot">Registered customer accounts</div></div></div>
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Appointments today</span><span class="admin-metric-icon teal"><i class="fas fa-calendar-day"></i></span></div><div class="admin-metric-value" id="stat-appointments-today">—</div><div class="admin-metric-foot">Scheduled clinic visits</div></div></div>
-                            <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Pending orders</span><span class="admin-metric-icon amber"><i class="fas fa-bag-shopping"></i></span></div><div class="admin-metric-value" id="stat-orders">—</div><div class="admin-metric-foot">Waiting for staff action</div></div></div>
+                            <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Pending reservations</span><span class="admin-metric-icon amber"><i class="fas fa-glasses"></i></span></div><div class="admin-metric-value" id="stat-orders">—</div><div class="admin-metric-foot">Waiting for staff action</div></div></div>
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Stock alerts</span><span class="admin-metric-icon rose"><i class="fas fa-triangle-exclamation"></i></span></div><div class="admin-metric-value" id="stat-stock-alerts">—</div><div class="admin-metric-foot" id="stat-stock-note">Low or out of stock</div></div></div>
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Paid revenue</span><span class="admin-metric-icon green"><i class="fas fa-peso-sign"></i></span></div><div class="admin-metric-value admin-metric-money" id="stat-revenue">—</div><div class="admin-metric-foot">Orders and check-up only fees</div></div></div>
                         </div>
 
                         <div class="admin-quick-actions mb-4">
                             <div><span class="admin-quick-title">Quick access</span><span class="admin-quick-subtitle">Jump to the work you need</span></div>
-                            <button type="button" onclick="loadSection('orders')"><i class="fas fa-list-check"></i><span>Manage orders</span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" onclick="loadSection('orders')"><i class="fas fa-list-check"></i><span>Manage reservations</span><i class="fas fa-arrow-right"></i></button>
                             <button type="button" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Manage frames</span><i class="fas fa-arrow-right"></i></button>
                             <button type="button" onclick="loadSection('reports')"><i class="fas fa-chart-column"></i><span>View reports</span><i class="fas fa-arrow-right"></i></button>
                         </div>
@@ -1090,15 +1090,15 @@
                             </div>
                         </div>
 
-                        <!-- Recent Orders Table -->
+                        <!-- Recent Reservations Table -->
                         <div class="table-container">
                             <div class="p-4">
-                                <div class="admin-table-heading"><div><h5>Recent Orders</h5><p>Latest customer activity and order status.</p></div><button type="button" class="btn btn-sm btn-outline-primary" onclick="loadSection('orders')">View all <i class="fas fa-arrow-right ms-1"></i></button></div>
+                                <div class="admin-table-heading"><div><h5>Recent Reservations</h5><p>Latest frame reservations and their status.</p></div><button type="button" class="btn btn-sm btn-outline-primary" onclick="loadSection('orders')">View all <i class="fas fa-arrow-right ms-1"></i></button></div>
                                 <div class="table-responsive">
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>Order ID</th>
+                                                <th>Reservation ID</th>
                                                 <th>Customer</th>
                                                 <th>Amount</th>
                                                 <th>Status</th>
@@ -1291,15 +1291,15 @@
                     </div>
 
 
-                    <!-- Orders Section -->
+                    <!-- Reservations Section -->
                     <div id="ordersSection" style="display: none;">
-                        <h4 class="mb-4">Order Management</h4>
+                        <h4 class="mb-4">Reservation Management</h4>
                         <div class="table-container">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Order ID</th>
+                                            <th>Reservation ID</th>
                                             <th>Customer</th>
                                             <th>Amount</th>
                                             <th>Status</th>
@@ -2512,7 +2512,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     loadProducts();
                     break;
                 case 'orders':
-                    document.getElementById('pageTitle').textContent = 'Orders';
+                    document.getElementById('pageTitle').textContent = 'Reservations';
                     document.getElementById('ordersSection').style.display = 'block';
                     loadAllOrders();
                     break;
