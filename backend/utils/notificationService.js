@@ -48,11 +48,7 @@ async function sendEmailNotification({ to, subject, html, text }) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM;
-    const hasSmtpCredentials = Boolean(
-      (process.env.GMAIL_USER || process.env.SMTP_USER) &&
-      (process.env.GMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD)
-    );
-    if (!hasSmtpCredentials && resendApiKey && resendFrom) {
+    if (resendApiKey && resendFrom) {
       const response = await new Promise((resolve, reject) => {
         const payload = JSON.stringify({
           from: resendFrom,
