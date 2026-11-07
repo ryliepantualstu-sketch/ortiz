@@ -389,6 +389,10 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
         return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
       }
+      const lensPrice = Number(req.body.lens_price);
+      if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
+      }
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
       if (error) {
         return res.status(400).json({
@@ -418,10 +422,11 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         }
         let totalAmount = 0;
         for (const item of items) {
-          const price = Number(getPriceByLensOption(item.Product, lensOption));
+          const framePrice = Number(item.frame_price ?? item.Product.frame_only_price ?? item.Product.price ?? 0);
+          const price = Number((framePrice + lensPrice).toFixed(2));
           const subtotal = Number((price * Number(item.quantity || 0)).toFixed(2));
           totalAmount += subtotal;
-          await item.update({ price, subtotal, lens_option: lensOption }, { transaction });
+          await item.update({ frame_price: framePrice, lens_price: lensPrice, price, subtotal, lens_option: lensOption }, { transaction });
         }
         await reservedOrder.update({
           ...prescription,

@@ -35,6 +35,14 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
+  frame_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  lens_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
   lens_option: {
     type: DataTypes.STRING(100),
     allowNull: true,

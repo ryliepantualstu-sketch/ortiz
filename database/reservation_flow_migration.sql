@@ -7,3 +7,7 @@ ALTER TABLE appointments
     ADD INDEX idx_appointments_reservation_order (reservation_order_id),
     ADD CONSTRAINT fk_appointments_reservation_order
         FOREIGN KEY (reservation_order_id) REFERENCES orders(order_id) ON DELETE SET NULL;
+
+ALTER TABLE order_items
+    ADD COLUMN frame_price DECIMAL(10, 2) NULL,
+    ADD COLUMN lens_price DECIMAL(10, 2) NULL;

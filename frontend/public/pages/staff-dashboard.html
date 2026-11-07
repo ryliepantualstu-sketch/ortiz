@@ -1193,6 +1193,8 @@
                 .classList.toggle('d-none', Boolean(appointment?.reservation_order_id));
             document.getElementById('prescriptionLensOptionRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
+            document.getElementById('prescriptionLensPriceRow')
+                .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionPaymentOptionRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
@@ -1205,20 +1207,32 @@
             form.reset();
             form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
             document.getElementById('prescriptionAppointmentId').value = appointmentId;
-            updateReservationPaymentAmount();
+            updateReservationPaymentAmount(true);
             bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
         }
 
-        function updateReservationPaymentAmount() {
+        function updateReservationPaymentAmount(resetLensPrice = false) {
             const appointmentId = Number(document.getElementById('prescriptionAppointmentId')?.value);
             const appointment = staffAppointmentsById.get(appointmentId);
             const reservation = appointment?.frame_reservation_order;
             const lensOption = document.getElementById('prescriptionLensOption')?.value || 'regular-lens';
-            const total = (reservation?.OrderItems || []).reduce((sum, item) => {
-                return sum + walkInPrice(item.Product || {}, lensOption) * Number(item.quantity || 0);
+            const items = reservation?.OrderItems || [];
+            const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            const frameTotal = items.reduce((sum, item) => {
+                const framePrice = Number(item.frame_price ?? item.Product?.frame_only_price ?? item.Product?.price ?? 0);
+                return sum + framePrice * Number(item.quantity || 0);
             }, 0);
+            const lensPriceInput = document.getElementById('prescriptionLensPrice');
+            if (lensPriceInput && resetLensPrice) {
+                const firstItem = items[0];
+                const framePrice = Number(firstItem?.frame_price ?? firstItem?.Product?.frame_only_price ?? firstItem?.Product?.price ?? 0);
+                const configuredTotal = walkInPrice(firstItem?.Product || {}, lensOption);
+                lensPriceInput.value = Math.max(0, configuredTotal - framePrice).toFixed(2);
+            }
+            const lensPrice = Number(lensPriceInput?.value || 0);
+            const total = frameTotal + lensPrice * quantity;
             const amount = document.getElementById('prescriptionPaymentAmount');
-            if (amount) amount.textContent = `Amount to collect: ₱${total.toFixed(2)}`;
+            if (amount) amount.textContent = `Fixed frame total: ₱${frameTotal.toFixed(2)} + lens: ₱${lensPrice.toFixed(2)} × ${quantity} = ₱${total.toFixed(2)}`;
         }
 
         function preventPrescriptionLetters(event) {
@@ -1263,9 +1277,10 @@
             console.log('updateAppointmentStatus called', { appointmentId, status });
             const payload = { status };
             if (prescription) {
-                const { lens_option, payment_method, ...prescriptionValues } = prescription;
+                const { lens_option, lens_price, payment_method, ...prescriptionValues } = prescription;
                 payload.prescription = prescriptionValues;
                 if (lens_option) payload.lens_option = lens_option;
+                if (lens_price !== undefined) payload.lens_price = lens_price;
                 if (payment_method) payload.payment_method = payment_method;
             }
             if ((status || '').toLowerCase() === 'confirmed') {
@@ -2065,11 +2080,16 @@
           <p class="small text-muted">Enter the values from the examination if available. Sphere is required when saving a prescription; axis is required when cylinder is not zero.</p>
           <div class="mb-3 d-none" id="prescriptionLensOptionRow">
             <label class="form-label fw-semibold" for="prescriptionLensOption">Lens customization</label>
-            <select class="form-select" id="prescriptionLensOption" name="lens_option" onchange="updateReservationPaymentAmount()">
+            <select class="form-select" id="prescriptionLensOption" name="lens_option" onchange="updateReservationPaymentAmount(true)">
               <option value="regular-lens" selected>Regular lens</option>
               <option value="photochromic">Photochromic</option>
             </select>
             <div class="form-text">The reserved frame and prescription will be used for this customer order.</div>
+          </div>
+          <div class="mb-3 d-none" id="prescriptionLensPriceRow">
+            <label class="form-label fw-semibold" for="prescriptionLensPrice">Lens price per pair</label>
+            <input class="form-control" id="prescriptionLensPrice" name="lens_price" type="number" min="0" step="0.01" value="0.00" oninput="updateReservationPaymentAmount()">
+            <div class="form-text">The frame price is fixed from the product record. Staff may adjust the lens price.</div>
           </div>
           <div class="mb-3 d-none" id="prescriptionPaymentOptionRow">
             <div class="fw-bold fs-5 mb-2" id="prescriptionPaymentAmount">Amount to collect: ₱0.00</div>

@@ -1111,6 +1111,8 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
         quantity: cartItem.quantity,
         price: 0,
         subtotal: 0,
+        frame_price: Number(cartItem.Product?.frame_only_price || cartItem.Product?.price || 0),
+        lens_price: 0,
         lens_option: 'frame-only'
       });
     }
