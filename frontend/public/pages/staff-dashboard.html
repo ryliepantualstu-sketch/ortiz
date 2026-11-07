@@ -1883,9 +1883,26 @@
             if (document.getElementById('ordersSection').style.display !== 'none') await loadOrders();
         }
 
-        function openStaffPickupModal(orderId) {
+        async function openStaffPickupModal(orderId) {
             if (!orderId) return;
-            viewStaffOrder(orderId);
+            const result = await apiCall(`/staff/orders/${orderId}`);
+            if (!result?.success || !result.order) {
+                alert(result?.message || 'Failed to load this order.');
+                return;
+            }
+
+            const order = result.order;
+            if (String(order.status || '').toLowerCase() !== 'ready for pickup') {
+                alert('Mark Picked Up is available after the finished product is marked Ready for Pickup.');
+                return;
+            }
+            if (String(order.payment_status || '').toLowerCase() !== 'paid') {
+                alert('Collect and record payment before the customer claims the finished product.');
+                return;
+            }
+
+            loadSection('qr');
+            startQrScanner();
         }
 
         // Walk-in sale
