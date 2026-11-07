@@ -1301,6 +1301,11 @@
                 bootstrap.Modal.getOrCreateInstance(prescriptionModal).hide();
             }
 
+            if ((status || '').toLowerCase() === 'completed' && result.order && String(result.order.payment_status || '').toLowerCase() === 'paid') {
+                window.currentReceiptOrder = result.order;
+                showOrderReceipt(result.order);
+            }
+
             // Refresh only the visible section to avoid switching views
             // Update dashboard stats in background without reloading appointments list
             updateDashboardStats().catch(() => {});
@@ -1748,7 +1753,7 @@
                 const isReadyAndPaid = orderStatus === 'ready for pickup' && String(order.payment_status || '').toLowerCase() === 'paid';
                 const claimQrVerified = Number(window.verifiedOrderPickup?.order_id) === Number(order.order_id);
                 const isFinal = ['picked up', 'picked-up', 'cancelled'].includes(orderStatus);
-                document.getElementById('staffReceiptBtn').classList.toggle('d-none', !['picked up', 'picked-up'].includes(orderStatus));
+                document.getElementById('staffReceiptBtn').classList.toggle('d-none', !paymentFinal && !['picked up', 'picked-up'].includes(orderStatus));
                 document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal || !isReadyAndPaid || !claimQrVerified);
                 document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];

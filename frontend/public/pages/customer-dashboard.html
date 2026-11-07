@@ -3638,7 +3638,8 @@
             }
 
             window.currentReceiptOrder = order;
-            document.getElementById('customerReceiptBtn').classList.toggle('d-none', !['picked up', 'completed'].includes(normalizeStatus(order.status)));
+            const isPaid = String(order.payment_status || '').toLowerCase() === 'paid';
+            document.getElementById('customerReceiptBtn').classList.toggle('d-none', !isPaid && !['picked up', 'completed'].includes(normalizeStatus(order.status)));
             const items = getOrderItems(order);
             const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal || item.price || 0), 0);
             const discountLabel = order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None';
