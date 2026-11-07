@@ -2098,9 +2098,9 @@
             <div class="form-text">The frame price is fixed from the product record. Staff may adjust the lens price.</div>
           </div>
           <div class="mb-3 d-none" id="prescriptionPaymentOptionRow">
-            <div class="fw-bold fs-5 mb-2" id="prescriptionPaymentAmount">Total: ₱0.00</div>
             <label class="form-label fw-semibold" for="prescriptionCheckupFee">Eye check-up fee</label>
             <input class="form-control mb-3" id="prescriptionCheckupFee" name="checkup_fee" type="number" min="0" step="0.01" placeholder="Enter check-up fee" oninput="updateReservationPaymentAmount()">
+            <div class="fw-bold fs-5 mb-3" id="prescriptionPaymentAmount">Total: ₱0.00</div>
             <label class="form-label fw-semibold" for="prescriptionPaymentMethod">Payment method</label>
             <select class="form-select" id="prescriptionPaymentMethod" name="payment_method">
               <option value="Cash" selected>Cash</option>
