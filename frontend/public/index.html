@@ -99,6 +99,107 @@
             margin-bottom: 16px;
         }
 
+        .email-verification-card {
+            margin-top: 14px;
+            padding: 16px;
+            border: 1px solid #dbe5f5;
+            border-radius: 14px;
+            background: linear-gradient(145deg, #f7f9ff 0%, #f2f7fb 100%);
+        }
+
+        .email-verification-heading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .email-verification-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            place-items: center;
+            border-radius: 12px;
+            background: #e7edff;
+            color: #586bd7;
+            font-size: 1.05rem;
+        }
+
+        .email-verification-heading h3 {
+            margin: 0 0 3px;
+            color: #263653;
+            font-size: 0.98rem;
+            font-weight: 700;
+        }
+
+        .email-verification-heading p {
+            margin: 0;
+            color: #718096;
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+
+        .email-verification-button {
+            width: 100%;
+            padding: 10px 14px;
+            border: 0;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: box-shadow 160ms ease, transform 160ms ease, opacity 160ms ease;
+        }
+
+        .email-verification-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(102, 126, 234, 0.24);
+        }
+
+        .email-verification-button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        .otp-field-group {
+            margin: 15px 0 0;
+        }
+
+        .otp-code-input {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.48rem;
+            padding-left: 1.1rem;
+        }
+
+        .otp-helper-text {
+            display: block;
+            margin-top: 7px;
+            color: #718096;
+            font-size: 0.77rem;
+        }
+
+        .email-verification-status {
+            display: none;
+            margin: 11px 0 0;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .email-verification-status.is-visible {
+            display: block;
+        }
+
+        .email-verification-status.is-success {
+            color: #16805d;
+        }
+
+        .email-verification-status.is-error {
+            color: #b42318;
+        }
+
         .form-label {
             font-weight: 500;
             color: #333;
@@ -332,11 +433,23 @@
                                 <i class="fas fa-envelope"></i> Email Address
                             </label>
                             <input type="email" class="form-control" id="registerEmail" name="email" placeholder="yourname@gmail.com" pattern="[A-Za-z0-9._%+\-]+@[Gg][Mm][Aa][Ii][Ll]\.[Cc][Oo][Mm]" title="Enter your Gmail address (example@gmail.com)" required>
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="sendRegisterOtpBtn">Send verification code</button>
-                            <div id="registerOtpGroup" class="form-group mt-3" hidden>
-                                <label class="form-label" for="registerOtp"><i class="fas fa-shield-alt"></i> Email verification code</label>
-                                <input type="text" class="form-control" id="registerOtp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code">
-                                <small class="text-muted">Check your Gmail inbox. The code expires in 10 minutes.</small>
+                            <div class="email-verification-card">
+                                <div class="email-verification-heading">
+                                    <span class="email-verification-icon"><i class="fas fa-shield-alt"></i></span>
+                                    <div>
+                                        <h3>Verify your email</h3>
+                                        <p>We’ll send a one-time code to this Gmail address.</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="email-verification-button" id="sendRegisterOtpBtn">
+                                    <i class="fas fa-paper-plane me-2" aria-hidden="true"></i>Send verification code
+                                </button>
+                                <div id="registerOtpGroup" class="otp-field-group" hidden>
+                                    <label class="form-label" for="registerOtp">6-digit verification code</label>
+                                    <input type="text" class="form-control otp-code-input" id="registerOtp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••">
+                                    <small class="otp-helper-text">Check your inbox or spam folder. The code expires in 10 minutes.</small>
+                                </div>
+                                <p id="registerOtpStatus" class="email-verification-status" role="status" aria-live="polite"></p>
                             </div>
                         </div>
 
@@ -657,15 +770,23 @@
             }
 
             const button = document.getElementById('sendRegisterOtpBtn');
+            const status = document.getElementById('registerOtpStatus');
             button.disabled = true;
+            button.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2" aria-hidden="true"></i>Sending code…';
+            status.textContent = '';
+            status.className = 'email-verification-status';
             const result = await apiCall('/auth/register/request-otp', 'POST', { email });
             button.disabled = false;
             if (result.success) {
                 document.getElementById('registerOtpGroup').hidden = false;
+                button.innerHTML = '<i class="fas fa-redo-alt me-2" aria-hidden="true"></i>Resend verification code';
                 document.getElementById('registerOtp').focus();
-                alert(result.message || 'Verification code sent. Check your Gmail inbox.');
+                status.textContent = result.message || 'Verification code sent. Check your Gmail inbox.';
+                status.className = 'email-verification-status is-visible is-success';
             } else {
-                showError('register', result.message || 'Unable to send verification code. Please try again.');
+                button.innerHTML = '<i class="fas fa-paper-plane me-2" aria-hidden="true"></i>Send verification code';
+                status.textContent = result.message || 'Unable to send verification code. Please try again.';
+                status.className = 'email-verification-status is-visible is-error';
             }
         });
         const registerPhoneInput = document.getElementById('registerPhone');
