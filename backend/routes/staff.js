@@ -23,6 +23,7 @@ const {
   findLatestWalkInClaimCodeByIdentity,
   normalizeWalkInClaimCode
 } = require('../utils/walkInClaim');
+const { getManilaToday } = require('../utils/orderPickup');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -81,40 +82,26 @@ async function attachAppointmentVerificationDetails(appointments) {
 // Get dashboard stats
 router.get('/dashboard-stats', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = getManilaToday();
 
-    const todaysAppointments = await Appointment.count({
-      where: {
-        appointment_date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
-      }
-    });
-
-    const pendingOrders = await Order.count({
-      where: { status: 'pending' }
-    });
-
-    const completedToday = await Appointment.count({
-      where: {
-        appointment_date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        },
-        status: 'completed'
-      }
-    });
+    const [todaysAppointments, pendingOrders, completedToday, pendingAppointments, pendingReservations, readyForPickup] = await Promise.all([
+      Appointment.count({ where: { appointment_date: today } }),
+      Order.count({ where: { status: 'pending' } }),
+      Appointment.count({ where: { appointment_date: today, status: 'completed' } }),
+      Appointment.count({ where: { status: 'pending' } }),
+      Order.count({ where: { reservation_only: true, status: 'pending' } }),
+      Order.count({ where: { status: 'ready for pickup', payment_status: 'Paid' } })
+    ]);
 
     res.json({
       success: true,
       stats: {
         todays_appointments: todaysAppointments,
         pending_orders: pendingOrders,
-        completed_today: completedToday
+        completed_today: completedToday,
+        pending_appointments: pendingAppointments,
+        pending_reservations: pendingReservations,
+        ready_for_pickup: readyForPickup
       }
     });
   } catch (error) {
@@ -129,17 +116,11 @@ router.get('/dashboard-stats', authMiddleware, requireRole('staff'), async (req,
 // Get today's appointments
 router.get('/appointments/today', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = getManilaToday();
 
     const appointments = await Appointment.findAll({
       where: {
-        appointment_date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
+        appointment_date: today
       },
       include: [
         {

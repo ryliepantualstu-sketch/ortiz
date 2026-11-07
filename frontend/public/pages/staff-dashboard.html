@@ -344,6 +344,30 @@
             margin-bottom: 30px;
         }
 
+        .staff-welcome-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 28px 32px;
+            border-radius: 20px;
+            color: #fff;
+            background: linear-gradient(120deg, #173b50 0%, #226b83 58%, #2d8c9c 100%);
+            box-shadow: 0 12px 30px rgba(24, 72, 91, 0.18);
+        }
+
+        .staff-welcome-panel h3 {
+            color: #fff;
+            font-weight: 800;
+            font-size: clamp(1.4rem, 2vw, 2rem);
+        }
+
+        .staff-welcome-panel p { color: rgba(255,255,255,.78); }
+        .staff-welcome-kicker { display: block; margin-bottom: 8px; font-size: .72rem; font-weight: 800; letter-spacing: .15em; color: #9fe7ec; }
+        .staff-quick-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .staff-quick-actions .btn { padding: 11px 15px; border: 0; border-radius: 11px; font-weight: 700; color: #173b50; }
+        .staff-quick-actions .btn:hover { background: #dff7f8; transform: translateY(-1px); }
+
         .stat-card {
             background: white;
             padding: 28px;
@@ -421,6 +445,16 @@
 
         .stat-card:nth-child(3) .stat-icon {
             background: linear-gradient(135deg, #ffc107 0%, #ff9c00 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(4) .stat-icon {
+            background: linear-gradient(135deg, #6f42c1 0%, #5632a3 100%);
+            color: white;
+        }
+
+        .stat-card:nth-child(5) .stat-icon {
+            background: linear-gradient(135deg, #20c997 0%, #12a876 100%);
             color: white;
         }
 
@@ -648,6 +682,8 @@
                 text-align: center;
             }
 
+            .staff-welcome-panel { align-items: flex-start; flex-direction: column; padding: 24px; }
+
             .stat-icon {
                 width: 50px;
                 height: 50px;
@@ -860,6 +896,18 @@
             <div id="content" style="flex: 1; overflow-y: auto;">
                 <!-- Dashboard Section -->
                 <div id="dashboardSection">
+                    <div class="staff-welcome-panel mb-4">
+                        <div>
+                            <span class="staff-welcome-kicker">STAFF OVERVIEW</span>
+                            <h3 class="mb-1">Welcome back, <span id="staffWelcomeName">Staff</span></h3>
+                            <p class="mb-0" id="staffDashboardDate">Here’s what needs your attention today.</p>
+                        </div>
+                        <div class="staff-quick-actions">
+                            <button class="btn btn-light" onclick="loadSection('appointments', event)"><i class="fas fa-calendar-check me-2"></i>Appointments</button>
+                            <button class="btn btn-light" onclick="loadSection('orders', event)"><i class="fas fa-box me-2"></i>Orders</button>
+                            <button class="btn btn-light" onclick="loadSection('qr', event)"><i class="fas fa-qrcode me-2"></i>Scan QR</button>
+                        </div>
+                    </div>
                     <!-- Stats Cards -->
                     <div id="statsContainer">
                         <div class="stat-card">
@@ -876,8 +924,22 @@
                                 <i class="fas fa-shopping-cart"></i>
                             </div>
                             <div class="stat-content">
-                                <h6>Pending Orders</h6>
-                                <div class="value" id="stat-orders">-</div>
+                                <h6>Frame Reservations</h6>
+                                <div class="value" id="stat-reservations">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="stat-content">
+                                <h6>Needs Confirmation</h6>
+                                <div class="value" id="stat-pending-appointments">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-box-open"></i></div>
+                            <div class="stat-content">
+                                <h6>Ready for Pickup</h6>
+                                <div class="value" id="stat-ready-pickup">-</div>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -1454,12 +1516,19 @@
 
         async function loadDashboard() {
             try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                document.getElementById('staffWelcomeName').textContent = user.full_name || user.name || 'Staff';
+                document.getElementById('staffDashboardDate').textContent = new Date().toLocaleDateString('en-PH', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
                 const result = await apiCall('/staff/dashboard-stats');
                 console.log('Dashboard result:', result);
                 
                 if (result && result.success && result.stats) {
                     document.getElementById('stat-appointments').textContent = result.stats.todays_appointments || 0;
-                    document.getElementById('stat-orders').textContent = result.stats.pending_orders || 0;
+                    document.getElementById('stat-reservations').textContent = result.stats.pending_reservations || 0;
+                    document.getElementById('stat-pending-appointments').textContent = result.stats.pending_appointments || 0;
+                    document.getElementById('stat-ready-pickup').textContent = result.stats.ready_for_pickup || 0;
                     document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
                     await loadAppointments();
                 }
@@ -1474,7 +1543,9 @@
                 const result = await apiCall('/staff/dashboard-stats');
                 if (result && result.success && result.stats) {
                     document.getElementById('stat-appointments').textContent = result.stats.todays_appointments || 0;
-                    document.getElementById('stat-orders').textContent = result.stats.pending_orders || 0;
+                    document.getElementById('stat-reservations').textContent = result.stats.pending_reservations || 0;
+                    document.getElementById('stat-pending-appointments').textContent = result.stats.pending_appointments || 0;
+                    document.getElementById('stat-ready-pickup').textContent = result.stats.ready_for_pickup || 0;
                     document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
                 }
             } catch (err) {
