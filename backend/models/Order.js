@@ -68,6 +68,11 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: false
   },
+  reservation_only: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   walk_in_claim_code: {
     type: DataTypes.STRING(12),
     allowNull: true

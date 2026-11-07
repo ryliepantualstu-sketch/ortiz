@@ -86,6 +86,7 @@ CREATE TABLE inventory (
 CREATE TABLE appointments (
     appointment_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
+    reservation_order_id INT NULL,
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
     duration_minutes INT DEFAULT 30,
@@ -106,6 +107,7 @@ CREATE TABLE appointments (
     FOREIGN KEY (created_by) REFERENCES users(user_id),
     INDEX (appointment_date),
     INDEX (status),
+    INDEX idx_appointments_reservation_order (reservation_order_id),
     UNIQUE KEY unique_appointment_slot (appointment_date, appointment_time)
 );
 
@@ -132,6 +134,7 @@ CREATE TABLE orders (
     delivery_address VARCHAR(255),
     notes TEXT,
     pickup_date DATE NULL,
+    reservation_only BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
@@ -141,6 +144,10 @@ CREATE TABLE orders (
     INDEX idx_orders_walk_in_claim_code (walk_in_claim_code),
     INDEX (customer_id)
 );
+
+ALTER TABLE appointments
+    ADD CONSTRAINT fk_appointments_reservation_order
+    FOREIGN KEY (reservation_order_id) REFERENCES orders(order_id) ON DELETE SET NULL;
 
 CREATE TABLE order_items (
     order_item_id INT AUTO_INCREMENT PRIMARY KEY,

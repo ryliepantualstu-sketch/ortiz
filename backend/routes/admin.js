@@ -251,8 +251,8 @@ router.get('/dashboard-stats', authMiddleware, requireRole('admin'), async (req,
     const activeUsers = await User.count({ where: { is_active: true } });
     const totalProducts = await Product.count();
     const lowStockProducts = await Product.count({ where: { stock_quantity: { [require('sequelize').Op.lt]: 10 } } });
-    const totalOrders = await Order.count();
-    const pendingOrders = await Order.count({ where: { status: 'pending' } });
+    const totalOrders = await Order.count({ where: { reservation_only: false } });
+    const pendingOrders = await Order.count({ where: { status: 'pending', reservation_only: false } });
 
     res.json({
       success: true,
@@ -847,6 +847,7 @@ router.put('/appointments/:id/status', authMiddleware, requireRole('admin'), asy
 router.get('/orders', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const orders = await Order.findAll({
+      where: { reservation_only: false },
       include: [
         {
           model: Customer,
@@ -1315,7 +1316,7 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
             attributes: ['product_id', 'product_name', 'category']
           }]
         }],
-        where: date_from || date_to ? { order_date: dateRange } : {},
+        where: date_from || date_to ? { reservation_only: false, order_date: dateRange } : { reservation_only: false },
         order: [['order_date', 'DESC']]
       });
 

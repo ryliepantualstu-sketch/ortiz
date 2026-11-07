@@ -16,12 +16,11 @@ const BlockedSlot = require('../models/BlockedSlot');
 const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime, isSundayDate } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
-const { createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
+const { attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const { isValidPickupDate } = require('../utils/orderPickup');
 
 const { getPriceByLensOption } = require('../utils/pricing');
-const { normalizePrescription } = require('../utils/prescription');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
 
 router.put('/password', authMiddleware, requireRole('customer'), async (req, res) => {
@@ -596,6 +595,26 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
 
     const customer = await getOrCreateCustomerRecord(Customer, req.user.user_id, user.phone || null);
 
+    const reservationOrderId = Number(req.body.reservation_order_id);
+    if (service_type === 'Eye Checkup') {
+      if (!Number.isInteger(reservationOrderId) || reservationOrderId < 1) {
+        return res.status(400).json({ success: false, message: 'Select a staff-confirmed frame reservation before scheduling your eye checkup' });
+      }
+      const reservation = await Order.findOne({ where: {
+        order_id: reservationOrderId,
+        customer_id: customer.customer_id,
+        reservation_only: true,
+        status: 'processing'
+      } });
+      if (!reservation) {
+        return res.status(409).json({ success: false, message: 'This frame reservation has not been confirmed by staff' });
+      }
+      const existingReservationAppointment = await Appointment.findOne({ where: { reservation_order_id: reservationOrderId, status: { [Op.ne]: 'cancelled' } } });
+      if (existingReservationAppointment) {
+        return res.status(409).json({ success: false, message: 'A checkup is already scheduled for this frame reservation' });
+      }
+    }
+
     // Basic validation of date/time
     if (!appointment_date || !appointment_time) {
       return res.status(400).json({ success: false, message: 'appointment_date and appointment_time are required' });
@@ -718,6 +737,7 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
 
     const appointment = await Appointment.create({
       customer_id: customer.customer_id,
+      reservation_order_id: service_type === 'Eye Checkup' ? reservationOrderId : null,
       appointment_date,
       appointment_time,
       service_type,
@@ -1048,11 +1068,9 @@ router.patch('/appointments/:id/cancel', authMiddleware, requireRole('customer')
   }
 });
 
-// Create order from cart
+// Submit a frame reservation from the customer's cart. Staff approval is required before scheduling.
 router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
-    const { notes } = req.body;
-    const submittedAddress = typeof req.body.address === 'string' ? req.body.address.trim() : '';
     const user = await User.findByPk(req.user.user_id);
     if (!user) {
       return res.status(401).json({
@@ -1076,116 +1094,25 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       });
     }
 
-    let orderPrescription = null;
-    if (req.body.prescription_appointment_id) {
-      if (req.body.prescription) {
-        return res.status(400).json({
-          success: false,
-          message: 'Choose either an exam prescription or enter a prescription manually'
-        });
-      }
-      const appointmentId = Number(req.body.prescription_appointment_id);
-      if (!Number.isInteger(appointmentId) || appointmentId < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Choose a valid completed eye checkup'
-        });
-      }
-      const appointment = await Appointment.findOne({
-        where: {
-          appointment_id: appointmentId,
-          customer_id: customer.customer_id,
-          status: 'completed',
-          service_type: 'Eye Checkup'
-        }
-      });
-      if (!appointment) {
-        return res.status(400).json({
-          success: false,
-          message: 'The selected appointment is not a completed eye checkup for your account'
-        });
-      }
-
-      const { prescription, error } = normalizePrescription(appointment);
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: 'The selected appointment does not have a complete prescription'
-        });
-      }
-      orderPrescription = {
-        prescription_appointment_id: appointment.appointment_id,
-        ...prescription
-      };
-    } else if (req.body.prescription) {
-      const { prescription, error } = normalizePrescription(req.body.prescription);
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: error
-        });
-      }
-      orderPrescription = prescription;
-    }
-
-    const orderAddress = submittedAddress || (customer.address || '').trim();
-    if (!orderAddress) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide your address for this order'
-      });
-    }
-
-    if (submittedAddress && submittedAddress !== customer.address) {
-      await customer.update({ address: submittedAddress });
-    }
-
-    // Calculate total with lens-specific prices
-    const totalAmount = cartItems.reduce((sum, item) => {
-      const itemPrice = getPriceByLensOption(item.Product, item.lens_option);
-      return sum + (item.quantity * itemPrice);
-    }, 0);
-
-    // Do NOT apply automatic discounts here. Staff will apply discounts manually.
-    const discount = {
-      discount_type: null,
-      discount_amount: 0,
-      total_amount: totalAmount
-    };
-
-    // Create order (no customer-applied discount)
+    // Reservation only records the frame selection. Lens options, prescription and payment
+    // are handled in person after the eye checkup.
     const order = await Order.create({
       customer_id: customer.customer_id,
-      ...(orderPrescription || {}),
-      total_amount: discount.total_amount,
-      discount_type: discount.discount_type,
-      discount_amount: discount.discount_amount,
-      delivery_address: orderAddress,
-      notes,
+      total_amount: 0,
+      discount_amount: 0,
+      reservation_only: true,
+      notes: 'Frame reservation; lens customization and payment are completed in store.',
       status: 'pending'
     });
-    // Create order items
     for (const cartItem of cartItems) {
-      const itemPrice = getPriceByLensOption(cartItem.Product, cartItem.lens_option);
       await OrderItem.create({
         order_id: order.order_id,
         product_id: cartItem.product_id,
         quantity: cartItem.quantity,
-        price: itemPrice,
-        subtotal: cartItem.quantity * itemPrice,
-        lens_option: cartItem.lens_option || 'regular-lens'
+        price: 0,
+        subtotal: 0,
+        lens_option: 'frame-only'
       });
-    }
-
-    // Generate QR code
-    let qrUrl = null;
-    let qrPayload = null;
-    try {
-      const qrDetails = await createOrderQrCode(order);
-      qrUrl = await QrcodeLibrary.toDataURL(qrDetails.qr_payload);
-      qrPayload = qrDetails.qr_payload;
-    } catch (qrError) {
-      console.warn('QR generation failed:', qrError.message);
     }
 
     // Clear cart
@@ -1194,22 +1121,18 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
     notifyOrderUpdate({
       user,
       order,
-      status: 'placed'
+      status: 'frame reservation submitted'
     }).catch(e => console.error('Notification error:', e && e.message));
 
     res.status(201).json({
       success: true,
-      message: 'Order placed successfully',
+      message: 'Frame reservation submitted. You can schedule your eye checkup after staff confirms it.',
       order: {
         order_id: order.order_id,
-        subtotal: totalAmount,
-        discount_amount: discount.discount_amount,
-        discount_type: discount.discount_type,
-        total_amount: order.total_amount,
+        total_amount: 0,
         status: 'pending',
-        qr_code: qrUrl,
-        qr_payload: qrPayload,
-        items_count: cartItems.length
+        items_count: cartItems.length,
+        reservation_only: true
       }
     });
   } catch (error) {
@@ -1281,6 +1204,18 @@ router.patch('/orders/:id/cancel', authMiddleware, requireRole('customer'), asyn
     }
 
     await order.update({ status: 'cancelled', updated_at: new Date() });
+    if (order.reservation_only) {
+      const linkedAppointments = await Appointment.findAll({
+        where: { reservation_order_id: order.order_id, status: { [Op.ne]: 'cancelled' } }
+      });
+      for (const appointment of linkedAppointments) {
+        await appointment.update({ status: 'cancelled' });
+        await QRCode.update(
+          { expired_at: new Date() },
+          { where: { code_type: 'Appointment', reference_id: appointment.appointment_id, expired_at: null } }
+        );
+      }
+    }
 
     const user = await User.findByPk(req.user.user_id);
     notifyOrderUpdate({ user, order, status: 'cancelled' })
@@ -1307,10 +1242,22 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
     });
 
     const ordersWithQr = await attachOrderQrDetails(orders);
+    const reservationIds = orders.filter((order) => order.reservation_only).map((order) => order.order_id);
+    const reservationAppointments = reservationIds.length
+      ? await Appointment.findAll({ where: { reservation_order_id: { [Op.in]: reservationIds } } })
+      : [];
+    const appointmentByReservation = new Map(reservationAppointments.map((appointment) => [Number(appointment.reservation_order_id), appointment]));
+    const ordersWithReservationDetails = ordersWithQr.map((order) => {
+      const orderData = typeof order.toJSON === 'function' ? order.toJSON() : order;
+      return {
+        ...orderData,
+        reservation_appointment: appointmentByReservation.get(Number(orderData.order_id)) || null
+      };
+    });
 
     res.json({
       success: true,
-      orders: ordersWithQr
+      orders: ordersWithReservationDetails
     });
   } catch (error) {
     res.status(500).json({

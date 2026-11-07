@@ -783,6 +783,19 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       });
     }
 
+    if (order.reservation_only) {
+      const nextStatus = String(status || '').trim().toLowerCase();
+      if (!['processing', 'cancelled'].includes(nextStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Frame reservations can only be confirmed or cancelled. Complete the sale after the customer visit.'
+        });
+      }
+      if (String(order.status || '').trim().toLowerCase() !== 'pending' && String(order.status || '').trim().toLowerCase() !== nextStatus) {
+        return res.status(409).json({ success: false, message: 'This frame reservation has already been reviewed' });
+      }
+    }
+
     // When order is marked as picked up, reduce product stock
     if (status && status.toLowerCase() === 'picked up' && order.status && order.status.toLowerCase() !== 'picked up') {
       const orderItems = order.OrderItems || [];

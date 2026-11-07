@@ -1452,8 +1452,8 @@
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
                             <td>${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
-                            <td>${getStaffOrderPrescriptionSummary(order)}</td>
-                            <td>₱${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                            <td>${order.reservation_only ? 'Frame reservation' : getStaffOrderPrescriptionSummary(order)}</td>
+                            <td>${order.reservation_only ? 'No payment due' : `₱${parseFloat(order.total_amount || 0).toFixed(2)}`}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
                                 ${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${formatOrderDate(order.pickup_date)}</div>` : ''}
@@ -1467,11 +1467,16 @@
                                         <i class="fas fa-ellipsis me-1" aria-hidden="true"></i>Actions
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        ${order.reservation_only ? `
+                                        <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Confirm Frame Reservation</button></li>
+                                        <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Decline Reservation</button></li>
+                                        ` : `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${['processing', 'ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-box me-2" aria-hidden="true"></i>Process</button></li>
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'ready for pickup')" ${['ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-bell me-2" aria-hidden="true"></i>Ready for Pickup</button></li>
                                         <li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Mark Picked Up</button></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Cancel</button></li>
+                                        `}
                                     </ul>
                                 </div>
                                 </div>

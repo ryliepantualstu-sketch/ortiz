@@ -259,20 +259,22 @@ async function notifyOrderUpdate({ user, order, status }) {
   const email = user.email;
   const phone = user.phone;
   const orderId = order.order_id;
-  const total = order.total_amount ? `₱${parseFloat(order.total_amount).toFixed(2)}` : '';
+  const reservation = Boolean(order.reservation_only);
+  const recordLabel = reservation ? 'Frame reservation' : 'Order';
+  const total = !reservation && order.total_amount ? `₱${parseFloat(order.total_amount).toFixed(2)}` : '';
 
-  let subject = `Ortiz Optical - Order #${orderId} Update`;
-  let smsText = `Ortiz Optical: Order #${orderId} status has been updated to "${status}". ${total ? `Total: ${total}` : ''}`;
+  let subject = `Ortiz Optical - ${recordLabel} #${orderId} Update`;
+  let smsText = `Ortiz Optical: ${recordLabel} #${orderId} status has been updated to "${status}". ${total ? `Total: ${total}` : ''}`;
   let emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
       <h2 style="color: #0d8f83; margin-top: 0;">Ortiz Optical</h2>
       <p>Hello <strong>${user.full_name || 'Valued Customer'}</strong>,</p>
-      <p>The status of your order <strong>#${orderId}</strong> has been updated:</p>
+      <p>The status of your ${recordLabel.toLowerCase()} <strong>#${orderId}</strong> has been updated:</p>
       <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0d8f83;">
         <p style="margin: 0; font-size: 1.1em;">Status: <strong>${status.toUpperCase()}</strong></p>
         ${total ? `<p style="margin: 5px 0 0 0; color: #475569;">Total Amount: <strong>${total}</strong></p>` : ''}
       </div>
-      <p>Thank you for shopping at Ortiz Optical!</p>
+      <p>${reservation ? 'You can schedule your eye checkup after staff confirms the reservation.' : 'Thank you for shopping at Ortiz Optical!'}</p>
     </div>
   `;
 

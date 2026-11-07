@@ -942,6 +942,8 @@
             opacity: 0.45;
             cursor: not-allowed;
         }
+        #productPreviewModal .lens-options-group { display: none !important; }
+        #cartSection .item-price, #cartSection .item-total, #cartSection .item-detail-small, #cartSection .cart-summary .summary-row, #cartSection .cart-summary .total-row { display: none !important; }
 
         /* ======================================================== */
         /* CART CONTENT LAYOUT                                      */
@@ -1543,9 +1545,9 @@
             <!-- ======================================================== -->
             <div id="cartSection" style="display: none;">
                 <section class="page-hero">
-                    <div class="page-kicker"><i class="fas fa-cart-shopping"></i><span>Purchase staging</span></div>
-                    <h2>Review your selected items before checkout.</h2>
-                    <p>Use this workspace to confirm quantities, refine product choices, and keep your order basket ready for final confirmation.</p>
+                    <div class="page-kicker"><i class="fas fa-glasses"></i><span>Frame reservations</span></div>
+                    <h2>Review the frames you want to reserve.</h2>
+                    <p>Staff will confirm your reservation. You can schedule an eye checkup after confirmation. Lens customization and payment happen at the store.</p>
                     <div class="page-hero-actions">
                         <button type="button" class="page-btn border-0" onclick="loadSection('products')"><i class="fas fa-store"></i><span>Continue shopping</span></button>
                         <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>View order history</span></button>
@@ -1559,14 +1561,14 @@
                         <div class="mini-stat-note">Products currently saved to your basket.</div>
                     </article>
                     <article class="mini-stat">
-                        <div class="mini-stat-label">Subtotal</div>
-                        <div class="mini-stat-value" id="cartStatsSubtotal">₱0.00</div>
-                        <div class="mini-stat-note">Order subtotal based on current cart selections.</div>
+                        <div class="mini-stat-label">Payment now</div>
+                        <div class="mini-stat-value" id="cartStatsSubtotal">None</div>
+                        <div class="mini-stat-note">No payment is collected with a frame reservation.</div>
                     </article>
                     <article class="mini-stat">
-                        <div class="mini-stat-label">Estimated total</div>
-                        <div class="mini-stat-value" id="cartStatsTotal">₱0.00</div>
-                        <div class="mini-stat-note">Projected final payment based on current selections.</div>
+                        <div class="mini-stat-label">Next step</div>
+                        <div class="mini-stat-value" id="cartStatsTotal">Staff review</div>
+                        <div class="mini-stat-note">Choose a checkup date after staff confirmation.</div>
                     </article>
                 </section>
 
@@ -1851,12 +1853,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="checkoutModalLabel">Proceed to Checkout</h5>
+                    <h5 class="modal-title fw-bold" id="checkoutModalLabel">Submit Frame Reservation</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="checkoutForm">
-                        <div class="mb-3">
+                        <p class="text-muted mb-3">Reserve the frame you selected. After staff confirms your reservation, you can choose a date and time for your eye checkup. Lens customization and payment will be handled in the store.</p>
+                        <div class="mb-3 d-none">
                             <label for="orderAddress" class="form-label fw-semibold">Your address <span class="text-danger">*</span></label>
                             <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city" required></textarea>
                         </div>
@@ -1891,7 +1894,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 d-none">
                             <label for="orderNotes" class="form-label fw-semibold">Pickup instructions / Notes</label>
                             <textarea id="orderNotes" class="form-control rounded-3" rows="3" placeholder="Optional notes for your order (e.g. pickup day, questions)"></textarea>
                             <div class="form-text text-muted mt-2">
@@ -1899,7 +1902,7 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-bold">
-                            <i class="fas fa-credit-card me-2"></i> Place Order
+                            <i class="fas fa-glasses me-2"></i> Send Reservation for Confirmation
                         </button>
                     </form>
                 </div>
@@ -2722,7 +2725,7 @@
                                 <i class="fas fa-expand"></i> Quick View
                             </button>
                             <button type="button" class="btn-add-cart" onclick="addToCart(${product.product_id})" ${product.stock_quantity === 0 ? 'disabled' : ''}>
-                                <i class="fas fa-cart-plus"></i> Add ${productQuantities[product.product_id] || 1} to Cart
+                                <i class="fas fa-glasses"></i> Reserve Frame
                             </button>
                         </div>
                     </div>
@@ -2901,8 +2904,8 @@
             const ct = document.getElementById('cartStatsTotal');
 
             if (ci) ci.textContent = itemCount;
-            if (cs) cs.textContent = `₱${subtotal.toFixed(2)}`;
-            if (ct) ct.textContent = `₱${total.toFixed(2)}`;
+            if (cs) cs.textContent = 'None';
+            if (ct) ct.textContent = 'Staff review';
 
             updateSidebarCartBadge(itemCount);
         }
@@ -2996,7 +2999,7 @@
                             </div>
                         </div>
                         <button type="button" class="checkout-btn" onclick="openCheckoutModal()">
-                            <i class="fas fa-credit-card"></i> Proceed to Checkout
+                            <i class="fas fa-glasses"></i> Submit Frame Reservation
                         </button>
                     </div>
                 </div>
@@ -3142,34 +3145,8 @@
         async function submitCheckout(event) {
             event.preventDefault();
             const submitButton = event.target.querySelector('button[type="submit"]');
-            const address = document.getElementById('orderAddress').value.trim();
-            if (!address) {
-                alert('Please enter your address.');
-                return;
-            }
             submitButton.disabled = true;
-
-            const notes = document.getElementById('orderNotes').value.trim();
-            const prescriptionSource = document.getElementById('checkoutPrescriptionSource').value;
-            let prescriptionDetails = {};
-            if (prescriptionSource === 'appointment') {
-                prescriptionDetails.prescription_appointment_id = Number(document.getElementById('checkoutPrescriptionAppointment').value);
-            } else if (prescriptionSource === 'manual') {
-                prescriptionDetails.prescription = {
-                    right_sph: document.getElementById('checkoutRightSph').value,
-                    right_cyl: document.getElementById('checkoutRightCyl').value,
-                    right_axis: document.getElementById('checkoutRightAxis').value,
-                    left_sph: document.getElementById('checkoutLeftSph').value,
-                    left_cyl: document.getElementById('checkoutLeftCyl').value,
-                    left_axis: document.getElementById('checkoutLeftAxis').value
-                };
-            }
-
-            const result = await apiCall('/customer/orders/checkout', 'POST', {
-                notes,
-                address,
-                ...prescriptionDetails
-            });
+            const result = await apiCall('/customer/orders/checkout', 'POST', {});
 
             submitButton.disabled = false;
 
@@ -3179,7 +3156,7 @@
             }
 
             if (checkoutModalInstance) checkoutModalInstance.hide();
-            alert(`Order #${result.order.order_id} placed successfully.`);
+            alert(`Frame reservation #${result.order.order_id} submitted. You can schedule a checkup after staff confirms it.`);
             loadSection('orders');
         }
 
@@ -3423,8 +3400,10 @@
             alertEl.classList.add('d-none');
         }
 
-        function openAppointmentModal(appointmentId = null) {
+        let currentReservationOrderId = null;
+        function openAppointmentModal(appointmentId = null, reservationOrderId = null) {
             const appointment = appointmentId ? appointmentsById.get(String(appointmentId)) : null;
+            currentReservationOrderId = reservationOrderId ? Number(reservationOrderId) : (appointment?.reservation_order_id || null);
             const appointmentForm = document.getElementById('appointmentForm');
             appointmentForm.reset();
             if (appointmentDatePicker) {
@@ -3463,8 +3442,12 @@
                 document.getElementById('appointmentService').value = 'Eye Checkup';
             }
 
-            document.getElementById('appointmentFormModalLabel').textContent = appointment ? 'Edit Appointment' : 'Book Appointment';
-            document.getElementById('appointmentSubmitButton').textContent = appointment ? 'Save Changes' : 'Book Appointment';
+            document.getElementById('appointmentFormModalLabel').textContent = currentReservationOrderId ? 'Schedule Your Eye Checkup' : (appointment ? 'Edit Appointment' : 'Book Appointment');
+            document.getElementById('appointmentSubmitButton').textContent = appointment ? 'Save Changes' : (currentReservationOrderId ? 'Schedule Checkup' : 'Book Appointment');
+            const appointmentService = document.getElementById('appointmentService');
+            appointmentService.disabled = Boolean(currentReservationOrderId);
+            if (currentReservationOrderId) appointmentService.value = 'Eye Checkup';
+            else if (!appointment) appointmentService.value = 'General Consultation';
 
             if (!appointmentFormModalInstance) {
                 const appointmentModal = document.getElementById('appointmentFormModal');
@@ -3500,6 +3483,7 @@
                 appointment_time: document.getElementById('appointmentTime').value.trim(),
                 service_type: document.getElementById('appointmentService').value.trim()
             };
+            if (currentReservationOrderId) payload.reservation_order_id = currentReservationOrderId;
 
             if (!payload.appointment_date || !payload.appointment_time || !payload.service_type) {
                 showAppointmentFormAlert('Please complete all appointment fields.', 'warning');
@@ -3526,6 +3510,7 @@
             appointmentForm.reset();
 
             await loadAppointments();
+            await loadOrders();
         }
 
         async function cancelAppointment(appointmentId) {
@@ -3801,7 +3786,7 @@
                                 </div>
                                 <div class="order-header-item">
                                     <div class="order-header-label">Status</div>
-                                    <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${formatStatus(order.status)}</span>
+                                    <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${order.reservation_only ? (normalizeStatus(order.status) === 'processing' ? 'Confirmed by staff' : normalizeStatus(order.status) === 'pending' ? 'Awaiting staff confirmation' : formatStatus(order.status)) : formatStatus(order.status)}</span>
                                 </div>
                             </div>
                             ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_missed ? `<span class="text-danger">Missed pickup (${formatDate(`${order.pickup_date}T00:00:00`)}) - set a new date</span>` : order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
@@ -3817,9 +3802,9 @@
                                     <div class="order-item">
                                         <div style="flex: 1;">
                                             <span class="order-item-name">${item.product_name || item.Product?.product_name || 'Product'} <small class="text-muted">(${item.quantity || 1}x)</small></span>
-                                            <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>
+                                            ${order.reservation_only ? '<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Frame reservation; lenses customized after checkup</div>' : `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>`}
                                         </div>
-                                        <span class="order-item-price">₱${Number(item.subtotal || item.price || 0).toFixed(2)}</span>
+                                        ${order.reservation_only ? '' : `<span class="order-item-price">₱${Number(item.subtotal || item.price || 0).toFixed(2)}</span>`}
                                     </div>
                                     `;
                                 }).join('')}
@@ -3827,13 +3812,15 @@
                             <div class="order-footer">
                                 <div class="order-actions">
                                     <button type="button" class="btn btn-sm btn-primary" onclick="viewCustomerOrder(${order.order_id})">View Order</button>
+                                    ${order.reservation_only && normalizeStatus(order.status) === 'processing' && (!order.reservation_appointment || normalizeStatus(order.reservation_appointment.status) === 'cancelled') ? `<button type="button" class="btn btn-sm btn-success" onclick="openAppointmentModal(null, ${order.order_id})"><i class="fas fa-calendar-check me-1"></i>${order.reservation_appointment ? 'Schedule New Checkup' : 'Schedule Checkup'}</button>` : ''}
+                                    ${order.reservation_appointment && normalizeStatus(order.reservation_appointment.status) !== 'cancelled' ? `<span class="small text-primary align-self-center">Checkup: ${formatDate(order.reservation_appointment.appointment_date)} at ${formatTime(order.reservation_appointment.appointment_time)}</span>` : ''}
                                     ${canCancelOrder(order) ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1" aria-hidden="true"></i>Cancel</button>` : ''}
                                     ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas fa-calendar-day me-1" aria-hidden="true"></i>${order.pickup_missed ? 'Set new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
                                 </div>
-                                <div class="order-total">
+                                ${order.reservation_only ? '' : `<div class="order-total">
                                     <div class="order-subtotal">Subtotal: <strong>₱${Number(order.total_amount || 0).toFixed(2)}</strong></div>
                                     <div class="order-grand-total">Total: ₱${Number(order.total_amount || 0).toFixed(2)}</div>
-                                </div>
+                                </div>`}
                             </div>
                         </div>
                     `;

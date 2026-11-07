@@ -15,6 +15,10 @@ const Appointment = sequelize.define('Appointment', {
       key: 'customer_id'
     }
   },
+  reservation_order_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   appointment_date: {
     type: DataTypes.DATE,
     allowNull: false
