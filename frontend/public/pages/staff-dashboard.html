@@ -1187,23 +1187,38 @@
                 return;
             }
 
+            const form = document.getElementById('appointmentPrescriptionForm');
             const appointment = staffAppointmentsById.get(Number(appointmentId));
             document.getElementById('completeAppointmentWithoutPrescriptionBtn')
                 .classList.toggle('d-none', Boolean(appointment?.reservation_order_id));
             document.getElementById('prescriptionLensOptionRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
+            document.getElementById('prescriptionPaymentOptionRow')
+                .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
-                ? 'Prescription & Lens Customization'
+                ? 'Prescription, Lens & Payment'
                 : 'Optional Eye Checkup Prescription';
             form.querySelector('button[type="submit"]').innerHTML = appointment?.reservation_order_id
-                ? 'Save Prescription, Customize Lens &amp; Complete'
+                ? 'Collect Payment &amp; Complete'
                 : 'Save Prescription &amp; Complete';
 
-            const form = document.getElementById('appointmentPrescriptionForm');
             form.reset();
             form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
             document.getElementById('prescriptionAppointmentId').value = appointmentId;
+            updateReservationPaymentAmount();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
+        }
+
+        function updateReservationPaymentAmount() {
+            const appointmentId = Number(document.getElementById('prescriptionAppointmentId')?.value);
+            const appointment = staffAppointmentsById.get(appointmentId);
+            const reservation = appointment?.frame_reservation_order;
+            const lensOption = document.getElementById('prescriptionLensOption')?.value || 'regular-lens';
+            const total = (reservation?.OrderItems || []).reduce((sum, item) => {
+                return sum + walkInPrice(item.Product || {}, lensOption) * Number(item.quantity || 0);
+            }, 0);
+            const amount = document.getElementById('prescriptionPaymentAmount');
+            if (amount) amount.textContent = `Amount to collect: ₱${total.toFixed(2)}`;
         }
 
         function preventPrescriptionLetters(event) {
@@ -1248,9 +1263,10 @@
             console.log('updateAppointmentStatus called', { appointmentId, status });
             const payload = { status };
             if (prescription) {
-                const { lens_option, ...prescriptionValues } = prescription;
+                const { lens_option, payment_method, ...prescriptionValues } = prescription;
                 payload.prescription = prescriptionValues;
                 if (lens_option) payload.lens_option = lens_option;
+                if (payment_method) payload.payment_method = payment_method;
             }
             if ((status || '').toLowerCase() === 'confirmed') {
                 payload.staff_confirm = true;
@@ -1395,7 +1411,7 @@
                                 <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'})" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
                                 </div>
                             </td>
@@ -1429,7 +1445,7 @@
                                 <div class="small text-muted mt-2">${getAppointmentQrMessage(apt)}</div>
                                 <div class="action-btns mt-2">
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'}); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'})" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
                                 </div>
                             </td>
@@ -1708,9 +1724,12 @@
                 window.currentReceiptOrder = order;
                 const orderStatus = (order.status || '').toLowerCase();
                 const isReservation = Boolean(order.reservation_only);
+                const paymentFinal = String(order.payment_status || '').toLowerCase() === 'paid';
+                const isReadyAndPaid = orderStatus === 'ready for pickup' && String(order.payment_status || '').toLowerCase() === 'paid';
+                const claimQrVerified = Number(window.verifiedOrderPickup?.order_id) === Number(order.order_id);
                 const isFinal = ['picked up', 'picked-up', 'cancelled'].includes(orderStatus);
                 document.getElementById('staffReceiptBtn').classList.toggle('d-none', !['picked up', 'picked-up'].includes(orderStatus));
-                document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal);
+                document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal || !isReadyAndPaid || !claimQrVerified);
                 document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
@@ -1732,6 +1751,7 @@
                     <p><strong>Date &amp; Time Ordered:</strong> ${formatOrderDateTime(order.order_date || order.created_at)}</p>
                     <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
+                    <p><strong>Payment:</strong> ${order.payment_status || 'Unpaid'}${order.payment_status === 'Paid' ? ` via ${order.payment_method || 'Cash'}` : ''}</p>
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
                     ${prescriptionDetails}
                     <div class="table-responsive">
@@ -1749,15 +1769,15 @@
                     <div>
                       <label class="form-label">Discount (staff only) <small class="text-muted">- applied automatically when selected</small></label>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountNone" value="none" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${!currentDiscountType ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountNone" value="none" onchange="applyOrderDiscount(${order.order_id})" ${isFinal || paymentFinal ? 'disabled' : ''} ${!currentDiscountType ? 'checked' : ''}>
                         <label class="form-check-label" for="discountNone">None</label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountSenior" value="senior" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${currentDiscountType === 'senior' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountSenior" value="senior" onchange="applyOrderDiscount(${order.order_id})" ${isFinal || paymentFinal ? 'disabled' : ''} ${currentDiscountType === 'senior' ? 'checked' : ''}>
                         <label class="form-check-label" for="discountSenior">Senior (20%)</label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountPwd" value="pwd" onchange="applyOrderDiscount(${order.order_id})" ${isFinal ? 'disabled' : ''} ${currentDiscountType === 'pwd' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="staffDiscountOption" id="discountPwd" value="pwd" onchange="applyOrderDiscount(${order.order_id})" ${isFinal || paymentFinal ? 'disabled' : ''} ${currentDiscountType === 'pwd' ? 'checked' : ''}>
                         <label class="form-check-label" for="discountPwd">PWD (20%)</label>
                       </div>
                     </div>
@@ -1788,22 +1808,21 @@
 
         async function confirmStaffPickup(orderId) {
             if (!orderId) return;
-            const selected = document.querySelector('input[name="staffDiscountOption"]:checked');
-            const value = selected ? selected.value : 'none';
-            const discount_type = value === 'none' ? null : value;
-
-            // Apply selected discount first
-            const discountResult = await apiCall(`/staff/orders/${orderId}/discount`, 'PUT', { discount_type });
-            if (!discountResult || !discountResult.success) {
-                alert(discountResult?.message || 'Failed to apply discount');
+            const verifiedPickup = window.verifiedOrderPickup;
+            if (!verifiedPickup || Number(verifiedPickup.order_id) !== Number(orderId)) {
+                alert('Scan and verify this customer’s order QR before releasing the finished product.');
                 return;
             }
 
-            const pickupResult = await apiCall(`/staff/orders/${orderId}`, 'PUT', { status: 'picked up' });
+            const pickupResult = await apiCall(`/staff/orders/${orderId}`, 'PUT', {
+                status: 'picked up',
+                qr_code_data: verifiedPickup.qr_code_data
+            });
             if (!pickupResult || !pickupResult.success) {
                 alert(pickupResult?.message || 'Failed to mark order as picked up');
                 return;
             }
+            window.verifiedOrderPickup = null;
 
             const modalEl = document.getElementById('staffOrderDetailModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
@@ -2025,7 +2044,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-success d-none" id="staffReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
                 <button type="button" class="btn btn-success d-none" id="staffReservationConfirmBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffReservation(id); })()"><i class="fas fa-check me-1"></i>Confirm Reservation</button>
-                <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
+                <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Verify QR &amp; Claim Product</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
     </div>
@@ -2046,11 +2065,21 @@
           <p class="small text-muted">Enter the values from the examination if available. Sphere is required when saving a prescription; axis is required when cylinder is not zero.</p>
           <div class="mb-3 d-none" id="prescriptionLensOptionRow">
             <label class="form-label fw-semibold" for="prescriptionLensOption">Lens customization</label>
-            <select class="form-select" id="prescriptionLensOption" name="lens_option">
+            <select class="form-select" id="prescriptionLensOption" name="lens_option" onchange="updateReservationPaymentAmount()">
               <option value="regular-lens" selected>Regular lens</option>
               <option value="photochromic">Photochromic</option>
             </select>
             <div class="form-text">The reserved frame and prescription will be used for this customer order.</div>
+          </div>
+          <div class="mb-3 d-none" id="prescriptionPaymentOptionRow">
+            <div class="fw-bold fs-5 mb-2" id="prescriptionPaymentAmount">Amount to collect: ₱0.00</div>
+            <label class="form-label fw-semibold" for="prescriptionPaymentMethod">Payment method</label>
+            <select class="form-select" id="prescriptionPaymentMethod" name="payment_method">
+              <option value="Cash" selected>Cash</option>
+              <option value="Card">Card</option>
+              <option value="Online">Online</option>
+            </select>
+            <div class="form-text">Record payment for the finished glasses now. The customer can claim the product after production is complete.</div>
           </div>
           <div class="row g-2 align-items-end mb-3">
             <div class="col-4 fw-semibold">OD (Right)</div>

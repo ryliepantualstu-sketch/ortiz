@@ -104,6 +104,7 @@ function setVerificationResult(type, message) {
 
 async function verifyOrderQr(qrCodeData) {
     pendingQrAppointment = null;
+    window.verifiedOrderPickup = null;
     const confirmButton = document.getElementById('confirmScannedAppointmentButton');
     if (confirmButton) confirmButton.classList.add('d-none');
 
@@ -116,6 +117,10 @@ async function verifyOrderQr(qrCodeData) {
             return;
         }
 
+        window.verifiedOrderPickup = {
+            order_id: Number(result.order.order_id),
+            qr_code_data: qrCodeData
+        };
         setVerificationResult('success', `Order #${result.order.order_id} found. Review the order details to confirm pickup.`);
         await viewStaffOrder(result.order.order_id);
     } catch (error) {

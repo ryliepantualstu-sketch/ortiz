@@ -378,6 +378,16 @@ const ensureSchemaColumns = async () => {
       allowNull: false,
       defaultValue: false
     });
+    await addColumnIfMissing('orders', 'payment_status', {
+      type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
+      allowNull: false,
+      defaultValue: 'Unpaid'
+    });
+    await addColumnIfMissing('orders', 'payment_method', {
+      type: DataTypes.ENUM('Cash', 'Card', 'Online'),
+      allowNull: false,
+      defaultValue: 'Cash'
+    });
     await addColumnIfMissing('appointments', 'reservation_order_id', {
       type: DataTypes.INTEGER,
       allowNull: true

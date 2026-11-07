@@ -11,7 +11,7 @@ const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { normalizePrescription } = require('../utils/prescription');
 const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
-const { createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
+const { buildOrderQrPayload, createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
@@ -53,14 +53,27 @@ async function attachAppointmentVerificationDetails(appointments) {
     qrCodes.map((qrCode) => [qrCode.reference_id, qrCode])
   );
 
+  const reservationIds = appointments
+    .map((appointment) => Number(appointment.reservation_order_id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+  const reservationOrders = reservationIds.length
+    ? await Order.findAll({
+      where: { order_id: { [Op.in]: reservationIds } },
+      include: [{ model: OrderItem, include: [{ model: Product }] }]
+    })
+    : [];
+  const reservationById = new Map(reservationOrders.map((order) => [Number(order.order_id), order.toJSON()]));
+
   return appointments.map((appointment) => {
     const qrCode = qrCodeByReferenceId.get(appointment.appointment_id);
+    const appointmentData = appointment.toJSON();
 
     return {
-      ...appointment.toJSON(),
+      ...appointmentData,
       qr_ready: Boolean(qrCode),
       qr_verified: Boolean(qrCode?.is_used),
-      qr_scanned_at: qrCode?.scanned_at || null
+      qr_scanned_at: qrCode?.scanned_at || null,
+      frame_reservation_order: reservationById.get(Number(appointment.reservation_order_id)) || null
     };
   });
 }
@@ -372,6 +385,10 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       if (!['regular-lens', 'photochromic'].includes(lensOption)) {
         return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
       }
+      const paymentMethod = req.body.payment_method || 'Cash';
+      if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
+        return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
+      }
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
       if (error) {
         return res.status(400).json({
@@ -384,7 +401,10 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       await sequelize.transaction(async (transaction) => {
         await appointment.update(updates, { transaction });
         const reservedOrder = await Order.findByPk(appointment.reservation_order_id, {
-          include: [{ model: OrderItem, include: [{ model: Product }] }],
+          include: [
+            { model: OrderItem, include: [{ model: Product }] },
+            { model: Customer, include: [{ model: User, attributes: ['full_name'] }] }
+          ],
           transaction,
           lock: transaction.LOCK.UPDATE
         });
@@ -407,10 +427,28 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           ...prescription,
           prescription_appointment_id: appointment.appointment_id,
           total_amount: Number(totalAmount.toFixed(2)),
+          payment_status: 'Paid',
+          payment_method: paymentMethod,
           reservation_only: false,
           status: 'processing',
           notes: `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
         }, { transaction });
+        const existingOrderQr = await QRCode.findOne({
+          where: { code_type: 'Order', reference_id: reservedOrder.order_id },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (existingOrderQr) {
+          await existingOrderQr.update({
+            qr_code_data: buildOrderQrPayload(reservedOrder),
+            is_used: false,
+            scanned_at: null,
+            scanned_by: null,
+            expired_at: null
+          }, { transaction });
+        } else {
+          await createOrderQrCode(reservedOrder, { transaction });
+        }
         completedReservationOrder = reservedOrder;
       });
     } else {
@@ -783,6 +821,15 @@ router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found for this QR code' });
     }
+    if (qrCode.expired_at || qrCode.is_used) {
+      return res.status(409).json({ success: false, message: 'This order claim QR code has already been used or expired' });
+    }
+    if (String(order.status).toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'This product is not ready to be claimed yet' });
+    }
+    if (String(order.payment_status).toLowerCase() !== 'paid') {
+      return res.status(409).json({ success: false, message: 'Payment must be completed before the customer can claim this product' });
+    }
 
     res.json({
       success: true,
@@ -858,6 +905,28 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       }
     }
 
+    let claimQrCode = null;
+    if (String(status || '').trim().toLowerCase() === 'picked up') {
+      if (String(order.status || '').trim().toLowerCase() !== 'ready for pickup') {
+        return res.status(409).json({ success: false, message: 'Only a finished product can be claimed' });
+      }
+      if (String(order.payment_status || '').trim().toLowerCase() !== 'paid') {
+        return res.status(409).json({ success: false, message: 'Record payment before releasing the finished product' });
+      }
+      claimQrCode = await QRCode.findOne({
+        where: {
+          code_type: 'Order',
+          reference_id: order.order_id,
+          qr_code_data: req.body.qr_code_data,
+          expired_at: null,
+          is_used: false
+        }
+      });
+      if (!claimQrCode) {
+        return res.status(403).json({ success: false, message: 'Scan this customer’s valid claim QR code before releasing the product' });
+      }
+    }
+
     // When order is marked as picked up, reduce product stock
     if (status && status.toLowerCase() === 'picked up' && order.status && order.status.toLowerCase() !== 'picked up') {
       const orderItems = order.OrderItems || [];
@@ -874,6 +943,9 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
     }
 
     await order.update({ status });
+    if (claimQrCode) {
+      await claimQrCode.update({ is_used: true, scanned_at: new Date(), scanned_by: req.user.user_id });
+    }
 
     try {
       const customerRecord = await Customer.findByPk(order.customer_id, {
@@ -914,6 +986,10 @@ router.put('/orders/:id/discount', authMiddleware, requireRole('staff'), async (
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (String(order.payment_status || '').toLowerCase() === 'paid') {
+      return res.status(409).json({ success: false, message: 'The order has already been paid; its discount and total can no longer be changed' });
     }
 
     // Calculate subtotal from items

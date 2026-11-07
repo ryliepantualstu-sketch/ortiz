@@ -51,6 +51,16 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: 0
   },
+  payment_status: {
+    type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
+    allowNull: false,
+    defaultValue: 'Unpaid'
+  },
+  payment_method: {
+    type: DataTypes.ENUM('Cash', 'Card', 'Online'),
+    allowNull: false,
+    defaultValue: 'Cash'
+  },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
