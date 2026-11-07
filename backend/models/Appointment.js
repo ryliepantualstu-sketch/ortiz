@@ -19,6 +19,20 @@ const Appointment = sequelize.define('Appointment', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  checkup_fee: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
+  },
+  payment_status: {
+    type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
+    allowNull: false,
+    defaultValue: 'Unpaid'
+  },
+  payment_method: {
+    type: DataTypes.ENUM('Cash', 'Card', 'Online'),
+    allowNull: true
+  },
   appointment_date: {
     type: DataTypes.DATE,
     allowNull: false

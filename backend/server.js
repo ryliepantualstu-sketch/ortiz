@@ -404,6 +404,20 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.INTEGER,
       allowNull: true
     });
+    await addColumnIfMissing('appointments', 'checkup_fee', {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
+    });
+    await addColumnIfMissing('appointments', 'payment_status', {
+      type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
+      allowNull: false,
+      defaultValue: 'Unpaid'
+    });
+    await addColumnIfMissing('appointments', 'payment_method', {
+      type: DataTypes.ENUM('Cash', 'Card', 'Online'),
+      allowNull: true
+    });
     await addColumnIfMissing('order_items', 'frame_price', {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true

@@ -1190,21 +1190,30 @@
             const form = document.getElementById('appointmentPrescriptionForm');
             const appointment = staffAppointmentsById.get(Number(appointmentId));
             document.getElementById('completeAppointmentWithoutPrescriptionBtn')
-                .classList.toggle('d-none', Boolean(appointment?.reservation_order_id));
+                .classList.add('d-none');
             document.getElementById('prescriptionLensOptionRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionLensPriceRow')
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionPaymentOptionRow')
-                .classList.toggle('d-none', !appointment?.reservation_order_id);
+                .classList.remove('d-none');
             document.getElementById('prescriptionLensPrice').required = Boolean(appointment?.reservation_order_id);
-            document.getElementById('prescriptionCheckupFee').required = Boolean(appointment?.reservation_order_id);
+            document.getElementById('prescriptionCheckupFee').required = true;
+            form.querySelectorAll('.prescription-required').forEach(input => {
+                input.required = Boolean(appointment?.reservation_order_id);
+            });
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
                 ? 'Prescription, Lens & Payment'
                 : 'Optional Eye Checkup Prescription';
             form.querySelector('button[type="submit"]').innerHTML = appointment?.reservation_order_id
                 ? 'Collect Payment &amp; Complete'
-                : 'Save Prescription &amp; Complete';
+                : 'Collect Check-up Fee &amp; Complete';
+            const paymentHelp = document.getElementById('prescriptionPaymentHelp');
+            if (paymentHelp) {
+                paymentHelp.textContent = appointment?.reservation_order_id
+                    ? 'Record payment for the frame, lenses, and check-up. The customer can claim the glasses after production is complete.'
+                    : 'Record payment for the eye check-up. A receipt will be generated when you complete the appointment.';
+            }
 
             form.reset();
             form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
@@ -1281,7 +1290,10 @@
             const payload = { status };
             if (prescription) {
                 const { lens_option, lens_price, checkup_fee, payment_method, ...prescriptionValues } = prescription;
-                payload.prescription = prescriptionValues;
+                const hasPrescriptionValues = ['right_sph', 'right_axis', 'left_sph', 'left_axis']
+                    .some(key => prescriptionValues[key] !== undefined && String(prescriptionValues[key]).trim() !== '') ||
+                    ['right_cyl', 'left_cyl'].some(key => prescriptionValues[key] !== undefined && String(prescriptionValues[key]).trim() !== '' && Number(prescriptionValues[key]) !== 0);
+                if (hasPrescriptionValues) payload.prescription = prescriptionValues;
                 if (lens_option) payload.lens_option = lens_option;
                 if (lens_price !== undefined) payload.lens_price = lens_price;
                 if (checkup_fee !== undefined) payload.checkup_fee = checkup_fee;
@@ -1304,6 +1316,9 @@
             if ((status || '').toLowerCase() === 'completed' && result.order && String(result.order.payment_status || '').toLowerCase() === 'paid') {
                 window.currentReceiptOrder = result.order;
                 showOrderReceipt(result.order);
+            } else if ((status || '').toLowerCase() === 'completed' && result.appointmentReceipt) {
+                window.currentReceiptOrder = result.appointmentReceipt;
+                showOrderReceipt(result.appointmentReceipt);
             }
 
             // Refresh only the visible section to avoid switching views
@@ -1419,6 +1434,29 @@
 
         let staffAppointmentsById = new Map();
 
+        function showAppointmentReceipt(appointmentId) {
+            const appointment = staffAppointmentsById.get(Number(appointmentId));
+            if (!appointment || String(appointment.payment_status || '').toLowerCase() !== 'paid') {
+                alert('No paid receipt is available for this appointment.');
+                return;
+            }
+            const fee = Number(appointment.checkup_fee || 0);
+            const receipt = {
+                order_id: `APT-${appointment.appointment_id}`,
+                appointment_id: appointment.appointment_id,
+                customer_name: appointment.Customer?.User?.full_name || '',
+                Customer: appointment.Customer,
+                created_at: appointment.updated_at || appointment.appointment_date,
+                total_amount: fee,
+                checkup_fee: fee,
+                payment_status: appointment.payment_status,
+                payment_method: appointment.payment_method,
+                OrderItems: []
+            };
+            window.currentReceiptOrder = receipt;
+            showOrderReceipt(receipt);
+        }
+
         async function loadAppointments() {
             try {
                 const result = await apiCall('/staff/appointments/today');
@@ -1438,6 +1476,7 @@
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'})" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                    ${String(apt.payment_status || '').toLowerCase() === 'paid' && !apt.reservation_order_id ? `<button type="button" class="btn btn-sm btn-outline-success" onclick="showAppointmentReceipt(${apt.appointment_id})"><i class="fas fa-receipt me-1"></i>Receipt</button>` : ''}
                                 </div>
                             </td>
                         </tr>
@@ -1472,6 +1511,7 @@
                                     <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'})" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
+                                    ${String(apt.payment_status || '').toLowerCase() === 'paid' && !apt.reservation_order_id ? `<button type="button" class="btn btn-sm btn-outline-success" onclick="showAppointmentReceipt(${apt.appointment_id})"><i class="fas fa-receipt me-1"></i>Receipt</button>` : ''}
                                 </div>
                             </td>
                         </tr>
@@ -2130,17 +2170,17 @@
               <option value="Card">Card</option>
               <option value="Online">Online</option>
             </select>
-            <div class="form-text">Record payment for the finished glasses now. The customer can claim the product after production is complete.</div>
+            <div class="form-text" id="prescriptionPaymentHelp">Record payment for the eye check-up. A receipt will be generated when you complete the appointment.</div>
           </div>
           <div class="row g-2 align-items-end mb-3">
             <div class="col-4 fw-semibold">OD (Right)</div>
-            <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="rightSph" name="right_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div></div>
+          <div class="col-3"><label class="form-label small" for="rightSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value prescription-required" id="rightSph" name="right_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-3"><label class="form-label small" for="rightCyl">CYL</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="rightCyl" name="right_cyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-2"><label class="form-label small" for="rightAxis">AXIS</label><input class="form-control" id="rightAxis" name="right_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>
           <div class="row g-2 align-items-end">
             <div class="col-4 fw-semibold">OS (Left)</div>
-            <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="leftSph" name="left_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)" required></div></div>
+          <div class="col-3"><label class="form-label small" for="leftSph">SPH</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value prescription-required" id="leftSph" name="left_sph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-3"><label class="form-label small" for="leftCyl">CYL</label><div class="position-relative"><span class="prescription-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control prescription-value" id="leftCyl" name="left_cyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updatePositivePrescriptionSign(event.currentTarget)" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div></div>
             <div class="col-2"><label class="form-label small" for="leftAxis">AXIS</label><input class="form-control" id="leftAxis" name="left_axis" type="number" min="1" max="180" step="1" onkeydown="preventPrescriptionLetters(event)" onpaste="preventPrescriptionLetterPaste(event)"></div>
           </div>

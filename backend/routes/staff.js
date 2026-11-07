@@ -380,6 +380,24 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     if (staff_id) updates.assigned_staff_id = staff_id;
 
     let completedReservationOrder = null;
+    let appointmentReceipt = null;
+    if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup') {
+      if (req.body.checkup_fee === undefined || String(req.body.checkup_fee).trim() === '') {
+        return res.status(400).json({ success: false, message: 'Enter the eye check-up fee before collecting payment' });
+      }
+      const checkupFee = Number(req.body.checkup_fee);
+      if (!Number.isFinite(checkupFee) || checkupFee < 0 || checkupFee >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid checkup fee of zero or more' });
+      }
+      const paymentMethod = req.body.payment_method || 'Cash';
+      if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
+        return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
+      }
+      updates.checkup_fee = Number(checkupFee.toFixed(2));
+      updates.payment_status = 'Paid';
+      updates.payment_method = paymentMethod;
+    }
+
     if (status && status.toLowerCase() === 'completed' && appointment.reservation_order_id) {
       const lensOption = req.body.lens_option || 'regular-lens';
       if (!['regular-lens', 'photochromic'].includes(lensOption)) {
@@ -466,6 +484,23 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       });
     } else {
       await appointment.update(updates);
+      if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup') {
+        const customerRecord = await Customer.findByPk(appointment.customer_id, {
+          include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }]
+        });
+        appointmentReceipt = {
+          order_id: `APT-${appointment.appointment_id}`,
+          appointment_id: appointment.appointment_id,
+          customer_name: customerRecord?.User?.full_name || '',
+          Customer: customerRecord,
+          created_at: new Date(),
+          total_amount: updates.checkup_fee,
+          checkup_fee: updates.checkup_fee,
+          payment_status: 'Paid',
+          payment_method: updates.payment_method,
+          OrderItems: []
+        };
+      }
     }
 
     try {
@@ -493,7 +528,8 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         ? 'Checkup completed. The reserved frame and prescription are saved as an order for lens customization.'
         : 'Appointment updated successfully',
       appointment,
-      order: completedReservationOrder
+      order: completedReservationOrder,
+      appointmentReceipt
     });
   } catch (error) {
     console.error('Failed to update appointment:', error);
