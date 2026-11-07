@@ -596,10 +596,7 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
     const customer = await getOrCreateCustomerRecord(Customer, req.user.user_id, user.phone || null);
 
     const reservationOrderId = Number(req.body.reservation_order_id);
-    if (service_type === 'Eye Checkup') {
-      if (!Number.isInteger(reservationOrderId) || reservationOrderId < 1) {
-        return res.status(400).json({ success: false, message: 'Select a staff-confirmed frame reservation before scheduling your eye checkup' });
-      }
+    if (service_type === 'Eye Checkup' && Number.isInteger(reservationOrderId) && reservationOrderId > 0) {
       const reservation = await Order.findOne({ where: {
         order_id: reservationOrderId,
         customer_id: customer.customer_id,
@@ -737,7 +734,7 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
 
     const appointment = await Appointment.create({
       customer_id: customer.customer_id,
-      reservation_order_id: service_type === 'Eye Checkup' ? reservationOrderId : null,
+      reservation_order_id: service_type === 'Eye Checkup' && Number.isInteger(reservationOrderId) && reservationOrderId > 0 ? reservationOrderId : null,
       appointment_date,
       appointment_time,
       service_type,

@@ -1197,6 +1197,9 @@
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionPaymentOptionRow')
                 .classList.remove('d-none');
+            document.getElementById('prescriptionPurchaseSection')
+                .classList.toggle('d-none', Boolean(appointment?.reservation_order_id));
+            document.getElementById('prescriptionPurchaseChoice').value = 'no';
             document.getElementById('prescriptionLensPrice').required = Boolean(appointment?.reservation_order_id);
             document.getElementById('prescriptionCheckupFee').required = true;
             form.querySelectorAll('.prescription-required').forEach(input => {
@@ -1204,7 +1207,7 @@
             });
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
                 ? 'Prescription, Lens & Payment'
-                : 'Optional Eye Checkup Prescription';
+                : 'Eye Checkup Results & Payment';
             form.querySelector('button[type="submit"]').innerHTML = appointment?.reservation_order_id
                 ? 'Collect Payment &amp; Complete'
                 : 'Collect Check-up Fee &amp; Complete';
@@ -1216,8 +1219,11 @@
             }
 
             form.reset();
+            document.getElementById('prescriptionPurchaseChoice').value = 'no';
             form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
             document.getElementById('prescriptionAppointmentId').value = appointmentId;
+            loadPrescriptionFrameOptions();
+            toggleAppointmentPurchaseFields();
             updateReservationPaymentAmount(true);
             bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentPrescriptionModal')).show();
         }
@@ -1229,22 +1235,64 @@
             const lensOption = document.getElementById('prescriptionLensOption')?.value || 'regular-lens';
             const items = reservation?.OrderItems || [];
             const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-            const frameTotal = items.reduce((sum, item) => {
+            let frameTotal = items.reduce((sum, item) => {
                 const framePrice = Number(item.frame_price ?? item.Product?.frame_only_price ?? item.Product?.price ?? 0);
                 return sum + framePrice * Number(item.quantity || 0);
             }, 0);
+            let totalQuantity = quantity;
+            if (!reservation && document.getElementById('prescriptionPurchaseChoice')?.value === 'yes') {
+                const selectedFrame = document.getElementById('prescriptionFrameProduct')?.selectedOptions?.[0];
+                frameTotal = Number(selectedFrame?.dataset.framePrice || 0);
+                totalQuantity = selectedFrame?.value ? 1 : 0;
+            }
             const lensPriceInput = document.getElementById('prescriptionLensPrice');
             if (lensPriceInput && resetLensPrice) {
                 const firstItem = items[0];
-                const framePrice = Number(firstItem?.frame_price ?? firstItem?.Product?.frame_only_price ?? firstItem?.Product?.price ?? 0);
-                const configuredTotal = walkInPrice(firstItem?.Product || {}, lensOption);
+                const selectedFrame = document.getElementById('prescriptionFrameProduct')?.selectedOptions?.[0];
+                const framePrice = reservation
+                    ? Number(firstItem?.frame_price ?? firstItem?.Product?.frame_only_price ?? firstItem?.Product?.price ?? 0)
+                    : Number(selectedFrame?.dataset.framePrice || 0);
+                const configuredTotal = reservation
+                    ? walkInPrice(firstItem?.Product || {}, lensOption)
+                    : Number(selectedFrame?.dataset[lensOption === 'photochromic' ? 'photochromicPrice' : 'regularLensPrice'] || framePrice);
                 lensPriceInput.value = Math.max(0, configuredTotal - framePrice).toFixed(2);
             }
             const lensPrice = Number(lensPriceInput?.value || 0);
             const checkupFee = Number(document.getElementById('prescriptionCheckupFee')?.value || 0);
-            const total = frameTotal + lensPrice * quantity + checkupFee;
+            const total = frameTotal + lensPrice * totalQuantity + checkupFee;
             const amount = document.getElementById('prescriptionPaymentAmount');
             if (amount) amount.textContent = `Total: ₱${total.toFixed(2)}`;
+        }
+
+        async function loadPrescriptionFrameOptions() {
+            const select = document.getElementById('prescriptionFrameProduct');
+            if (!select) return;
+            select.innerHTML = '<option value="">Loading frames...</option>';
+            const result = await apiCall('/staff/products');
+            const products = (result?.products || []).filter(product => product.is_active && Number(product.stock_quantity || 0) > 0);
+            select.innerHTML = '<option value="">Choose a frame</option>' + products.map(product => {
+                const framePrice = Number(product.frame_only_price ?? product.price ?? 0);
+                return `<option value="${product.product_id}" data-frame-price="${framePrice}" data-regular-lens-price="${Number(product.regular_lens_price || product.price || framePrice)}" data-photochromic-price="${Number(product.photochromic_price || product.price || framePrice)}">${escapeStaffOrderText(product.product_name)} — Frame ₱${framePrice.toFixed(2)} (${Number(product.stock_quantity)} available)</option>`;
+            }).join('');
+            if (!products.length) select.innerHTML = '<option value="">No frames currently in stock</option>';
+            updateReservationPaymentAmount(true);
+        }
+
+        function toggleAppointmentPurchaseFields() {
+            const buyingFrame = document.getElementById('prescriptionPurchaseChoice')?.value === 'yes';
+            const hasReservation = Boolean(staffAppointmentsById.get(Number(document.getElementById('prescriptionAppointmentId')?.value))?.reservation_order_id);
+            document.getElementById('prescriptionPurchaseFrameRow').classList.toggle('d-none', !buyingFrame || hasReservation);
+            document.getElementById('prescriptionFrameProduct').required = buyingFrame && !hasReservation;
+            document.getElementById('prescriptionLensOptionRow').classList.toggle('d-none', !buyingFrame && !hasReservation);
+            document.getElementById('prescriptionLensPriceRow').classList.toggle('d-none', !buyingFrame && !hasReservation);
+            document.getElementById('prescriptionLensPrice').required = buyingFrame || hasReservation;
+            const paymentHelp = document.getElementById('prescriptionPaymentHelp');
+            if (paymentHelp) {
+                paymentHelp.textContent = hasReservation || buyingFrame
+                    ? 'Record payment for the frame, lenses, and check-up. The customer can claim the glasses after production is complete.'
+                    : 'Record payment for the eye check-up. A receipt will be generated when you complete the appointment.';
+            }
+            updateReservationPaymentAmount(true);
         }
 
         function preventPrescriptionLetters(event) {
@@ -1289,7 +1337,7 @@
             console.log('updateAppointmentStatus called', { appointmentId, status });
             const payload = { status };
             if (prescription) {
-                const { lens_option, lens_price, checkup_fee, payment_method, ...prescriptionValues } = prescription;
+                const { lens_option, lens_price, checkup_fee, payment_method, purchase_frame, product_id, ...prescriptionValues } = prescription;
                 const hasPrescriptionValues = ['right_sph', 'right_axis', 'left_sph', 'left_axis']
                     .some(key => prescriptionValues[key] !== undefined && String(prescriptionValues[key]).trim() !== '') ||
                     ['right_cyl', 'left_cyl'].some(key => prescriptionValues[key] !== undefined && String(prescriptionValues[key]).trim() !== '' && Number(prescriptionValues[key]) !== 0);
@@ -1298,6 +1346,8 @@
                 if (lens_price !== undefined) payload.lens_price = lens_price;
                 if (checkup_fee !== undefined) payload.checkup_fee = checkup_fee;
                 if (payment_method) payload.payment_method = payment_method;
+                if (purchase_frame !== undefined) payload.purchase_frame = purchase_frame === 'yes';
+                if (product_id) payload.product_id = product_id;
             }
             if ((status || '').toLowerCase() === 'confirmed') {
                 payload.staff_confirm = true;
@@ -1468,7 +1518,7 @@
                         <tr>
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
                             <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}</td>
+                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
                                 <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
@@ -1501,7 +1551,7 @@
                         <tr>
                             <td>${formatAppointmentDate(apt.appointment_date || 'N/A')}</td>
                             <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}</td>
+                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}</td>
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
@@ -2147,13 +2197,27 @@
         <div class="modal-body">
           <input type="hidden" id="prescriptionAppointmentId">
           <p class="small text-muted">Enter the values from the examination if available. Sphere is required when saving a prescription; axis is required when cylinder is not zero.</p>
+          <div class="mb-3 d-none" id="prescriptionPurchaseSection">
+            <label class="form-label fw-semibold" for="prescriptionPurchaseChoice">Will the customer purchase a frame and lenses?</label>
+            <select class="form-select" id="prescriptionPurchaseChoice" name="purchase_frame" onchange="toggleAppointmentPurchaseFields()">
+              <option value="no" selected>No, check-up only</option>
+              <option value="yes">Yes, create a frame and lens order</option>
+            </select>
+          </div>
+          <div class="mb-3 d-none" id="prescriptionPurchaseFrameRow">
+            <label class="form-label fw-semibold" for="prescriptionFrameProduct">Choose frame</label>
+            <select class="form-select" id="prescriptionFrameProduct" name="product_id" onchange="updateReservationPaymentAmount(true)">
+              <option value="">Choose a frame</option>
+            </select>
+            <div class="form-text">Frame prices come from product records. Staff can adjust the lens price below.</div>
+          </div>
           <div class="mb-3 d-none" id="prescriptionLensOptionRow">
             <label class="form-label fw-semibold" for="prescriptionLensOption">Lens customization</label>
             <select class="form-select" id="prescriptionLensOption" name="lens_option" onchange="updateReservationPaymentAmount(true)">
               <option value="regular-lens" selected>Regular lens</option>
               <option value="photochromic">Photochromic</option>
             </select>
-            <div class="form-text">The reserved frame and prescription will be used for this customer order.</div>
+            <div class="form-text">The selected frame and prescription will be used for this customer order.</div>
           </div>
           <div class="mb-3 d-none" id="prescriptionLensPriceRow">
             <label class="form-label fw-semibold" for="prescriptionLensPrice">Lens price per pair</label>

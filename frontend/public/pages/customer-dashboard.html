@@ -3447,7 +3447,7 @@
             const appointmentService = document.getElementById('appointmentService');
             appointmentService.disabled = Boolean(currentReservationOrderId);
             if (currentReservationOrderId) appointmentService.value = 'Eye Checkup';
-            else if (!appointment) appointmentService.value = 'General Consultation';
+            else if (!appointment) appointmentService.value = 'Eye Checkup';
 
             if (!appointmentFormModalInstance) {
                 const appointmentModal = document.getElementById('appointmentFormModal');
@@ -3528,6 +3528,25 @@
             await loadAppointments();
         }
 
+        function showCustomerAppointmentReceipt(appointmentId) {
+            const appointment = appointmentsById.get(String(appointmentId));
+            if (!appointment || String(appointment.payment_status || '').toLowerCase() !== 'paid') return;
+            const fee = Number(appointment.checkup_fee || 0);
+            const receipt = {
+                order_id: `APT-${appointment.appointment_id}`,
+                appointment_id: appointment.appointment_id,
+                customer_name: getCustomerDisplayName(dashboardState.user || {}),
+                created_at: appointment.updated_at || appointment.appointment_date,
+                total_amount: fee,
+                checkup_fee: fee,
+                payment_status: appointment.payment_status,
+                payment_method: appointment.payment_method,
+                OrderItems: []
+            };
+            window.currentReceiptOrder = receipt;
+            showOrderReceipt(receipt);
+        }
+
         async function loadAppointments() {
             try {
                 const result = await apiCall('/customer/appointments');
@@ -3541,7 +3560,11 @@
                         <tr>
                             <td class="fw-semibold">${formatDate(apt.appointment_date)}</td>
                             <td>${formatTime(apt.appointment_time)}</td>
-                            <td><span class="fw-medium">${apt.service_type || 'General Checkup'}</span></td>
+                            <td>
+                                <span class="fw-medium">${apt.service_type || 'General Checkup'}</span>
+                                ${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="small text-muted mt-1">OD: SPH ${formatPrescriptionValue(apt.right_sph)}, CYL ${formatPrescriptionValue(apt.right_cyl)}, AXIS ${apt.right_axis ?? '—'}<br>OS: SPH ${formatPrescriptionValue(apt.left_sph)}, CYL ${formatPrescriptionValue(apt.left_cyl)}, AXIS ${apt.left_axis ?? '—'}</div>` : ''}
+                                ${Number(apt.checkup_fee || 0) > 0 ? `<div class="small text-muted mt-1">Check-up fee: ₱${Number(apt.checkup_fee).toFixed(2)} ${String(apt.payment_status || '').toLowerCase() === 'paid' ? '(Paid)' : ''}</div>` : ''}
+                            </td>
                             <td><span class="badge ${getAppointmentStatusBadge(apt.status)} text-capitalize">${apt.status || 'Scheduled'}</span></td>
                             <td>
                                 <div class="apt-actions">
@@ -3554,6 +3577,7 @@
                                     <button type="button" class="apt-btn apt-btn-cancel" onclick="cancelAppointment(${apt.appointment_id})" ${apt.qr_verified || ['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>
                                         <i class="fas fa-ban"></i> Cancel
                                     </button>
+                                    ${String(apt.payment_status || '').toLowerCase() === 'paid' ? `<button type="button" class="apt-btn" onclick="showCustomerAppointmentReceipt(${apt.appointment_id})"><i class="fas fa-receipt"></i> Receipt</button>` : ''}
                                 </div>
                                 <div class="apt-notice ${apt.qr_verified ? 'verified' : ''}">
                                     ${getCustomerAppointmentNotice(apt)}
