@@ -1776,11 +1776,6 @@
                             <input type="text" class="form-control" id="productColorName" placeholder="e.g. Matte Black">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Color Hex</label>
-                            <input type="text" class="form-control" id="productColorHex" placeholder="e.g. #000000">
-                            <div class="form-text">Optional precise frame color, using a hex value.</div>
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label">Frame Price</label>
                             <input type="number" class="form-control" id="productPrice" step="0.01" required>
                         </div>
@@ -2170,7 +2165,6 @@
             document.getElementById('productFrameMaterial').value = product?.frame_material || '';
             document.getElementById('productFrameShape').value = product?.frame_shape || '';
             document.getElementById('productColorName').value = product?.color_name || '';
-            document.getElementById('productColorHex').value = product?.color_hex || '';
             document.getElementById('productPrice').value = product?.frame_only_price ?? product?.price ?? '';
             document.getElementById('productStock').value = product?.stock_quantity ?? 0;
             document.getElementById('productMinStock').value = product?.min_stock_level ?? 10;
@@ -2297,8 +2291,6 @@ This will deactivate the account and keep the user record for history.`)) {
                 const productId = document.getElementById('productId').value;
                 const productImageFiles = Array.from(document.getElementById('productImage').files || []);
                 const colorNameValue = document.getElementById('productColorName').value.trim();
-                const colorHexValue = document.getElementById('productColorHex').value.trim();
-                const normalizedColorHex = colorHexValue ? colorHexValue.replace(/^#/, '').toUpperCase() : '';
                 const payload = {
                     product_name: document.getElementById('productName').value.trim(),
                     category: document.getElementById('productCategory').value.trim(),
@@ -2307,7 +2299,6 @@ This will deactivate the account and keep the user record for history.`)) {
                     lens_type: null,
                     frame_shape: document.getElementById('productFrameShape').value.trim() || null,
                     color_name: colorNameValue || null,
-                    color_hex: normalizedColorHex ? `#${normalizedColorHex}` : null,
                     price: Number(document.getElementById('productPrice').value),
                     frame_only_price: Number(document.getElementById('productPrice').value),
                     regular_lens_price: null,
@@ -2316,11 +2307,6 @@ This will deactivate the account and keep the user record for history.`)) {
                     min_stock_level: Number(document.getElementById('productMinStock').value),
                     supplier: document.getElementById('productSupplier').value.trim() || null
                 };
-
-                if (normalizedColorHex && !/^([A-F0-9]{6})$/.test(normalizedColorHex)) {
-                    alert('Color Hex must be a valid 6-digit hex value like #000000.');
-                    return;
-                }
 
                 // Include stock reason if editing and field has value
                 const stockReason = document.getElementById('productStockReason').value.trim();
@@ -3166,12 +3152,10 @@ This will deactivate the account and keep the user record for history.`)) {
                 const minimum = Number(item.min_stock_level || 10);
                 const meterWidth = Math.min(100, Math.round(stock / Math.max(minimum * 3, 1) * 100));
                 const meterColor = statusKey === 'out' || statusKey === 'low' ? '#ea580c' : statusKey === 'medium' ? '#d97706' : '#059669';
-                const colorHex = String(item.color_hex || '').replace(/^#/, '');
-                const swatch = /^[A-Fa-f0-9]{6}$/.test(colorHex) ? `#${colorHex}` : null;
                 const colorMeta = [item.color_name, item.frame_material, item.frame_shape].filter(Boolean).join(' · ');
                 const lastRestock = item.last_restock_date ? new Date(item.last_restock_date).toLocaleDateString() : 'No restock logged';
                 return `<tr>
-                    <td><div class="inventory-frame-cell"><div class="inventory-frame-swatch">${swatch ? `<span style="background:${swatch}"></span>` : '<i class="fas fa-glasses"></i>'}</div><div><div class="inventory-frame-name">${escapeAdminOrderText(item.product_name || 'Unnamed frame')}</div><div class="inventory-frame-meta">${escapeAdminOrderText(colorMeta || `Frame #${item.product_id}`)}</div></div></div></td>
+                    <td><div class="inventory-frame-cell"><div class="inventory-frame-swatch"><i class="fas fa-glasses"></i></div><div><div class="inventory-frame-name">${escapeAdminOrderText(item.product_name || 'Unnamed frame')}</div><div class="inventory-frame-meta">${escapeAdminOrderText(colorMeta || `Frame #${item.product_id}`)}</div></div></div></td>
                     <td><span class="badge rounded-pill text-bg-light border">${escapeAdminOrderText(item.category || 'Frame')}</span></td>
                     <td class="fw-semibold">₱${Number(item.frame_only_price ?? item.price ?? 0).toFixed(2)}</td>
                     <td><div class="inventory-stock-number">${stock.toLocaleString()} <span class="inventory-frame-meta">units</span></div><div class="inventory-stock-meter"><span style="width:${meterWidth}%;background:${meterColor}"></span></div></td>

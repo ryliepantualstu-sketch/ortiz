@@ -520,12 +520,10 @@ router.get('/products', authMiddleware, requireRole('admin'), async (req, res) =
 // Create product
 router.post('/products', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
-    const { product_name, category, description, frame_material, lens_type, frame_shape, color_name, color_hex, color_int, price, frame_only_price, regular_lens_price, photochromic_price, stock_quantity, min_stock_level, supplier, image_data, image_name, image_data_list, image_name_list } = req.body;
+    const { product_name, category, description, frame_material, lens_type, frame_shape, color_name, color_int, price, frame_only_price, regular_lens_price, photochromic_price, stock_quantity, min_stock_level, supplier, image_data, image_name, image_data_list, image_name_list } = req.body;
     const colorInt = color_int != null && color_int !== '' ? Number(color_int) : null;
-    const trimmedColorHex = color_hex ? String(color_hex).trim() : null;
-    const normalizedColorHex = trimmedColorHex ? trimmedColorHex.replace(/^#/, '').toUpperCase() : null;
 
-    console.log('Creating product:', { product_name, category, frame_material, lens_type, frame_shape, color_name, color_hex: normalizedColorHex, color_int: colorInt, price, stock_quantity, image_data: !!image_data });
+    console.log('Creating product:', { product_name, category, frame_material, lens_type, frame_shape, color_name, color_int: colorInt, price, stock_quantity, image_data: !!image_data });
 
     if (!product_name || !category || price == null || stock_quantity == null) {
       return res.status(400).json({
@@ -548,13 +546,6 @@ router.post('/products', authMiddleware, requireRole('admin'), async (req, res) 
       });
     }
 
-    if (normalizedColorHex && !/^([A-F0-9]{6})$/.test(normalizedColorHex)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Color Hex must be a valid 6-digit hex string, with or without #.'
-      });
-    }
-
     const product = await Product.create({
       product_name,
       category: 'Frame',
@@ -563,7 +554,7 @@ router.post('/products', authMiddleware, requireRole('admin'), async (req, res) 
       lens_type: null,
       frame_shape,
       color_name: color_name?.trim() || null,
-      color_hex: normalizedColorHex ? `#${normalizedColorHex}` : null,
+      color_hex: null,
       color_int: colorInt,
       price,
       frame_only_price: price,
@@ -881,7 +872,7 @@ router.get('/orders', authMiddleware, requireRole('admin'), async (req, res) => 
 router.get('/inventory', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const products = await Product.findAll({
-      attributes: ['product_id', 'product_name', 'category', 'frame_material', 'frame_shape', 'color_name', 'color_hex', 'color_int', 'stock_quantity', 'min_stock_level', 'price', 'frame_only_price', 'last_restock_date', 'is_active'],
+      attributes: ['product_id', 'product_name', 'category', 'frame_material', 'frame_shape', 'color_name', 'color_int', 'stock_quantity', 'min_stock_level', 'price', 'frame_only_price', 'last_restock_date', 'is_active'],
       order: [['stock_quantity', 'ASC']]
     });
 
@@ -1387,7 +1378,7 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
       };
     } else if (report_type === 'products') {
       const products = await Product.findAll({
-        attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_hex', 'color_int', 'price', 'stock_quantity', 'created_at']
+        attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_int', 'price', 'stock_quantity', 'created_at']
       });
 
       reportData = {
