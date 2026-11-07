@@ -1292,7 +1292,8 @@
             }
             const result = await apiCall(`/staff/appointments/${appointmentId}`, 'PUT', payload);
             if (!result.success) {
-                alert(result.message || 'Failed to update appointment.');
+                console.error('Appointment update failed:', result.error || result.message, result);
+                alert(result.error ? `${result.message || 'Failed to update appointment.'}: ${result.error}` : (result.message || 'Failed to update appointment.'));
                 return;
             }
             const prescriptionModal = document.getElementById('appointmentPrescriptionModal');

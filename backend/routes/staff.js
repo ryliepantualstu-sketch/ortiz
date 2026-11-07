@@ -496,6 +496,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       order: completedReservationOrder
     });
   } catch (error) {
+    console.error('Failed to update appointment:', error);
     res.status(error.status || 500).json({
       success: false,
       message: 'Failed to update appointment',
