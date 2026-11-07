@@ -1322,12 +1322,14 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
     const currentDate = new Date().toISOString();
 
     const dateRange = {};
-    if (date_from) {
-      dateRange[Op.gte] = new Date(date_from);
-    }
+    if (date_from) dateRange[Op.gte] = new Date(`${date_from}T00:00:00`);
     if (date_to) {
-      dateRange[Op.lte] = new Date(date_to);
+      const dayAfterTo = new Date(`${date_to}T00:00:00`);
+      dayAfterTo.setDate(dayAfterTo.getDate() + 1);
+      dateRange[Op.lt] = dayAfterTo;
     }
+    const hasDateFilter = Boolean(date_from || date_to);
+    const scopedWhere = field => hasDateFilter ? { [field]: dateRange } : {};
 
     // Generate different types of reports
     if (report_type === 'sales') {
@@ -1345,33 +1347,63 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
             attributes: ['product_id', 'product_name', 'category']
           }]
         }],
-        where: date_from || date_to ? { reservation_only: false, order_date: dateRange } : { reservation_only: false },
+        where: { ...scopedWhere('order_date'), reservation_only: false, payment_status: 'Paid' },
         order: [['order_date', 'DESC']]
       });
-
-      const totalSales = orders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
+      const standaloneAppointments = await Appointment.findAll({
+        attributes: ['appointment_id', 'checkup_fee', 'appointment_date', 'payment_method'],
+        include: [{ model: Customer, attributes: ['customer_id', 'user_id'], include: [{ model: User, attributes: ['full_name', 'email'] }] }],
+        where: { ...scopedWhere('appointment_date'), status: 'completed', payment_status: 'Paid', reservation_order_id: null },
+        order: [['appointment_date', 'DESC']]
+      });
+      const linkedOrders = standaloneAppointments.length ? await Order.findAll({
+        attributes: ['prescription_appointment_id'],
+        where: { prescription_appointment_id: { [Op.in]: standaloneAppointments.map(a => a.appointment_id) }, payment_status: 'Paid', reservation_only: false }
+      }) : [];
+      const appointmentIdsWithOrders = new Set(linkedOrders.map(order => Number(order.prescription_appointment_id)));
+      const standaloneSales = standaloneAppointments
+        .filter(appointment => !appointmentIdsWithOrders.has(Number(appointment.appointment_id)))
+        .map(appointment => ({
+          order_id: `APT-${appointment.appointment_id}`,
+          total_amount: appointment.checkup_fee,
+          status: 'completed',
+          payment_status: 'Paid',
+          order_date: appointment.appointment_date,
+          Customer: appointment.Customer,
+          OrderItems: [{ quantity: 1, subtotal: appointment.checkup_fee, Product: { product_name: 'Eye check-up' } }]
+        }));
+      const transactions = [...orders, ...standaloneSales].sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+      const totalSales = transactions.reduce((sum, transaction) => sum + Number(transaction.total_amount || 0), 0);
       reportData = {
         type: 'Sales Report',
-        total_orders: orders.length,
+        total_orders: transactions.length,
+        paid_orders: orders.length,
+        paid_standalone_checkups: standaloneSales.length,
         total_sales: totalSales.toFixed(2),
-        data: orders
+        excluded_unpaid_and_refunded: true,
+        data: transactions
       };
     } else if (report_type === 'inventory') {
       const products = await Product.findAll({
-        attributes: ['product_id', 'product_name', 'stock_quantity', 'min_stock_level', 'price']
+        attributes: ['product_id', 'product_name', 'stock_quantity', 'min_stock_level', 'price', 'frame_only_price', 'is_active'],
+        where: { is_active: true }
       });
 
-      const lowStockProducts = products.filter(p => Number(p.stock_quantity) <= Number(p.min_stock_level || 0));
+      const outOfStock = products.filter(p => Number(p.stock_quantity || 0) <= 0);
+      const lowStockProducts = products.filter(p => Number(p.stock_quantity || 0) > 0 && Number(p.stock_quantity) <= Number(p.min_stock_level || 10));
       reportData = {
         type: 'Inventory Report',
         total_products: products.length,
         low_stock_count: lowStockProducts.length,
-        total_value: products.reduce((sum, p) => sum + (Number(p.stock_quantity || 0) * Number(p.price || 0)), 0).toFixed(2),
+        out_of_stock_count: outOfStock.length,
+        total_units: products.reduce((sum, p) => sum + Number(p.stock_quantity || 0), 0),
+        total_value: products.reduce((sum, p) => sum + (Number(p.stock_quantity || 0) * Number(p.frame_only_price ?? p.price ?? 0)), 0).toFixed(2),
+        scope: 'Current inventory snapshot. Value uses frame price and on-hand quantity.',
         data: products
       };
     } else if (report_type === 'appointments') {
       const appointments = await Appointment.findAll({
-        attributes: ['appointment_id', 'service_type', 'status', 'appointment_date', 'appointment_time'],
+        attributes: ['appointment_id', 'service_type', 'status', 'appointment_date', 'appointment_time', 'checkup_fee', 'payment_status', 'payment_method', 'right_sph', 'right_cyl', 'right_axis', 'left_sph', 'left_cyl', 'left_axis', 'notes'],
         include: [
           {
             model: Customer,
@@ -1380,7 +1412,7 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
           },
           { model: User, as: 'staff', attributes: ['user_id', 'full_name'] }
         ],
-        where: date_from || date_to ? { appointment_date: dateRange } : {},
+        where: scopedWhere('appointment_date'),
         order: [['appointment_date', 'DESC']]
       });
 
@@ -1388,8 +1420,10 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
         type: 'Appointments Report',
         total_appointments: appointments.length,
         completed: appointments.filter(a => a.status === 'completed').length,
+        confirmed: appointments.filter(a => a.status === 'confirmed').length,
         pending: appointments.filter(a => a.status === 'pending').length,
         cancelled: appointments.filter(a => a.status === 'cancelled').length,
+        paid_checkup_fees: appointments.filter(a => a.payment_status === 'Paid').reduce((sum, a) => sum + Number(a.checkup_fee || 0), 0).toFixed(2),
         data: appointments
       };
     } else if (report_type === 'customers') {
@@ -1397,8 +1431,9 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
         attributes: ['customer_id', 'user_id'],
         include: [
           { model: User, attributes: ['user_id', 'full_name', 'email', 'phone', 'created_at'] },
-          { model: Order, attributes: ['order_id', 'total_amount', 'order_date'] }
-        ]
+          { model: Order, attributes: ['order_id', 'total_amount', 'order_date'], where: { ...scopedWhere('order_date'), reservation_only: false, payment_status: 'Paid' }, required: false }
+        ],
+        order: [[{ model: User }, 'full_name', 'ASC']]
       });
 
       reportData = {
@@ -1406,11 +1441,14 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
         total_customers: customers.length,
         total_orders: customers.reduce((sum, c) => sum + (c.Orders?.length || 0), 0),
         total_revenue: customers.reduce((sum, c) => sum + (c.Orders?.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0) || 0), 0).toFixed(2),
+        scope: `All registered customers; paid, non-reservation orders${hasDateFilter ? ' in the selected period' : ' across all dates'}.`,
         data: customers
       };
     } else if (report_type === 'products') {
       const products = await Product.findAll({
-        attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_int', 'price', 'stock_quantity', 'created_at']
+        attributes: ['product_id', 'product_name', 'category', 'color_name', 'price', 'frame_only_price', 'stock_quantity', 'created_at', 'is_active'],
+        where: scopedWhere('created_at'),
+        order: [['created_at', 'DESC']]
       });
 
       reportData = {
@@ -1434,8 +1472,11 @@ router.post('/reports/generate', authMiddleware, requireRole('admin'), async (re
       report_type,
       generated_date: currentDate,
       generated_by: req.user.user_id,
-      date_from: date_from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      date_to: date_to || new Date().toISOString(),
+      date_from: date_from || null,
+      date_to: date_to || null,
+      scope: reportData.scope || (report_type === 'inventory'
+        ? 'Current inventory snapshot.'
+        : hasDateFilter ? `Records${date_from ? ` from ${date_from}` : ''}${date_to ? ` through ${date_to}` : ''}.` : 'All available records across all dates.'),
       summary: reportData,
       status: 'completed'
     };

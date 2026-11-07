@@ -1506,7 +1506,7 @@
                                     <div class="card-body text-center">
                                         <i class="fas fa-chart-bar" style="font-size: 2.5rem; color: #0d6efd; margin-bottom: 10px;"></i>
                                         <h5 class="card-title">Sales Report</h5>
-                                        <p class="card-text small text-muted">Orders, revenue, and sales trends</p>
+                                        <p class="card-text small text-muted">Paid orders and standalone check-up fees</p>
                                     </div>
                                 </div>
                             </div>
@@ -4025,7 +4025,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <p><strong>Generated:</strong> ${new Date(report.generated_date).toLocaleDateString()} ${new Date(report.generated_date).toLocaleTimeString()}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Period:</strong> ${new Date(report.date_from).toLocaleDateString()} to ${new Date(report.date_to).toLocaleDateString()}</p>
+                            <p><strong>Scope:</strong> ${report.scope || (report.date_from || report.date_to ? `${report.date_from || 'Beginning'} to ${report.date_to || 'Present'}` : 'All available records')}</p>
                         </div>
                     </div>
                     <hr>
@@ -4048,7 +4048,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <div style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%); color: white; padding: 15px; border-radius: 8px;">
-                                <p class="mb-0 small text-uppercase">Total Orders</p>
+                                <p class="mb-0 small text-uppercase">Paid Transactions</p>
                                 <h3 class="mb-0">${report.summary.total_orders}</h3>
                             </div>
                         </div>
@@ -4059,10 +4059,10 @@ This will deactivate the account and keep the user record for history.`)) {
                             </div>
                         </div>
                     </div>
-                    <h6 class="mt-3 mb-2">Orders and Purchased Glasses</h6>
+                    <h6 class="mt-3 mb-2">Paid Orders and Check-up Fees</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
-                            <thead><tr><th>Order ID</th><th>Customer</th><th>Purchased Glasses</th><th>Total</th></tr></thead>
+                            <thead><tr><th>Transaction</th><th>Customer</th><th>Items / Service</th><th>Total</th></tr></thead>
                             <tbody>${salesRows || '<tr><td colspan="4" class="text-center">No orders found</td></tr>'}</tbody>
                         </table>
                     </div>
@@ -4071,21 +4071,27 @@ This will deactivate the account and keep the user record for history.`)) {
                 html += `
                     <h6 class="mb-3"><i class="fas fa-boxes text-success"></i> Inventory Summary</h6>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <div style="background: linear-gradient(135deg, #20c997 0%, #12a876 100%); color: white; padding: 15px; border-radius: 8px;">
                                 <p class="mb-0 small text-uppercase">Total Products</p>
                                 <h3 class="mb-0">${report.summary.total_products}</h3>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <div style="background: linear-gradient(135deg, #ffc107 0%, #ff9c00 100%); color: white; padding: 15px; border-radius: 8px;">
-                                <p class="mb-0 small text-uppercase">Low Stock Items</p>
+                                <p class="mb-0 small text-uppercase">Low Stock (Excludes Out)</p>
                                 <h3 class="mb-0">${report.summary.low_stock_count}</h3>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; padding: 15px; border-radius: 8px;">
+                                <p class="mb-0 small text-uppercase">Out of Stock</p>
+                                <h3 class="mb-0">${report.summary.out_of_stock_count || 0}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
                             <div style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%); color: white; padding: 15px; border-radius: 8px;">
-                                <p class="mb-0 small text-uppercase">Total Value</p>
+                                <p class="mb-0 small text-uppercase">Frame Value (${report.summary.total_units || 0} units)</p>
                                 <h3 class="mb-0">₱${report.summary.total_value}</h3>
                             </div>
                         </div>
@@ -4095,28 +4101,40 @@ This will deactivate the account and keep the user record for history.`)) {
                 html += `
                     <h6 class="mb-3"><i class="fas fa-calendar-check text-warning"></i> Appointments Summary</h6>
                     <div class="row">
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <div style="background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%); color: white; padding: 15px; border-radius: 8px;">
                                 <p class="mb-0 small text-uppercase">Total</p>
                                 <h3 class="mb-0">${report.summary.total_appointments}</h3>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <div style="background: linear-gradient(135deg, #17a2b8 0%, #0d8fa1 100%); color: white; padding: 15px; border-radius: 8px;">
+                                <p class="mb-0 small text-uppercase">Confirmed</p>
+                                <h3 class="mb-0">${report.summary.confirmed || 0}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <div style="background: linear-gradient(135deg, #20c997 0%, #12a876 100%); color: white; padding: 15px; border-radius: 8px;">
                                 <p class="mb-0 small text-uppercase">Completed</p>
                                 <h3 class="mb-0">${report.summary.completed}</h3>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <div style="background: linear-gradient(135deg, #ffc107 0%, #ff9c00 100%); color: white; padding: 15px; border-radius: 8px;">
                                 <p class="mb-0 small text-uppercase">Pending</p>
                                 <h3 class="mb-0">${report.summary.pending}</h3>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; padding: 15px; border-radius: 8px;">
                                 <p class="mb-0 small text-uppercase">Cancelled</p>
                                 <h3 class="mb-0">${report.summary.cancelled}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div style="background: linear-gradient(135deg, #20c997 0%, #12a876 100%); color: white; padding: 15px; border-radius: 8px;">
+                                <p class="mb-0 small text-uppercase">Paid Check-up Fees</p>
+                                <h3 class="mb-0">₱${report.summary.paid_checkup_fees || '0.00'}</h3>
                             </div>
                         </div>
                     </div>
@@ -4309,7 +4327,7 @@ This will deactivate the account and keep the user record for history.`)) {
                         <div class="meta">
                             <p><strong>Report Reference:</strong> ${escapePrintHtml(report.report_id || 'N/A')}</p>
                             <p><strong>Date Prepared:</strong> ${escapePrintHtml(generatedDate)} at ${escapePrintHtml(generatedTime)}</p>
-                            <p><strong>Reporting Period:</strong> ${escapePrintHtml(formatPrintDate(report.date_from))} – ${escapePrintHtml(formatPrintDate(report.date_to))}</p>
+                            <p><strong>Report Scope:</strong> ${escapePrintHtml(report.scope || (report.date_from || report.date_to ? `${report.date_from || 'Beginning'} to ${report.date_to || 'Present'}` : 'All available records'))}</p>
                             <p><strong>Document Status:</strong> ${escapePrintHtml(report.status || 'Generated')}</p>
                         </div>
                         <h2>Summary</h2>
