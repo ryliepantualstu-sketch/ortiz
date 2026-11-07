@@ -881,7 +881,7 @@ router.get('/orders', authMiddleware, requireRole('admin'), async (req, res) => 
 router.get('/inventory', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const products = await Product.findAll({
-      attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_hex', 'color_int', 'stock_quantity', 'min_stock_level', 'price', 'last_restock_date'],
+      attributes: ['product_id', 'product_name', 'category', 'frame_material', 'frame_shape', 'color_name', 'color_hex', 'color_int', 'stock_quantity', 'min_stock_level', 'price', 'frame_only_price', 'last_restock_date', 'is_active'],
       order: [['stock_quantity', 'ASC']]
     });
 

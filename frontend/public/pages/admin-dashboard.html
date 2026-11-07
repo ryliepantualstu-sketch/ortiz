@@ -451,6 +451,38 @@
             overflow: hidden;
         }
 
+        .inventory-hero { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:22px; padding:24px 26px; border-radius:18px; color:#fff; background:linear-gradient(120deg,#102a43 0%,#155e75 58%,#0f766e 100%); box-shadow:0 14px 32px rgba(15,55,75,.17); }
+        .inventory-hero h4 { margin:0 0 5px; color:#fff; font-weight:800; letter-spacing:-.3px; }
+        .inventory-hero p { margin:0; color:rgba(255,255,255,.76); }
+        .inventory-hero .btn { border-radius:10px; font-weight:700; white-space:nowrap; }
+        .inventory-stat { height:100%; padding:18px 20px; border:1px solid #e5edf3; border-radius:15px; background:#fff; box-shadow:0 6px 18px rgba(22,48,66,.055); }
+        .inventory-stat-top { display:flex; justify-content:space-between; align-items:center; color:#64748b; font-size:.82rem; font-weight:700; }
+        .inventory-stat-icon { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:#eff6ff; color:#2563eb; }
+        .inventory-stat-value { margin-top:10px; color:#102a43; font-size:1.8rem; font-weight:850; line-height:1; }
+        .inventory-stat-note { margin-top:7px; color:#94a3b8; font-size:.78rem; }
+        .inventory-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:16px; border-bottom:1px solid #edf2f7; background:#fbfdff; }
+        .inventory-search { position:relative; flex:1 1 250px; }
+        .inventory-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+        .inventory-search input { padding-left:38px; border-radius:10px; }
+        .inventory-toolbar .form-select { width:auto; min-width:155px; border-radius:10px; }
+        .inventory-frame-cell { display:flex; align-items:center; gap:11px; min-width:220px; }
+        .inventory-frame-swatch { width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; overflow:hidden; border:1px solid #e2e8f0; border-radius:11px; background:#f1f5f9; color:#64748b; }
+        .inventory-frame-swatch span { width:20px; height:20px; border-radius:50%; border:1px solid rgba(15,23,42,.15); }
+        .inventory-frame-name { color:#102a43; font-weight:800; }
+        .inventory-frame-meta { color:#94a3b8; font-size:.78rem; }
+        .inventory-stock-number { color:#102a43; font-size:1.05rem; font-weight:850; }
+        .inventory-stock-meter { width:108px; height:6px; margin-top:6px; overflow:hidden; border-radius:999px; background:#eaf0f5; }
+        .inventory-stock-meter span { display:block; height:100%; border-radius:inherit; }
+        .inventory-status { display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:999px; font-size:.76rem; font-weight:800; white-space:nowrap; }
+        .inventory-status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+        .inventory-status.ok { color:#047857; background:#ecfdf5; }
+        .inventory-status.medium { color:#b45309; background:#fffbeb; }
+        .inventory-status.low { color:#c2410c; background:#fff7ed; }
+        .inventory-status.out { color:#b91c1c; background:#fef2f2; }
+        .inventory-status.archived { color:#64748b; background:#f1f5f9; }
+        .inventory-table td { vertical-align:middle; }
+        @media (max-width: 767.98px) { .inventory-hero { align-items:flex-start; flex-direction:column; padding:19px; } .inventory-hero .inventory-actions { width:100%; display:flex; } .inventory-hero .inventory-actions .btn { flex:1; } .inventory-toolbar .form-select { flex:1 1 130px; } }
+
         .table-responsive {
             border-radius: 12px;
             overflow: hidden;
@@ -1384,21 +1416,49 @@
 
                     <!-- Inventory Section -->
                     <div id="inventorySection" style="display: none;">
-                        <h4 class="mb-4">Inventory Management</h4>
+                        <div class="inventory-hero">
+                            <div>
+                                <h4><i class="fas fa-warehouse me-2"></i>Frame Inventory</h4>
+                                <p>Monitor stock, find frames that need attention, and update quantities.</p>
+                            </div>
+                            <div class="inventory-actions d-flex gap-2">
+                                <button type="button" class="btn btn-outline-light" onclick="openInventoryStockHistory()"><i class="fas fa-clock-rotate-left me-1"></i>Stock History</button>
+                                <button type="button" class="btn btn-light text-primary" onclick="loadInventory()"><i class="fas fa-rotate me-1"></i>Refresh</button>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-xl-3"><div class="inventory-stat"><div class="inventory-stat-top"><span>Frame styles</span><span class="inventory-stat-icon"><i class="fas fa-glasses"></i></span></div><div class="inventory-stat-value" id="inventoryStatFrames">—</div><div class="inventory-stat-note">Products tracked in inventory</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="inventory-stat"><div class="inventory-stat-top"><span>Units on hand</span><span class="inventory-stat-icon" style="color:#0891b2;background:#ecfeff"><i class="fas fa-boxes-stacked"></i></span></div><div class="inventory-stat-value" id="inventoryStatUnits">—</div><div class="inventory-stat-note">Across all frame styles</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="inventory-stat"><div class="inventory-stat-top"><span>Need attention</span><span class="inventory-stat-icon" style="color:#ea580c;background:#fff7ed"><i class="fas fa-triangle-exclamation"></i></span></div><div class="inventory-stat-value" id="inventoryStatAlerts">—</div><div class="inventory-stat-note" id="inventoryStatAlertNote">Low or out of stock</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="inventory-stat"><div class="inventory-stat-top"><span>Stock value</span><span class="inventory-stat-icon" style="color:#059669;background:#ecfdf5"><i class="fas fa-peso-sign"></i></span></div><div class="inventory-stat-value" id="inventoryStatValue">—</div><div class="inventory-stat-note">Based on frame price</div></div></div>
+                        </div>
                         <div class="table-container">
+                            <div class="inventory-toolbar">
+                                <div class="inventory-search"><i class="fas fa-search"></i><input id="inventorySearch" type="search" class="form-control" placeholder="Search frame, color, or category" oninput="renderAdminInventory()"></div>
+                                <select id="inventoryStatusFilter" class="form-select" aria-label="Filter inventory status" onchange="renderAdminInventory()">
+                                    <option value="all">All stock statuses</option><option value="out">Out of stock</option><option value="low">Low stock</option><option value="medium">Medium stock</option><option value="ok">Healthy stock</option><option value="archived">Archived</option>
+                                </select>
+                                <select id="inventorySort" class="form-select" aria-label="Sort inventory" onchange="renderAdminInventory()">
+                                    <option value="stock-asc">Lowest stock first</option><option value="stock-desc">Highest stock first</option><option value="name-asc">Frame name A–Z</option><option value="value-desc">Highest stock value</option>
+                                </select>
+                                <span class="small text-muted ms-auto" id="inventoryResultCount">Loading inventory…</span>
+                            </div>
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
+                                <table class="table table-hover mb-0 inventory-table">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Product</th>
-                                            <th>Current Stock</th>
-                                            <th>Min Stock</th>
+                                            <th>Frame</th>
+                                            <th>Category</th>
+                                            <th>Frame price</th>
+                                            <th>Stock level</th>
+                                            <th>Min. stock</th>
                                             <th>Status</th>
+                                            <th>Last restock</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="inventoryTable">
-                                        <tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr>
+                                        <tr><td colspan="8" class="text-center text-muted py-4">Loading inventory…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2060,7 +2120,7 @@
             const minStock = Number(product.min_stock_level || 10);
 
             if (stock <= 0) {
-                return { label: 'Low Stock', badgeClass: 'bg-danger' };
+                return { label: 'Out of Stock', badgeClass: 'bg-danger' };
             }
 
             if (stock <= minStock) {
@@ -3055,30 +3115,114 @@ This will deactivate the account and keep the user record for history.`)) {
             }
         }
 
+        let adminInventoryItems = [];
+
+        function getInventoryStatusKey(item) {
+            if (item.is_active === false) return 'archived';
+            const stock = Number(item.stock_quantity || 0);
+            if (stock <= 0) return 'out';
+            const minimum = Number(item.min_stock_level || 10);
+            if (stock <= minimum) return 'low';
+            if (stock <= minimum * 2) return 'medium';
+            return 'ok';
+        }
+
+        function renderAdminInventory() {
+            const tbody = document.getElementById('inventoryTable');
+            if (!tbody) return;
+            const stockTotal = adminInventoryItems.reduce((sum, item) => sum + Number(item.stock_quantity || 0), 0);
+            const lowCount = adminInventoryItems.filter(item => ['low', 'medium'].includes(getInventoryStatusKey(item))).length;
+            const outCount = adminInventoryItems.filter(item => getInventoryStatusKey(item) === 'out').length;
+            const inventoryValue = adminInventoryItems.reduce((sum, item) => sum + Number(item.stock_quantity || 0) * Number(item.frame_only_price ?? item.price ?? 0), 0);
+            document.getElementById('inventoryStatFrames').textContent = adminInventoryItems.length.toLocaleString();
+            document.getElementById('inventoryStatUnits').textContent = stockTotal.toLocaleString();
+            document.getElementById('inventoryStatAlerts').textContent = (lowCount + outCount).toLocaleString();
+            document.getElementById('inventoryStatAlertNote').textContent = `${outCount} out of stock · ${lowCount} low or medium`;
+            document.getElementById('inventoryStatValue').textContent = `₱${inventoryValue.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+            const query = (document.getElementById('inventorySearch')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('inventoryStatusFilter')?.value || 'all';
+            const sort = document.getElementById('inventorySort')?.value || 'stock-asc';
+            const filtered = adminInventoryItems.filter(item => {
+                const searchable = [item.product_name, item.category, item.color_name, item.frame_material, item.frame_shape].join(' ').toLowerCase();
+                return (!query || searchable.includes(query)) && (statusFilter === 'all' || getInventoryStatusKey(item) === statusFilter);
+            });
+            filtered.sort((a, b) => {
+                if (sort === 'stock-desc') return Number(b.stock_quantity || 0) - Number(a.stock_quantity || 0);
+                if (sort === 'name-asc') return String(a.product_name || '').localeCompare(String(b.product_name || ''));
+                if (sort === 'value-desc') return Number(b.stock_quantity || 0) * Number(b.frame_only_price ?? b.price ?? 0) - Number(a.stock_quantity || 0) * Number(a.frame_only_price ?? a.price ?? 0);
+                return Number(a.stock_quantity || 0) - Number(b.stock_quantity || 0);
+            });
+            document.getElementById('inventoryResultCount').textContent = `Showing ${filtered.length} of ${adminInventoryItems.length} frames`;
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5"><i class="fas fa-box-open d-block fs-3 mb-2"></i>No frames match these filters.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                const status = getProductStockStatus(item);
+                const statusKey = getInventoryStatusKey(item);
+                const stock = Number(item.stock_quantity || 0);
+                const minimum = Number(item.min_stock_level || 10);
+                const meterWidth = Math.min(100, Math.round(stock / Math.max(minimum * 3, 1) * 100));
+                const meterColor = statusKey === 'out' || statusKey === 'low' ? '#ea580c' : statusKey === 'medium' ? '#d97706' : '#059669';
+                const colorHex = String(item.color_hex || '').replace(/^#/, '');
+                const swatch = /^[A-Fa-f0-9]{6}$/.test(colorHex) ? `#${colorHex}` : null;
+                const colorMeta = [item.color_name, item.frame_material, item.frame_shape].filter(Boolean).join(' · ');
+                const lastRestock = item.last_restock_date ? new Date(item.last_restock_date).toLocaleDateString() : 'No restock logged';
+                return `<tr>
+                    <td><div class="inventory-frame-cell"><div class="inventory-frame-swatch">${swatch ? `<span style="background:${swatch}"></span>` : '<i class="fas fa-glasses"></i>'}</div><div><div class="inventory-frame-name">${escapeAdminOrderText(item.product_name || 'Unnamed frame')}</div><div class="inventory-frame-meta">${escapeAdminOrderText(colorMeta || `Frame #${item.product_id}`)}</div></div></div></td>
+                    <td><span class="badge rounded-pill text-bg-light border">${escapeAdminOrderText(item.category || 'Frame')}</span></td>
+                    <td class="fw-semibold">₱${Number(item.frame_only_price ?? item.price ?? 0).toFixed(2)}</td>
+                    <td><div class="inventory-stock-number">${stock.toLocaleString()} <span class="inventory-frame-meta">units</span></div><div class="inventory-stock-meter"><span style="width:${meterWidth}%;background:${meterColor}"></span></div></td>
+                    <td>${minimum.toLocaleString()} <span class="inventory-frame-meta">units</span></td>
+                    <td><span class="inventory-status ${statusKey}">${status.label}</span></td>
+                    <td class="small text-muted">${lastRestock}</td>
+                    <td><div class="d-flex gap-1"><button type="button" class="btn btn-sm btn-outline-primary" onclick="editInventoryProduct(${item.product_id})" title="Adjust stock or frame details"><i class="fas fa-sliders me-1"></i>Update</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStockHistoryForProduct(${item.product_id})" title="View stock history"><i class="fas fa-clock-rotate-left"></i></button></div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function editInventoryProduct(productId) {
+            if (!adminProducts.some(product => Number(product.product_id) === Number(productId))) {
+                await loadProducts();
+            }
+            if (!adminProducts.some(product => Number(product.product_id) === Number(productId))) {
+                alert('Could not load the selected frame. Refresh inventory and try again.');
+                return;
+            }
+            openProductModal(Number(productId));
+        }
+
         async function loadInventory() {
             try {
                 const result = await apiCall('/admin/inventory');
-                const tbody = document.getElementById('inventoryTable');
-                
-                if (result && result.success && result.inventory && result.inventory.length > 0) {
-                    tbody.innerHTML = result.inventory.map(item => {
-                        const status = getProductStockStatus(item);
-                        return `
-                            <tr>
-                                <td>${item.product_name || 'N/A'}</td>
-                                <td>${item.stock_quantity}</td>
-                                <td>${item.min_stock_level}</td>
-                                <td><span class="badge ${status.badgeClass}">${status.label}</span></td>
-                                <td><button class="btn btn-sm btn-warning" onclick="openProductModal(${item.product_id})">Update</button></td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No inventory found</td></tr>';
-                }
+                if (!result?.success) throw new Error(result?.message || 'Failed to load inventory');
+                adminInventoryItems = result.inventory || [];
+                renderAdminInventory();
             } catch (error) {
                 console.error('Inventory error:', error);
+                const tbody = document.getElementById('inventoryTable');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-5">Could not load inventory. Please refresh and try again.</td></tr>';
             }
+        }
+
+        async function openStockHistoryForProduct(productId) {
+            loadSection('products');
+            const tab = document.getElementById('stockHistoryTab');
+            bootstrap.Tab.getOrCreateInstance(tab).show();
+            await initStockHistorySection();
+            document.getElementById('stockHistoryProductFilter').value = String(productId);
+            await loadStockHistory();
+        }
+
+        function openInventoryStockHistory() {
+            loadSection('products');
+            bootstrap.Tab.getOrCreateInstance(document.getElementById('stockHistoryTab')).show();
+            initStockHistorySection().then(() => {
+                document.getElementById('stockHistoryProductFilter').value = '';
+                loadStockHistory();
+            });
         }
 
         // Stock History Variables
