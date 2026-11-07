@@ -1705,9 +1705,11 @@
                 modalEl.dataset.orderId = order.order_id;
                 window.currentReceiptOrder = order;
                 const orderStatus = (order.status || '').toLowerCase();
+                const isReservation = Boolean(order.reservation_only);
                 const isFinal = ['picked up', 'picked-up', 'cancelled'].includes(orderStatus);
                 document.getElementById('staffReceiptBtn').classList.toggle('d-none', !['picked up', 'picked-up'].includes(orderStatus));
-                document.getElementById('staffPickupBtn').classList.toggle('d-none', isFinal);
+                document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal);
+                document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];
                 const currentDiscountType = order.discount_type || null;
                 const prescription = order.prescription || order;
@@ -1721,7 +1723,7 @@
                     </div>
                 ` : '';
                 body.innerHTML = `
-                    <h5>Order #${order.order_id}</h5>
+                    <h5>${isReservation ? 'Frame Reservation' : 'Order'} #${order.order_id}</h5>
                     <p><strong>Customer:</strong> ${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}${order.is_walk_in ? '' : ` (${escapeStaffOrderText(order.Customer?.User?.email || '')})`}</p>
                     ${order.is_walk_in ? `<p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || 'Not provided')}</p>` : `<p><strong>Phone:</strong> ${escapeStaffOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
                     <p><strong>Address:</strong> ${escapeStaffOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>`}
@@ -1730,10 +1732,6 @@
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
                     ${prescriptionDetails}
-                    <div class="mb-3">
-                        <strong>Customer Instructions:</strong>
-                        <div class="border rounded p-3 mt-1 bg-light" style="white-space: pre-wrap;">${order.notes?.trim() ? escapeStaffOrderText(order.notes) : '<span class="text-muted">No instructions provided.</span>'}</div>
-                    </div>
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
@@ -1821,6 +1819,20 @@
             if (document.getElementById('ordersSection').style.display !== 'none') {
                 await loadOrders();
             }
+        }
+
+        async function confirmStaffReservation(orderId) {
+            if (!orderId) return;
+            const result = await apiCall(`/staff/orders/${orderId}`, 'PUT', { status: 'processing' });
+            if (!result || !result.success) {
+                alert(result?.message || 'Failed to confirm frame reservation.');
+                return;
+            }
+            const modal = bootstrap.Modal.getInstance(document.getElementById('staffOrderDetailModal'));
+            if (modal) modal.hide();
+            alert(`Frame reservation #${orderId} confirmed. The customer can now schedule an eye checkup.`);
+            updateDashboardStats().catch(() => {});
+            if (document.getElementById('ordersSection').style.display !== 'none') await loadOrders();
         }
 
         function openStaffPickupModal(orderId) {
@@ -2127,6 +2139,7 @@
       <div class="modal-body" id="staffOrderDetailBody"> </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-success d-none" id="staffReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
+                <button type="button" class="btn btn-success d-none" id="staffReservationConfirmBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffReservation(id); })()"><i class="fas fa-check me-1"></i>Confirm Reservation</button>
                 <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
