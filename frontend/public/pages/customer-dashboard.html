@@ -1310,13 +1310,13 @@
                 <li>
                     <a class="nav-link" id="nav-products" href="#products" onclick="return loadSection('products', event)">
                         <i class="fas fa-bag-shopping"></i>
-                        <span>Shop Glasses</span>
+                        <span>Reserve Frames</span>
                     </a>
                 </li>
                 <li>
                     <a class="nav-link" id="nav-cart" href="#cart" onclick="return loadSection('cart', event)">
                         <i class="fas fa-cart-shopping"></i>
-                        <span>My Cart</span>
+                        <span>Frame Reservation</span>
                         <span class="nav-badge d-none" id="sidebarCartBadge">0</span>
                     </a>
                 </li>
@@ -1346,7 +1346,7 @@
                 <header class="topbar">
                     <div>
                         <h2 id="pageTitle">Your Glasses Dashboard</h2>
-                        <p>Track appointments, orders, and shopping activity from one professional workspace.</p>
+                        <p>Track appointments, frame reservations, and orders from one professional workspace.</p>
                     </div>
                     <div class="topbar-side">
                         <div class="status-chip"><i class="fas fa-signal"></i><span id="accountHealth">Syncing account</span></div>
@@ -1357,10 +1357,10 @@
                     <div>
                         <div class="eyebrow"><i class="fas fa-star-of-life"></i><span>Professional overview</span></div>
                         <h3 id="heroHeading">Care planning built for every visit.</h3>
-                        <p id="heroText">Review your upcoming consultations, stay on top of order fulfillment, and move quickly between shopping and appointment workflows.</p>
+                        <p id="heroText">Review upcoming consultations, track orders, and reserve a frame before your clinic visit.</p>
                         <div class="hero-actions">
                             <button type="button" class="hero-btn border-0" onclick="loadSection('appointments')"><i class="fas fa-calendar-plus"></i><span>Manage appointments</span></button>
-                            <button type="button" class="ghost-btn border-0" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Browse products</span></button>
+                            <button type="button" class="ghost-btn border-0" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Reserve a frame</span></button>
                         </div>
                     </div>
 
@@ -1407,11 +1407,11 @@
 
                     <article class="kpi-card" onclick="loadSection('cart')" style="cursor: pointer;">
                         <div class="kpi-head">
-                            <span class="kpi-label">Cart items</span>
+                            <span class="kpi-label">Frames selected</span>
                             <div class="kpi-icon"><i class="fas fa-cart-shopping"></i></div>
                         </div>
                         <div class="kpi-value" id="stat-cart">0</div>
-                        <div class="kpi-note">Products currently staged before checkout.</div>
+                        <div class="kpi-note">Frames selected for reservation.</div>
                     </article>
                 </section>
 
@@ -1437,13 +1437,13 @@
                         <div class="action-grid">
                             <div class="action-card" onclick="loadSection('products')" style="cursor: pointer;">
                                 <div class="action-icon"><i class="fas fa-magnifying-glass"></i></div>
-                                <h5>Browse glasses</h5>
-                                <p>Explore available glasses and compare your options.</p>
+                                <h5>Reserve a frame</h5>
+                                <p>Choose a frame and send it to staff for confirmation.</p>
                             </div>
                             <div class="action-card" onclick="loadSection('cart')" style="cursor: pointer;">
                                 <div class="action-icon"><i class="fas fa-credit-card"></i></div>
-                                <h5>Review cart</h5>
-                                <p>Check selected items and move faster to checkout.</p>
+                                <h5>Review reservation</h5>
+                                <p>Check the frames you selected before submitting.</p>
                             </div>
                             <div class="action-card" onclick="loadSection('appointments')" style="cursor: pointer;">
                                 <div class="action-icon"><i class="fas fa-qrcode"></i></div>
@@ -1488,18 +1488,18 @@
             <!-- ======================================================== -->
             <div id="productsSection" style="display: none;">
                 <section class="page-hero">
-                    <div class="page-kicker"><i class="fas fa-bag-shopping"></i><span>Curated catalog</span></div>
-                    <h2>Shop premium glasses.</h2>
-                    <p>Browse our full glasses collection in a cleaner merchandising view designed for faster comparison and purchase decisions.</p>
+                    <div class="page-kicker"><i class="fas fa-glasses"></i><span>Frame selection</span></div>
+                    <h2>Reserve your frame.</h2>
+                    <p>Choose a frame and submit it for staff confirmation. After confirmation, schedule your eye check-up; lens customization and payment happen at the store.</p>
                     <div class="page-hero-actions">
-                        <button type="button" class="page-btn border-0" onclick="loadSection('cart')"><i class="fas fa-cart-shopping"></i><span>Review cart</span></button>
+                        <button type="button" class="page-btn border-0" onclick="loadSection('cart')"><i class="fas fa-clipboard-list"></i><span>Review reservation</span></button>
                         <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>Track orders</span></button>
                     </div>
                 </section>
 
                 <div class="shop-summary">
                     <div class="summary-card">
-                        <div class="summary-label">Visible Products</div>
+                        <div class="summary-label">Available Frames</div>
                         <div class="summary-value" id="visibleProductsCount">0</div>
                         <div class="summary-note">Products matching your current filters</div>
                     </div>
@@ -1509,9 +1509,9 @@
                         <div class="summary-note">Items that may sell out soon</div>
                     </div>
                     <div class="summary-card" onclick="loadSection('cart')" style="cursor: pointer;">
-                        <div class="summary-label">Cart Items</div>
+                        <div class="summary-label">Frames Selected</div>
                         <div class="summary-value" id="cartItemsCount">0</div>
-                        <div class="summary-note">Current quantity saved in your cart</div>
+                        <div class="summary-note">Frames selected for reservation</div>
                     </div>
                 </div>
 
@@ -1523,7 +1523,7 @@
                     <div class="shop-tools">
                         <div class="shop-search">
                             <i class="fas fa-search"></i>
-                            <input type="text" class="shop-input" id="productSearch" placeholder="Search glasses by name, supplier, or category" oninput="handleSearch(this.value)">
+                            <input type="text" class="shop-input" id="productSearch" placeholder="Search frames by name, supplier, or category" oninput="handleSearch(this.value)">
                         </div>
                         <select class="shop-select" id="sortSelect" onchange="handleSortChange(this.value)">
                             <option value="featured">Sort: Featured</option>
@@ -1544,7 +1544,7 @@
 
                 <div class="results-row">
                     <div class="results-count" id="resultsCount">Showing 0 products</div>
-                    <div class="results-hint" id="resultsHint">Use search, price, and stock filters to find glasses.</div>
+                    <div class="results-hint" id="resultsHint">Use search, price, and stock filters to find a frame.</div>
                 </div>
 
                 <!-- Products Grid -->
@@ -1562,16 +1562,16 @@
                     <h2>Review the frames you want to reserve.</h2>
                     <p>Staff will confirm your reservation. You can schedule an eye checkup after confirmation. Lens customization and payment happen at the store.</p>
                     <div class="page-hero-actions">
-                        <button type="button" class="page-btn border-0" onclick="loadSection('products')"><i class="fas fa-store"></i><span>Continue shopping</span></button>
+                        <button type="button" class="page-btn border-0" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Browse frames</span></button>
                         <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>View order history</span></button>
                     </div>
                 </section>
 
                 <section class="page-mini-stats" id="cartStats">
                     <article class="mini-stat">
-                        <div class="mini-stat-label">Items</div>
+                        <div class="mini-stat-label">Frames selected</div>
                         <div class="mini-stat-value" id="cartStatsItems">0</div>
-                        <div class="mini-stat-note">Products currently saved to your basket.</div>
+                        <div class="mini-stat-note">Frames waiting for reservation submission.</div>
                     </article>
                     <article class="mini-stat">
                         <div class="mini-stat-label">Payment now</div>
@@ -1854,7 +1854,7 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-primary w-100 mt-4 py-2 rounded-3 fw-bold" id="modalAddToCartBtn" onclick="addToCartFromModal()">
-                        <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                        <i class="fas fa-glasses me-2"></i> Add Frame to Reservation
                     </button>
                 </div>
             </div>
@@ -2234,12 +2234,12 @@
                     loadDashboard();
                     break;
                 case 'products':
-                    document.title = 'Shop Glasses - Ortiz Optical';
+                    document.title = 'Reserve Frames - Ortiz Optical';
                     loadProducts();
                     loadCartCount();
                     break;
                 case 'cart':
-                    document.title = 'My Cart - Ortiz Optical';
+                    document.title = 'Frame Reservation - Ortiz Optical';
                     loadCart();
                     break;
                 case 'appointments':
@@ -2949,9 +2949,9 @@
                         <div class="empty-cart-icon">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
-                        <div class="empty-cart-text">Your cart is empty</div>
+                        <div class="empty-cart-text">No frames selected for reservation yet</div>
                         <button type="button" class="shop-btn border-0" onclick="loadSection('products')">
-                            <i class="fas fa-store"></i> <span>Continue Shopping</span>
+                            <i class="fas fa-glasses"></i> <span>Browse frames</span>
                         </button>
                     </div>
                 `;
@@ -3005,7 +3005,7 @@
                         ${cartItemsHtml}
                     </div>
                     <div class="cart-summary">
-                        <div class="summary-title">Order Summary</div>
+                        <div class="summary-title">Frame Reservation</div>
                         <div class="summary-row">
                             <span class="summary-label">Subtotal</span>
                             <span class="summary-value">₱${subtotal.toFixed(2)}</span>
