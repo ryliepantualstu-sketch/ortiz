@@ -24,7 +24,7 @@ const {
   findLatestWalkInClaimCodeByIdentity,
   normalizeWalkInClaimCode
 } = require('../utils/walkInClaim');
-const { getManilaToday, isValidPickupDate } = require('../utils/orderPickup');
+const { getManilaToday, getReservationPickupDeadline, isValidPickupDate } = require('../utils/orderPickup');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -931,6 +931,9 @@ router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => 
         left_axis: orderData.left_axis
       };
       orderData.feedback = feedbackByOrder.get(Number(orderData.order_id)) || null;
+      orderData.reservation_pickup_deadline = orderData.reservation_only && !orderData.requires_eye_checkup
+        ? getReservationPickupDeadline(orderData.reservation_confirmed_at || orderData.updated_at || orderData.created_at)
+        : null;
       return orderData;
     });
 
@@ -979,6 +982,15 @@ router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), 
       return res.status(409).json({ success: false, message: 'This order claim QR code has already been used or expired' });
     }
     const isConfirmedFrameReservation = order.reservation_only && !order.requires_eye_checkup && String(order.status).toLowerCase() === 'processing';
+    if (isConfirmedFrameReservation) {
+      const deadline = getReservationPickupDeadline(order.reservation_confirmed_at || order.updated_at || order.created_at);
+      if (getManilaToday() > deadline) {
+        return res.status(409).json({ success: false, message: 'This frame reservation expired because it was not collected within 3 days of staff confirmation' });
+      }
+      if (order.pickup_date_request_status !== 'approved' || String(order.pickup_date || '') !== getManilaToday()) {
+        return res.status(409).json({ success: false, message: 'The approved pickup date must be today before the frame reservation QR can be used' });
+      }
+    }
     if (!isConfirmedFrameReservation && String(order.status).toLowerCase() !== 'ready for pickup') {
       return res.status(409).json({ success: false, message: 'This reservation or product is not ready for QR verification' });
     }
@@ -1016,6 +1028,13 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
       });
       if (!order || !order.reservation_only || order.requires_eye_checkup || String(order.status).toLowerCase() !== 'processing') {
         throw Object.assign(new Error('Only a staff-confirmed frame-only reservation can be completed this way'), { status: 409 });
+      }
+      const collectionDeadline = getReservationPickupDeadline(order.reservation_confirmed_at || order.updated_at || order.created_at);
+      if (getManilaToday() > collectionDeadline) {
+        throw Object.assign(new Error('This frame reservation expired because it was not collected within 3 days of staff confirmation'), { status: 409 });
+      }
+      if (order.pickup_date_request_status !== 'approved' || String(order.pickup_date || '') !== getManilaToday()) {
+        throw Object.assign(new Error('The approved pickup date must be today before completing the frame-only reservation'), { status: 409 });
       }
 
       const qrCode = await QRCode.findOne({
@@ -1090,6 +1109,9 @@ router.get('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       left_cyl: orderData.left_cyl,
       left_axis: orderData.left_axis
     };
+    orderData.reservation_pickup_deadline = orderData.reservation_only && !orderData.requires_eye_checkup
+      ? getReservationPickupDeadline(orderData.reservation_confirmed_at || orderData.updated_at || orderData.created_at)
+      : null;
     res.json({ success: true, order: orderData });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch order', error: error.message });
@@ -1107,8 +1129,9 @@ router.put('/orders/:id/pickup-date-request', authMiddleware, requireRole('staff
       include: [{ model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }]
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    if (String(order.status || '').toLowerCase() !== 'ready for pickup') {
-      return res.status(409).json({ success: false, message: 'Pickup dates can only be approved while the order is ready for pickup' });
+    const isFrameOnlyReservation = order.reservation_only && !order.requires_eye_checkup && String(order.status || '').toLowerCase() === 'processing';
+    if (!isFrameOnlyReservation && String(order.status || '').toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'Pickup dates can only be approved for a confirmed frame-only reservation or an order ready for pickup' });
     }
     if (order.pickup_date_request_status !== 'pending' || !order.pickup_date_requested) {
       return res.status(409).json({ success: false, message: 'There is no pending pickup date request for this order' });
@@ -1117,7 +1140,13 @@ router.put('/orders/:id/pickup-date-request', authMiddleware, requireRole('staff
     let approvedDate = null;
     if (decision === 'approve') {
       approvedDate = String(order.pickup_date_requested);
-      if (!isValidPickupDate(approvedDate)) {
+      const deadline = isFrameOnlyReservation
+        ? getReservationPickupDeadline(order.reservation_confirmed_at || order.updated_at || order.created_at)
+        : null;
+      if (isFrameOnlyReservation && getManilaToday() > deadline) {
+        return res.status(409).json({ success: false, message: 'This frame reservation expired because it was not collected within 3 days of staff confirmation' });
+      }
+      if (!isValidPickupDate(approvedDate, getManilaToday(), deadline)) {
         return res.status(409).json({ success: false, message: 'The requested pickup date has passed. Ask the customer to submit a new date.' });
       }
       if (order.pickup_missed && (order.pickup_reschedule_count || 0) >= 1) {
@@ -1223,7 +1252,11 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       }
     }
 
-    await order.update({ status });
+    const orderUpdates = { status, updated_at: new Date() };
+    if (order.reservation_only && String(status || '').toLowerCase() === 'processing' && !order.reservation_confirmed_at) {
+      orderUpdates.reservation_confirmed_at = new Date();
+    }
+    await order.update(orderUpdates);
     if (claimQrCode) {
       await claimQrCode.update({ is_used: true, scanned_at: new Date(), scanned_by: req.user.user_id });
     }

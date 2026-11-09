@@ -19,7 +19,7 @@ const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require(
 const { notifyAppointmentUpdate, notifyOrderUpdate, notifyStaffPickupDateRequest } = require('../utils/notificationService');
 const { attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
-const { isValidPickupDate } = require('../utils/orderPickup');
+const { getManilaToday, getReservationPickupDeadline, isValidPickupDate } = require('../utils/orderPickup');
 
 const { getPriceByLensOption } = require('../utils/pricing');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
@@ -1176,14 +1176,23 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    if ((order.status || '').trim().toLowerCase() !== 'ready for pickup') {
-      return res.status(409).json({ success: false, message: 'Pickup dates can only be set when an order is ready for pickup' });
+    const isFrameOnlyReservation = order.reservation_only && !order.requires_eye_checkup && String(order.status || '').trim().toLowerCase() === 'processing';
+    if (!isFrameOnlyReservation && String(order.status || '').trim().toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'Pickup dates are available after the frame reservation is confirmed or the product is ready for pickup' });
     }
 
-    if (!isValidPickupDate(pickup_date)) {
-      return res.status(400).json({ success: false, message: 'Choose a valid pickup date that is today or later' });
+    const deadline = isFrameOnlyReservation
+      ? getReservationPickupDeadline(order.reservation_confirmed_at || order.updated_at || order.created_at)
+      : null;
+    if (isFrameOnlyReservation && getManilaToday() > deadline) {
+      return res.status(409).json({ success: false, message: 'This frame reservation expired because it was not collected within 3 days of staff confirmation' });
     }
-    if (String(order.payment_status || '').toLowerCase() !== 'paid') {
+    if (!isValidPickupDate(pickup_date, getManilaToday(), deadline)) {
+      return res.status(400).json({ success: false, message: isFrameOnlyReservation
+        ? `Choose a pickup date from today through ${deadline}`
+        : 'Choose a valid pickup date that is today or later' });
+    }
+    if (!isFrameOnlyReservation && String(order.payment_status || '').toLowerCase() !== 'paid') {
       return res.status(409).json({ success: false, message: 'Payment must be complete before requesting a pickup date' });
     }
     if (order.pickup_date_request_status === 'pending') {
@@ -1196,7 +1205,7 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
       return res.status(409).json({ success: false, message: 'This order can no longer be rescheduled for pickup' });
     }
 
-    await order.update({ pickup_date_requested: pickup_date, pickup_date_request_status: 'pending' });
+    await order.update({ pickup_date_requested: pickup_date, pickup_date_request_status: 'pending', updated_at: new Date() });
     try {
       const [customerUser, staffUsers] = await Promise.all([
         User.findByPk(req.user.user_id, { attributes: ['full_name'] }),
@@ -1209,7 +1218,9 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
     } catch (notificationError) {
       console.error('Could not load staff for pickup date notification:', notificationError.message);
     }
-    res.json({ success: true, message: 'Pickup date request sent. Staff must approve it first.', order });
+    res.json({ success: true, message: isFrameOnlyReservation
+      ? 'Frame collection date request sent. Staff must approve it first, and collection must be within 3 days of confirmation.'
+      : 'Pickup date request sent. Staff must approve it first.', order });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to save pickup date', error: error.message });
   }
@@ -1290,6 +1301,9 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
       const orderData = typeof order.toJSON === 'function' ? order.toJSON() : order;
       return {
         ...orderData,
+        reservation_pickup_deadline: orderData.reservation_only && !orderData.requires_eye_checkup
+          ? getReservationPickupDeadline(orderData.reservation_confirmed_at || orderData.updated_at || orderData.created_at)
+          : null,
         reservation_appointment: appointmentByReservation.get(Number(orderData.order_id)) || null,
         feedback: feedbackByOrder.get(Number(orderData.order_id)) || null
       };

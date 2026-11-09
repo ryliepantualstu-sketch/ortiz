@@ -142,6 +142,7 @@ CREATE TABLE orders (
     pickup_date_request_status VARCHAR(20) NULL,
     reservation_only BOOLEAN NOT NULL DEFAULT FALSE,
     requires_eye_checkup BOOLEAN NOT NULL DEFAULT TRUE,
+    reservation_confirmed_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,

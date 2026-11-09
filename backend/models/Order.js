@@ -101,6 +101,10 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: true
   },
+  reservation_confirmed_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   walk_in_claim_code: {
     type: DataTypes.STRING(12),
     allowNull: true
