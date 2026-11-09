@@ -352,8 +352,6 @@
                         <span id="registerErrorMsg"></span>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                    <div class="alert alert-success d-none" id="registerSuccess" role="status" aria-live="polite"></div>
-
                     <form id="registerForm">
                         <div class="form-group">
                             <label class="form-label" for="registerName">
@@ -451,6 +449,22 @@
         </div>
     </div>
 
+    <div class="modal fade" id="approvalWaitModal" tabindex="-1" aria-labelledby="approvalWaitTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="approvalWaitTitle">Wait for approval</h2>
+                </div>
+                <div class="modal-body" id="approvalWaitMessage" role="status" aria-live="polite">
+                    Your account request was submitted. Please wait for the owner to approve it. We will email you when your account is verified.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="approvalWaitOkay">Okay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="js/api.js"></script>
     <script>
@@ -465,7 +479,6 @@
 
             document.getElementById('loginError').classList.remove('show');
             document.getElementById('registerError').classList.remove('show');
-            document.getElementById('registerSuccess').classList.add('d-none');
         }
 
         function showError(formType, message) {
@@ -473,7 +486,6 @@
             const errorMsg = document.getElementById(formType + 'ErrorMsg');
             errorMsg.textContent = message;
             errorEl.classList.add('show');
-            if (formType === 'register') document.getElementById('registerSuccess').classList.add('d-none');
         }
 
         function togglePasswordVisibility(button) {
@@ -652,11 +664,12 @@
             });
 
             if (result.success) {
-                const success = document.getElementById('registerSuccess');
-                success.textContent = result.message || 'Account request submitted. Please wait for owner approval. We will email you when you can log in.';
-                success.classList.remove('d-none');
                 document.getElementById('registerError').classList.remove('show');
                 document.getElementById('registerForm').reset();
+                document.getElementById('approvalWaitMessage').textContent = result.owner_notified === false
+                    ? 'Your account request was submitted, but the owner notification could not be sent. Please contact the store to complete approval.'
+                    : 'Your account request was submitted. Please wait for the owner to approve it. We will email you when your account is verified.';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('approvalWaitModal')).show();
             } else {
                 showError('register', result.message || 'Registration failed. Please try again.');
             }
@@ -664,6 +677,10 @@
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.getElementById('approvalWaitOkay').addEventListener('click', () => {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('approvalWaitModal')).hide();
+            if (document.getElementById('register-section').classList.contains('active')) toggleForms();
+        });
         const registerPhoneInput = document.getElementById('registerPhone');
         registerPhoneInput.addEventListener('beforeinput', (event) => {
             if (event.data && /\D/.test(event.data)) {
