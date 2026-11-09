@@ -987,8 +987,8 @@ router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), 
       if (getManilaToday() > deadline) {
         return res.status(409).json({ success: false, message: 'This frame reservation expired because it was not collected within 3 days of staff confirmation' });
       }
-      if (order.pickup_date_request_status !== 'approved' || String(order.pickup_date || '') !== getManilaToday()) {
-        return res.status(409).json({ success: false, message: 'The approved pickup date must be today before the frame reservation QR can be used' });
+      if (order.pickup_date_request_status !== 'approved' || !order.pickup_date) {
+        return res.status(409).json({ success: false, message: 'Staff must approve a pickup date before the frame reservation QR can be used' });
       }
     }
     if (!isConfirmedFrameReservation && String(order.status).toLowerCase() !== 'ready for pickup') {
@@ -1033,8 +1033,8 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
       if (getManilaToday() > collectionDeadline) {
         throw Object.assign(new Error('This frame reservation expired because it was not collected within 3 days of staff confirmation'), { status: 409 });
       }
-      if (order.pickup_date_request_status !== 'approved' || String(order.pickup_date || '') !== getManilaToday()) {
-        throw Object.assign(new Error('The approved pickup date must be today before completing the frame-only reservation'), { status: 409 });
+      if (order.pickup_date_request_status !== 'approved' || !order.pickup_date) {
+        throw Object.assign(new Error('Staff must approve a pickup date before completing the frame-only reservation'), { status: 409 });
       }
 
       const qrCode = await QRCode.findOne({
