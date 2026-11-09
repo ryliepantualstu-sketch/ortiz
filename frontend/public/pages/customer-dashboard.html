@@ -3879,9 +3879,9 @@
                 </div>
                 ${order.qr_code ? `
                     <div class="text-center border rounded-3 p-3 mt-3">
-                        <div class="fw-semibold mb-2">Order pickup QR code</div>
+                        <div class="fw-semibold mb-2">${order.reservation_only ? 'Frame reservation QR code' : 'Order pickup QR code'}</div>
                         <img src="${order.qr_code}" alt="QR code for order #${order.order_id}" width="180" height="180">
-                        <div class="small text-muted mt-2">Show this code to staff when you claim your glasses.</div>
+                        <div class="small text-muted mt-2">${order.reservation_only ? 'Show this code to staff when you visit to confirm your reservation and buy the frame.' : 'Show this code to staff when you claim your glasses.'}</div>
                     </div>
                 ` : ''}
             `;
@@ -3972,7 +3972,7 @@
                                     <div class="order-item">
                                         <div style="flex: 1;">
                                             <span class="order-item-name">${item.product_name || item.Product?.product_name || 'Product'} <small class="text-muted">(${item.quantity || 1}x)</small></span>
-                                            ${order.reservation_only ? '<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Frame reservation; lenses customized after checkup</div>' : `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>`}
+                                            ${order.reservation_only ? '<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Show your reservation QR when you visit. A check-up is only needed for customized lenses.</div>' : `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>`}
                                         </div>
                                         ${order.reservation_only ? '' : `<span class="order-item-price">₱${Number(item.subtotal || item.price || 0).toFixed(2)}</span>`}
                                     </div>

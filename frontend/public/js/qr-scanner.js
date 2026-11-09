@@ -121,7 +121,9 @@ async function verifyOrderQr(qrCodeData) {
             order_id: Number(result.order.order_id),
             qr_code_data: qrCodeData
         };
-        setVerificationResult('success', `Order #${result.order.order_id} found. Review the order details to confirm pickup.`);
+        setVerificationResult('success', result.purpose === 'frame-reservation'
+            ? `Frame reservation #${result.order.order_id} verified. Review it and complete the frame-only sale.`
+            : `Order #${result.order.order_id} found. Review the order details to confirm pickup.`);
         await viewStaffOrder(result.order.order_id);
     } catch (error) {
         console.error('Order QR verification error:', error);

@@ -622,7 +622,7 @@ router.get('/orders/walk-in/claim-code', authMiddleware, requireRole('staff'), a
   }
 });
 
-router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
+router.post('/orders/walk-in', authMiddleware, requireRole('staff', 'admin'), async (req, res) => {
   try {
     const customerName = normalizeCustomerName(req.body.customer_name);
     const customerPhone = normalizePhoneNumber(req.body.customer_phone);
@@ -975,21 +975,93 @@ router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), 
     if (qrCode.expired_at || qrCode.is_used) {
       return res.status(409).json({ success: false, message: 'This order claim QR code has already been used or expired' });
     }
-    if (String(order.status).toLowerCase() !== 'ready for pickup') {
-      return res.status(409).json({ success: false, message: 'This product is not ready to be claimed yet' });
+    const isConfirmedFrameReservation = order.reservation_only && String(order.status).toLowerCase() === 'processing';
+    if (!isConfirmedFrameReservation && String(order.status).toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'This reservation or product is not ready for QR verification' });
     }
-    if (String(order.payment_status).toLowerCase() !== 'paid') {
+    if (!isConfirmedFrameReservation && String(order.payment_status).toLowerCase() !== 'paid') {
       return res.status(409).json({ success: false, message: 'Payment must be completed before the customer can claim this product' });
     }
 
     res.json({
       success: true,
-      message: 'Order QR code verified',
+      message: isConfirmedFrameReservation ? 'Frame reservation QR code verified' : 'Order QR code verified',
+      purpose: isConfirmedFrameReservation ? 'frame-reservation' : 'pickup',
       order: order.toJSON()
     });
   } catch (error) {
     console.error('Failed to verify order QR code:', error);
     res.status(500).json({ success: false, message: 'Failed to verify order QR code' });
+  }
+});
+
+// Complete a confirmed frame-only reservation after verifying the customer’s QR at the counter.
+router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requireRole('staff', 'admin'), async (req, res) => {
+  try {
+    const qrCodeData = typeof req.body?.qr_code_data === 'string' ? req.body.qr_code_data.trim() : '';
+    const paymentMethod = ['Cash', 'Card', 'Online'].includes(req.body?.payment_method) ? req.body.payment_method : null;
+    if (!qrCodeData || !paymentMethod) {
+      return res.status(400).json({ success: false, message: 'Verified reservation QR and a valid payment method are required' });
+    }
+
+    const orderId = Number(req.params.id);
+    const completedOrderId = await sequelize.transaction(async (transaction) => {
+      const order = await Order.findByPk(orderId, {
+        include: [{ model: OrderItem, include: [{ model: Product }] }],
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!order || !order.reservation_only || String(order.status).toLowerCase() !== 'processing') {
+        throw Object.assign(new Error('Only a staff-confirmed frame reservation can be completed this way'), { status: 409 });
+      }
+
+      const qrCode = await QRCode.findOne({
+        where: { code_type: 'Order', reference_id: order.order_id, qr_code_data: qrCodeData, expired_at: null, is_used: false },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!qrCode) throw Object.assign(new Error('Scan this customer’s valid reservation QR before completing the sale'), { status: 403 });
+
+      const items = order.OrderItems || [];
+      if (!items.length || items.some(item => !item.Product || item.lens_option !== 'frame-only')) {
+        throw Object.assign(new Error('This reservation is not a frame-only reservation'), { status: 409 });
+      }
+
+      let totalAmount = 0;
+      for (const item of items) {
+        const product = await Product.findByPk(item.product_id, { transaction, lock: transaction.LOCK.UPDATE });
+        const quantity = Number(item.quantity || 0);
+        if (!product || !product.is_active || !Number.isInteger(quantity) || quantity < 1 || Number(product.stock_quantity || 0) < quantity) {
+          throw Object.assign(new Error(`Not enough available stock for ${item.Product?.product_name || 'the reserved frame'}`), { status: 409 });
+        }
+        const framePrice = Number(item.frame_price ?? product.frame_only_price ?? product.price ?? 0);
+        const subtotal = Number((framePrice * quantity).toFixed(2));
+        totalAmount += subtotal;
+        await item.update({ price: framePrice, subtotal, lens_price: 0, lens_option: 'frame-only' }, { transaction });
+        await product.update({ stock_quantity: Number(product.stock_quantity) - quantity }, { transaction });
+      }
+
+      await order.update({
+        total_amount: Number(totalAmount.toFixed(2)),
+        discount_amount: 0,
+        discount_type: null,
+        payment_status: 'Paid',
+        payment_method: paymentMethod,
+        checkup_fee: 0,
+        reservation_only: false,
+        status: 'picked up',
+        notes: 'Confirmed frame-only reservation; customer identity verified with QR and frame released at the counter.'
+      }, { transaction });
+      await qrCode.update({ is_used: true, scanned_at: new Date(), scanned_by: req.user.user_id }, { transaction });
+      return order.order_id;
+    });
+
+    const order = await Order.findByPk(completedOrderId, {
+      include: [{ model: OrderItem, include: [{ model: Product }] }, { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }]
+    });
+    res.json({ success: true, message: 'Frame-only reservation paid and released after QR verification', order });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.status ? error.message : 'Failed to complete frame-only reservation', ...(error.status ? {} : { error: error.message }) });
   }
 });
 

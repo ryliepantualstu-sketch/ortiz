@@ -1033,6 +1033,7 @@
                     <li><a class="nav-link" href="#" onclick="return loadSection('customers', event)"><i class="fas fa-user-friends"></i><span>Customers</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('products', event)"><i class="fas fa-cubes"></i><span>Products</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-glasses"></i><span>Reservations</span></a></li>
+                    <li><a class="nav-link" href="#" onclick="return loadSection('pos', event)"><i class="fas fa-cash-register"></i><span>POS</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('feedback', event)"><i class="fas fa-star"></i><span>Customer Feedback</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('schedule', event)"><i class="fas fa-calendar-alt"></i><span>Schedule Management</span></a></li>
@@ -1356,6 +1357,34 @@
                                 <thead class="table-light"><tr><th>Date</th><th>Customer</th><th>Related to</th><th>Rating</th><th>Comment</th></tr></thead>
                                 <tbody id="customerFeedbackTable"><tr><td colspan="5" class="text-center text-muted py-4">Loading feedback...</td></tr></tbody>
                             </table></div>
+                        </div>
+                    </div>
+
+                    <!-- Point of Sale Section -->
+                    <div id="posSection" style="display: none;">
+                        <div class="mb-4"><h4 class="mb-1">Point of Sale</h4><p class="text-muted mb-0">Record an in-store frame-only sale, collect payment, and issue the receipt.</p></div>
+                        <div class="row g-4">
+                            <div class="col-lg-5">
+                                <div class="table-container p-4 h-100">
+                                    <h5 class="fw-bold mb-3"><i class="fas fa-user me-2 text-primary"></i>Customer</h5>
+                                    <div class="mb-3"><label for="posCustomerName" class="form-label">Customer name</label><input id="posCustomerName" class="form-control" maxlength="150" autocomplete="name" required></div>
+                                    <div class="mb-3"><label for="posCustomerPhone" class="form-label">Phone number</label><input id="posCustomerPhone" class="form-control" type="tel" maxlength="20" autocomplete="tel" placeholder="e.g. 09171234567" required></div>
+                                    <div class="mb-4"><label for="posPaymentMethod" class="form-label">Payment method</label><select id="posPaymentMethod" class="form-select"><option>Cash</option><option>Card</option><option>Online</option></select></div>
+                                    <hr>
+                                    <h5 class="fw-bold mb-3"><i class="fas fa-glasses me-2 text-primary"></i>Add frame</h5>
+                                    <div class="mb-3"><label for="posProductSelect" class="form-label">Available frame</label><select id="posProductSelect" class="form-select"><option value="">Loading frames...</option></select></div>
+                                    <div class="d-flex gap-2"><input id="posQuantity" class="form-control" type="number" min="1" value="1" style="max-width:110px" aria-label="Frame quantity"><button class="btn btn-primary flex-grow-1" type="button" onclick="addPosFrame()"><i class="fas fa-plus me-2"></i>Add to sale</button></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="table-container p-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold mb-0">Sale items</h5><button class="btn btn-sm btn-outline-secondary" type="button" onclick="clearPosSale()">Clear</button></div>
+                                    <div class="table-responsive"><table class="table align-middle"><thead class="table-light"><tr><th>Frame</th><th>Qty</th><th>Price</th><th>Subtotal</th><th></th></tr></thead><tbody id="posCartTable"><tr><td colspan="5" class="text-center text-muted py-4">Add a frame to start the sale</td></tr></tbody></table></div>
+                                    <div class="d-flex justify-content-between border-top pt-3 mt-3 fs-5"><strong>Total</strong><strong id="posSaleTotal">₱0.00</strong></div>
+                                    <button class="btn btn-success btn-lg w-100 mt-4" id="posCompleteSaleButton" type="button" onclick="completeAdminPosSale()" disabled><i class="fas fa-credit-card me-2"></i>Collect Payment &amp; Complete Sale</button>
+                                    <div id="posMessage" class="small mt-3" role="status" aria-live="polite"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2500,6 +2529,7 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('ordersSection').style.display = 'none';
             document.getElementById('appointmentsSection').style.display = 'none';
             document.getElementById('feedbackSection').style.display = 'none';
+            document.getElementById('posSection').style.display = 'none';
             document.getElementById('scheduleSection').style.display = 'none';
             document.getElementById('inventorySection').style.display = 'none';
             document.getElementById('reportsSection').style.display = 'none';
@@ -2536,6 +2566,11 @@ This will deactivate the account and keep the user record for history.`)) {
                     document.getElementById('pageTitle').textContent = 'Reservations';
                     document.getElementById('ordersSection').style.display = 'block';
                     loadAllOrders();
+                    break;
+                case 'pos':
+                    document.getElementById('pageTitle').textContent = 'Point of Sale';
+                    document.getElementById('posSection').style.display = 'block';
+                    loadAdminPosProducts();
                     break;
                 case 'appointments':
                     document.getElementById('pageTitle').textContent = 'Appointments';
@@ -3019,6 +3054,123 @@ This will deactivate the account and keep the user record for history.`)) {
                 }
             } catch (error) {
                 console.error('Products error:', error);
+            }
+        }
+
+        let posProducts = [];
+        let posCart = [];
+
+        async function loadAdminPosProducts() {
+            const select = document.getElementById('posProductSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">Loading frames...</option>';
+            try {
+                const result = await apiCall('/admin/products');
+                if (!result?.success) throw new Error(result?.message || 'Could not load frames');
+                posProducts = (result.products || []).filter(product => product.is_active !== false);
+                const availableProducts = posProducts.filter(product => Number(product.stock_quantity || 0) > 0);
+                select.innerHTML = availableProducts.length
+                    ? `<option value="">Choose a frame</option>${availableProducts.map(product => `<option value="${Number(product.product_id)}">${escapeAdminOrderText(product.product_name)} · ₱${Number(product.frame_only_price || product.price || 0).toFixed(2)} · stock ${Number(product.stock_quantity || 0)}</option>`).join('')}`
+                    : '<option value="">No frames in stock</option>';
+            } catch (error) {
+                console.error('POS products error:', error);
+                select.innerHTML = '<option value="">Failed to load frames</option>';
+            }
+            renderPosCart();
+        }
+
+        function addPosFrame() {
+            const productId = Number(document.getElementById('posProductSelect')?.value);
+            const quantity = Number.parseInt(document.getElementById('posQuantity')?.value, 10);
+            const product = posProducts.find(item => Number(item.product_id) === productId);
+            const message = document.getElementById('posMessage');
+            message.textContent = '';
+            message.className = 'small mt-3';
+            if (!product || !Number.isInteger(quantity) || quantity < 1) {
+                message.textContent = 'Choose a frame and enter a valid quantity.';
+                message.classList.add('text-danger');
+                return;
+            }
+            const existing = posCart.find(item => Number(item.product.product_id) === productId);
+            const nextQuantity = quantity + Number(existing?.quantity || 0);
+            if (nextQuantity > Number(product.stock_quantity || 0)) {
+                message.textContent = `Only ${Number(product.stock_quantity || 0)} in stock for this frame.`;
+                message.classList.add('text-danger');
+                return;
+            }
+            if (existing) existing.quantity = nextQuantity;
+            else posCart.push({ product, quantity });
+            document.getElementById('posQuantity').value = '1';
+            renderPosCart();
+        }
+
+        function renderPosCart() {
+            const tbody = document.getElementById('posCartTable');
+            if (!tbody) return;
+            let total = 0;
+            if (!posCart.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Add a frame to start the sale</td></tr>';
+            } else {
+                tbody.innerHTML = posCart.map((item, index) => {
+                    const price = Number(item.product.frame_only_price || item.product.price || 0);
+                    const subtotal = price * Number(item.quantity);
+                    total += subtotal;
+                    return `<tr><td>${escapeAdminOrderText(item.product.product_name)}</td><td>${Number(item.quantity)}</td><td>₱${price.toFixed(2)}</td><td>₱${subtotal.toFixed(2)}</td><td><button type="button" class="btn btn-sm btn-outline-danger" aria-label="Remove ${escapeAdminOrderText(item.product.product_name)}" onclick="removePosFrame(${index})"><i class="fas fa-trash"></i></button></td></tr>`;
+                }).join('');
+            }
+            document.getElementById('posSaleTotal').textContent = `₱${total.toFixed(2)}`;
+            document.getElementById('posCompleteSaleButton').disabled = !posCart.length;
+        }
+
+        function removePosFrame(index) {
+            posCart.splice(index, 1);
+            renderPosCart();
+        }
+
+        function clearPosSale() {
+            posCart = [];
+            renderPosCart();
+            const message = document.getElementById('posMessage');
+            message.textContent = '';
+            message.className = 'small mt-3';
+        }
+
+        async function completeAdminPosSale() {
+            const customerName = document.getElementById('posCustomerName').value.trim();
+            const customerPhone = document.getElementById('posCustomerPhone').value.trim();
+            const button = document.getElementById('posCompleteSaleButton');
+            const message = document.getElementById('posMessage');
+            if (!customerName || !customerPhone || !posCart.length) {
+                message.textContent = 'Enter the customer name and phone number, then add at least one frame.';
+                message.className = 'small mt-3 text-danger';
+                return;
+            }
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Recording sale...';
+            try {
+                const result = await apiCall('/staff/orders/walk-in', 'POST', {
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    payment_method: document.getElementById('posPaymentMethod').value,
+                    items: posCart.map(item => ({ product_id: item.product.product_id, quantity: item.quantity, lens_option: 'frame-only' }))
+                });
+                if (!result?.success) throw new Error(result?.message || 'Failed to record sale');
+                const completedOrder = result.order;
+                posCart = [];
+                document.getElementById('posCustomerName').value = '';
+                document.getElementById('posCustomerPhone').value = '';
+                renderPosCart();
+                message.textContent = `Sale #${completedOrder.order_id} completed and payment recorded.`;
+                message.className = 'small mt-3 text-success';
+                if (typeof showOrderReceipt === 'function') showOrderReceipt(completedOrder);
+                await Promise.all([loadAdminPosProducts(), loadProducts(), loadInventory(), loadDashboard()]);
+            } catch (error) {
+                console.error('Admin POS sale error:', error);
+                message.textContent = error.message || 'Failed to record sale.';
+                message.className = 'small mt-3 text-danger';
+            } finally {
+                button.innerHTML = '<i class="fas fa-credit-card me-2"></i>Collect Payment &amp; Complete Sale';
+                button.disabled = !posCart.length;
             }
         }
 

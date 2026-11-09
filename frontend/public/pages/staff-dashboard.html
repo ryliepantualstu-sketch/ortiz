@@ -1066,7 +1066,7 @@
                     <div class="table-container mb-4">
                         <div class="p-4">
                             <h5 class="mb-1">Order Pickup / Appointment QR</h5>
-                            <p class="text-muted mb-3">Scan an order QR to review its items and mark it picked up, or scan an appointment QR to confirm.</p>
+                            <p class="text-muted mb-3">Scan a confirmed frame reservation QR to verify the customer, an order QR to release a finished product, or an appointment QR to confirm a visit.</p>
                             <div class="qr-camera-panel mb-3">
                                 <video id="qrVideo" class="qr-video" playsinline muted></video>
                                 <canvas id="qrCanvas" class="d-none"></canvas>
@@ -1716,6 +1716,7 @@
                                         ${order.reservation_only ? `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Confirm Frame Reservation</button></li>
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Decline Reservation</button></li>
+                                        <li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${String(order.status || '').toLowerCase() !== 'processing' ? 'disabled' : ''}><i class="fas fa-qrcode me-2" aria-hidden="true"></i>Scan Reservation QR</button></li>
                                         ` : `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${['processing', 'ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-box me-2" aria-hidden="true"></i>Process</button></li>
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'ready for pickup')" ${['ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-bell me-2" aria-hidden="true"></i>Ready for Pickup</button></li>
@@ -1967,6 +1968,10 @@
                 const pickupAllowed = !isReservation && !isFinal && isReadyAndPaid && claimQrVerified;
                 pickupButton.classList.toggle('d-none', !pickupAllowed);
                 pickupButton.disabled = !pickupAllowed;
+                const reservationSaleButton = document.getElementById('staffCompleteFrameReservationBtn');
+                const reservationSaleAllowed = isReservation && orderStatus === 'processing' && claimQrVerified;
+                reservationSaleButton.classList.toggle('d-none', !reservationSaleAllowed);
+                reservationSaleButton.disabled = !reservationSaleAllowed;
                 document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];
                 const itemSubtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
@@ -1990,6 +1995,7 @@
                     <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
                     <p><strong>Payment:</strong> ${order.payment_status || 'Unpaid'}${order.payment_status === 'Paid' ? ` via ${order.payment_method || 'Cash'}` : ''}</p>
+                    ${isReservation ? `<div class="mb-3"><label for="staffReservationPaymentMethod" class="form-label fw-semibold">Frame-only payment method</label><select id="staffReservationPaymentMethod" class="form-select" ${orderStatus !== 'processing' ? 'disabled' : ''}><option value="Cash">Cash</option><option value="Card">Card</option><option value="Online">Online</option></select><div class="form-text">Scan the customer’s reservation QR before completing the sale.</div></div>` : ''}
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
                     ${order.pickup_date_request_status ? `<p><strong>Pickup Date Request:</strong> ${formatOrderDate(order.pickup_date_requested)} <span class="badge ${order.pickup_date_request_status === 'pending' ? 'bg-warning text-dark' : order.pickup_date_request_status === 'approved' ? 'bg-success' : 'bg-secondary'}">${order.pickup_date_request_status}</span></p>` : ''}
                     ${prescriptionDetails}
@@ -2105,6 +2111,11 @@
             }
 
             const order = result.order;
+            if (order.reservation_only && String(order.status || '').toLowerCase() === 'processing') {
+                loadSection('qr');
+                startQrScanner();
+                return;
+            }
             if (String(order.status || '').toLowerCase() !== 'ready for pickup') {
                 alert('Mark Picked Up is available after the finished product is marked Ready for Pickup.');
                 return;
@@ -2116,6 +2127,30 @@
 
             loadSection('qr');
             startQrScanner();
+        }
+
+        async function completeStaffFrameReservation(orderId) {
+            const verified = window.verifiedOrderPickup;
+            if (!verified || Number(verified.order_id) !== Number(orderId)) {
+                alert('Scan and verify this customer’s reservation QR before completing the frame-only sale.');
+                return;
+            }
+            const paymentMethod = document.getElementById('staffReservationPaymentMethod')?.value || 'Cash';
+            const result = await apiCall(`/staff/orders/${orderId}/complete-frame-only-reservation`, 'POST', {
+                qr_code_data: verified.qr_code_data,
+                payment_method: paymentMethod
+            });
+            if (!result?.success) {
+                alert(result?.message || 'Failed to complete the frame-only reservation.');
+                return;
+            }
+            window.verifiedOrderPickup = null;
+            window.currentReceiptOrder = result.order;
+            const modal = bootstrap.Modal.getInstance(document.getElementById('staffOrderDetailModal'));
+            if (modal) modal.hide();
+            showOrderReceipt(result.order);
+            updateDashboardStats().catch(() => {});
+            if (document.getElementById('ordersSection').style.display !== 'none') await loadOrders();
         }
 
         // Walk-in sale
@@ -2341,6 +2376,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-success d-none" id="staffReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
                 <button type="button" class="btn btn-success d-none" id="staffReservationConfirmBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffReservation(id); })()"><i class="fas fa-check me-1"></i>Confirm Reservation</button>
+                <button type="button" class="btn btn-primary d-none" id="staffCompleteFrameReservationBtn" disabled onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) completeStaffFrameReservation(id); })()"><i class="fas fa-cash-register me-1"></i>Complete Frame-Only Sale</button>
                 <button type="button" class="btn btn-success d-none" id="staffPickupBtn" disabled onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
