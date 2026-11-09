@@ -1033,7 +1033,6 @@
                     <li><a class="nav-link" href="#" onclick="return loadSection('customers', event)"><i class="fas fa-user-friends"></i><span>Customers</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('products', event)"><i class="fas fa-cubes"></i><span>Products</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-glasses"></i><span>Reservations</span></a></li>
-                    <li><a class="nav-link" href="#" onclick="return loadSection('pos', event)"><i class="fas fa-cash-register"></i><span>POS</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('feedback', event)"><i class="fas fa-star"></i><span>Customer Feedback</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('schedule', event)"><i class="fas fa-calendar-alt"></i><span>Schedule Management</span></a></li>
@@ -1072,6 +1071,25 @@
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Stock alerts</span><span class="admin-metric-icon rose"><i class="fas fa-triangle-exclamation"></i></span></div><div class="admin-metric-value" id="stat-stock-alerts">—</div><div class="admin-metric-foot" id="stat-stock-note">Low or out of stock</div></div></div>
                             <div class="col-sm-6 col-xl"><div class="admin-metric-card"><div class="admin-metric-top"><span>Paid revenue</span><span class="admin-metric-icon green"><i class="fas fa-peso-sign"></i></span></div><div class="admin-metric-value admin-metric-money" id="stat-revenue">—</div><div class="admin-metric-foot">Orders and check-up only fees</div></div></div>
                         </div>
+
+                        <section class="mb-4">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                                <div><h4 class="mb-1">Today’s Sales</h4><p class="text-muted mb-0">Paid transactions and frames sold for <strong id="posBusinessDate">today</strong>.</p></div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadAdminPosSales()"><i class="fas fa-rotate me-2"></i>Refresh sales</button>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4"><div class="admin-metric-card"><div class="admin-metric-top"><span>Sales today</span><span class="admin-metric-icon green"><i class="fas fa-peso-sign"></i></span></div><div class="admin-metric-value admin-metric-money" id="posTodaySales">₱0.00</div><div class="admin-metric-foot">Paid orders and standalone check-up fees</div></div></div>
+                                <div class="col-md-4"><div class="admin-metric-card"><div class="admin-metric-top"><span>Frames sold</span><span class="admin-metric-icon teal"><i class="fas fa-glasses"></i></span></div><div class="admin-metric-value" id="posFramesSold">0</div><div class="admin-metric-foot">Units in paid orders today</div></div></div>
+                                <div class="col-md-4"><div class="admin-metric-card"><div class="admin-metric-top"><span>Transactions</span><span class="admin-metric-icon blue"><i class="fas fa-receipt"></i></span></div><div class="admin-metric-value" id="posTransactionCount">0</div><div class="admin-metric-foot">Paid transactions today</div></div></div>
+                            </div>
+                            <div class="table-container">
+                                <div class="p-4 pb-2"><h5 class="fw-bold mb-0">POS Sales Details</h5></div>
+                                <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light"><tr><th>Receipt / Order</th><th>Time</th><th>Customer</th><th>Items / service</th><th>Payment</th><th>Total</th></tr></thead>
+                                    <tbody id="posSalesTable"><tr><td colspan="6" class="text-center text-muted py-4">Loading today’s sales...</td></tr></tbody>
+                                </table></div>
+                            </div>
+                        </section>
 
                         <div class="admin-quick-actions mb-4">
                             <div><span class="admin-quick-title">Quick access</span><span class="admin-quick-subtitle">Jump to the work you need</span></div>
@@ -1356,26 +1374,6 @@
                             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
                                 <thead class="table-light"><tr><th>Date</th><th>Customer</th><th>Related to</th><th>Rating</th><th>Comment</th></tr></thead>
                                 <tbody id="customerFeedbackTable"><tr><td colspan="5" class="text-center text-muted py-4">Loading feedback...</td></tr></tbody>
-                            </table></div>
-                        </div>
-                    </div>
-
-                    <!-- Point of Sale Section -->
-                    <div id="posSection" style="display: none;">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                            <div><h4 class="mb-1">POS Sales Today</h4><p class="text-muted mb-0">Paid sales and frame quantities recorded for <strong id="posBusinessDate">today</strong>.</p></div>
-                            <button type="button" class="btn btn-outline-primary" onclick="loadAdminPosSales()"><i class="fas fa-rotate me-2"></i>Refresh</button>
-                        </div>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">Paid sales today</div><div class="fs-3 fw-bold" id="posTodaySales">₱0.00</div></div></div>
-                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">Frames sold today</div><div class="fs-3 fw-bold" id="posFramesSold">0</div></div></div>
-                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">Transactions today</div><div class="fs-3 fw-bold" id="posTransactionCount">0</div></div></div>
-                        </div>
-                        <div class="table-container">
-                            <div class="px-4 pt-4"><h5 class="fw-bold mb-0">Sales details</h5></div>
-                            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-                                <thead class="table-light"><tr><th>Receipt / Order</th><th>Time</th><th>Customer</th><th>Items / service</th><th>Payment</th><th>Total</th></tr></thead>
-                                <tbody id="posSalesTable"><tr><td colspan="6" class="text-center text-muted py-4">Loading today’s sales...</td></tr></tbody>
                             </table></div>
                         </div>
                     </div>
@@ -2521,7 +2519,6 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('ordersSection').style.display = 'none';
             document.getElementById('appointmentsSection').style.display = 'none';
             document.getElementById('feedbackSection').style.display = 'none';
-            document.getElementById('posSection').style.display = 'none';
             document.getElementById('scheduleSection').style.display = 'none';
             document.getElementById('inventorySection').style.display = 'none';
             document.getElementById('reportsSection').style.display = 'none';
@@ -2558,11 +2555,6 @@ This will deactivate the account and keep the user record for history.`)) {
                     document.getElementById('pageTitle').textContent = 'Reservations';
                     document.getElementById('ordersSection').style.display = 'block';
                     loadAllOrders();
-                    break;
-                case 'pos':
-                    document.getElementById('pageTitle').textContent = 'Point of Sale';
-                    document.getElementById('posSection').style.display = 'block';
-                    loadAdminPosSales();
                     break;
                 case 'appointments':
                     document.getElementById('pageTitle').textContent = 'Appointments';
@@ -2621,7 +2613,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     document.getElementById('stat-stock-note').textContent = `${stats.out_of_stock_products || 0} out · ${stats.low_stock_products || 0} low`;
                     document.getElementById('stat-revenue').textContent = `₱${Number(stats.paid_revenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                     renderAdminCharts(stats);
-                    await loadOrders();
+                    await Promise.all([loadOrders(), loadAdminPosSales()]);
                 }
             } catch (error) {
                 console.error('Dashboard error:', error);
