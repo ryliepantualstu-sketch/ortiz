@@ -19,6 +19,7 @@ const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require(
 const { notifyAppointmentUpdate, notifyOrderUpdate, notifyStaffPickupDateRequest } = require('../utils/notificationService');
 const { attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const { getManilaToday, getReservationPickupDeadline, isValidPickupDate } = require('../utils/orderPickup');
 
 const { getPriceByLensOption } = require('../utils/pricing');
@@ -1248,7 +1249,31 @@ router.patch('/orders/:id/cancel', authMiddleware, requireRole('customer'), asyn
       });
     }
 
-    await order.update({ status: 'cancelled', updated_at: new Date() });
+    await sequelize.transaction(async (transaction) => {
+      const lockedOrder = await Order.findOne({
+        where: { order_id: order.order_id, customer_id: customer.customer_id },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!lockedOrder || !['pending', 'processing'].includes(String(lockedOrder.status || '').trim().toLowerCase())) {
+        throw Object.assign(new Error('This order can no longer be cancelled'), { status: 409 });
+      }
+      if (lockedOrder.reservation_stock_reserved) {
+        const items = await OrderItem.findAll({ where: { order_id: lockedOrder.order_id }, transaction });
+        for (const item of items) {
+          const product = await Product.findByPk(item.product_id, { transaction, lock: transaction.LOCK.UPDATE });
+          if (product) {
+            await product.update({ stock_quantity: Number(product.stock_quantity || 0) + Number(item.quantity || 0) }, { transaction });
+          }
+        }
+      }
+      await lockedOrder.update({ status: 'cancelled', reservation_stock_reserved: false, updated_at: new Date() }, { transaction });
+      await QRCode.update(
+        { expired_at: new Date() },
+        { where: { code_type: 'Order', reference_id: lockedOrder.order_id, is_used: false }, transaction }
+      );
+      order.set(lockedOrder.toJSON());
+    });
     if (order.reservation_only) {
       const linkedAppointments = await Appointment.findAll({
         where: { reservation_order_id: order.order_id, status: { [Op.ne]: 'cancelled' } }
@@ -1268,7 +1293,7 @@ router.patch('/orders/:id/cancel', authMiddleware, requireRole('customer'), asyn
 
     res.json({ success: true, message: 'Order cancelled', order });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to cancel order', error: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.status ? error.message : 'Failed to cancel order', ...(error.status ? {} : { error: error.message }) });
   }
 });
 

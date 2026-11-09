@@ -143,6 +143,7 @@ CREATE TABLE orders (
     reservation_only BOOLEAN NOT NULL DEFAULT FALSE,
     requires_eye_checkup BOOLEAN NOT NULL DEFAULT TRUE,
     reservation_confirmed_at DATETIME NULL,
+    reservation_stock_reserved BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,

@@ -105,6 +105,11 @@ const Order = sequelize.define('Order', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  reservation_stock_reserved: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   walk_in_claim_code: {
     type: DataTypes.STRING(12),
     allowNull: true

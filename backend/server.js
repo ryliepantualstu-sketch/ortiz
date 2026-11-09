@@ -410,6 +410,11 @@ const ensureSchemaColumns = async () => {
       type: DataTypes.DATE,
       allowNull: true
     });
+    await addColumnIfMissing('orders', 'reservation_stock_reserved', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
     await addColumnIfMissing('orders', 'payment_status', {
       type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
       allowNull: false,

@@ -1053,14 +1053,16 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
       for (const item of items) {
         const product = await Product.findByPk(item.product_id, { transaction, lock: transaction.LOCK.UPDATE });
         const quantity = Number(item.quantity || 0);
-        if (!product || !product.is_active || !Number.isInteger(quantity) || quantity < 1 || Number(product.stock_quantity || 0) < quantity) {
+        if (!product || !product.is_active || !Number.isInteger(quantity) || quantity < 1 || (!order.reservation_stock_reserved && Number(product.stock_quantity || 0) < quantity)) {
           throw Object.assign(new Error(`Not enough available stock for ${item.Product?.product_name || 'the reserved frame'}`), { status: 409 });
         }
         const framePrice = Number(item.frame_price ?? product.frame_only_price ?? product.price ?? 0);
         const subtotal = Number((framePrice * quantity).toFixed(2));
         totalAmount += subtotal;
         await item.update({ price: framePrice, subtotal, lens_price: 0, lens_option: 'frame-only' }, { transaction });
-        await product.update({ stock_quantity: Number(product.stock_quantity) - quantity }, { transaction });
+        if (!order.reservation_stock_reserved) {
+          await product.update({ stock_quantity: Number(product.stock_quantity) - quantity }, { transaction });
+        }
       }
 
       await order.update({
@@ -1073,6 +1075,7 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
         payment_method: paymentMethod,
         checkup_fee: 0,
         reservation_only: false,
+        reservation_stock_reserved: false,
         status: 'picked up',
         notes: 'Confirmed frame-only reservation; customer identity verified with QR and frame released at the counter.'
       }, { transaction });
@@ -1213,6 +1216,43 @@ router.put('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
       if (String(order.status || '').trim().toLowerCase() !== 'pending' && String(order.status || '').trim().toLowerCase() !== nextStatus) {
         return res.status(409).json({ success: false, message: 'This frame reservation has already been reviewed' });
       }
+    }
+
+    const isFrameOnlyReservationConfirmation = order.reservation_only && !order.requires_eye_checkup &&
+      String(status || '').trim().toLowerCase() === 'processing' && String(order.status || '').trim().toLowerCase() === 'pending';
+    if (isFrameOnlyReservationConfirmation) {
+      const confirmedAt = new Date();
+      await sequelize.transaction(async (transaction) => {
+        const lockedOrder = await Order.findByPk(order.order_id, {
+          include: [{ model: OrderItem }],
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!lockedOrder || !lockedOrder.reservation_only || lockedOrder.requires_eye_checkup || String(lockedOrder.status || '').toLowerCase() !== 'pending') {
+          throw Object.assign(new Error('This frame-only reservation has already been reviewed'), { status: 409 });
+        }
+
+        const reservationItems = lockedOrder.OrderItems || [];
+        if (!reservationItems.length) {
+          throw Object.assign(new Error('This frame reservation has no reserved items'), { status: 409 });
+        }
+        for (const item of reservationItems) {
+          const product = await Product.findByPk(item.product_id, { transaction, lock: transaction.LOCK.UPDATE });
+          const quantity = Number(item.quantity || 0);
+          if (!product || !product.is_active || !Number.isInteger(quantity) || quantity < 1 || Number(product.stock_quantity || 0) < quantity) {
+            throw Object.assign(new Error(`Not enough stock to confirm ${product?.product_name || 'the reserved frame'}`), { status: 409 });
+          }
+          await product.update({ stock_quantity: Number(product.stock_quantity) - quantity }, { transaction });
+        }
+
+        await lockedOrder.update({
+          status: 'processing',
+          reservation_confirmed_at: confirmedAt,
+          reservation_stock_reserved: true,
+          updated_at: confirmedAt
+        }, { transaction });
+      });
+      await order.reload();
     }
 
     let claimQrCode = null;
