@@ -428,7 +428,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           transaction,
           lock: transaction.LOCK.UPDATE
         });
-        if (!reservedOrder || !reservedOrder.reservation_only || String(reservedOrder.status).toLowerCase() !== 'processing') {
+        if (!reservedOrder || !reservedOrder.reservation_only || !reservedOrder.requires_eye_checkup || String(reservedOrder.status).toLowerCase() !== 'processing') {
           throw Object.assign(new Error('The linked frame reservation is no longer available'), { status: 409 });
         }
 
@@ -978,7 +978,7 @@ router.post('/orders/verify-qr', authMiddleware, requireRole('staff', 'admin'), 
     if (qrCode.expired_at || qrCode.is_used) {
       return res.status(409).json({ success: false, message: 'This order claim QR code has already been used or expired' });
     }
-    const isConfirmedFrameReservation = order.reservation_only && String(order.status).toLowerCase() === 'processing';
+    const isConfirmedFrameReservation = order.reservation_only && !order.requires_eye_checkup && String(order.status).toLowerCase() === 'processing';
     if (!isConfirmedFrameReservation && String(order.status).toLowerCase() !== 'ready for pickup') {
       return res.status(409).json({ success: false, message: 'This reservation or product is not ready for QR verification' });
     }
@@ -1014,8 +1014,8 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
         transaction,
         lock: transaction.LOCK.UPDATE
       });
-      if (!order || !order.reservation_only || String(order.status).toLowerCase() !== 'processing') {
-        throw Object.assign(new Error('Only a staff-confirmed frame reservation can be completed this way'), { status: 409 });
+      if (!order || !order.reservation_only || order.requires_eye_checkup || String(order.status).toLowerCase() !== 'processing') {
+        throw Object.assign(new Error('Only a staff-confirmed frame-only reservation can be completed this way'), { status: 409 });
       }
 
       const qrCode = await QRCode.findOne({

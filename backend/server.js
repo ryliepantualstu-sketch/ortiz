@@ -401,6 +401,11 @@ const ensureSchemaColumns = async () => {
       allowNull: false,
       defaultValue: false
     });
+    await addColumnIfMissing('orders', 'requires_eye_checkup', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
     await addColumnIfMissing('orders', 'payment_status', {
       type: DataTypes.ENUM('Unpaid', 'Paid', 'Refunded'),
       allowNull: false,

@@ -2,6 +2,9 @@
 ALTER TABLE orders
     ADD COLUMN reservation_only BOOLEAN NOT NULL DEFAULT FALSE;
 
+ALTER TABLE orders
+    ADD COLUMN requires_eye_checkup BOOLEAN NOT NULL DEFAULT TRUE;
+
 ALTER TABLE appointments
     ADD COLUMN reservation_order_id INT NULL,
     ADD INDEX idx_appointments_reservation_order (reservation_order_id),

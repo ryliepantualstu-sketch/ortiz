@@ -1567,7 +1567,7 @@
                 <section class="page-hero">
                     <div class="page-kicker"><i class="fas fa-glasses"></i><span>Frame reservations</span></div>
                     <h2>Review the frames you want to reserve.</h2>
-                    <p>Staff will confirm your reservation. You can schedule an eye checkup after confirmation. Lens customization and payment happen at the store.</p>
+                    <p>Choose whether you want to buy the frame only or include an eye check-up and customized lenses. Staff confirms the reservation before your visit.</p>
                     <div class="page-hero-actions">
                         <button type="button" class="page-btn border-0" onclick="loadSection('products')"><i class="fas fa-glasses"></i><span>Browse frames</span></button>
                         <button type="button" class="page-btn-secondary border-0" onclick="loadSection('orders')"><i class="fas fa-receipt"></i><span>View order history</span></button>
@@ -1878,10 +1878,21 @@
                 </div>
                 <div class="modal-body p-4">
                     <form id="checkoutForm">
-                        <p class="text-muted mb-3">Reserve the frame you selected. After staff confirms your reservation, you can choose a date and time for your eye checkup. Lens customization and payment will be handled in the store.</p>
+                        <p class="text-muted mb-3">Choose how you plan to buy your reserved frame.</p>
+                        <fieldset class="mb-3">
+                            <legend class="form-label fw-semibold">Reservation option <span class="text-danger">*</span></legend>
+                            <label class="d-flex gap-3 align-items-start border rounded-3 p-3 mb-2" for="reservationFrameOnlyOption" style="cursor:pointer">
+                                <input class="form-check-input mt-1" type="radio" name="reservationChoice" id="reservationFrameOnlyOption" value="frame-only" required>
+                                <span><strong>Frame only</strong><span class="d-block small text-muted">No eye check-up needed. After staff confirms, show your reservation QR when you visit, then pay for and claim the frame.</span></span>
+                            </label>
+                            <label class="d-flex gap-3 align-items-start border rounded-3 p-3" for="reservationWithCheckupOption" style="cursor:pointer">
+                                <input class="form-check-input mt-1" type="radio" name="reservationChoice" id="reservationWithCheckupOption" value="with-checkup" required>
+                                <span><strong>Frame + eye check-up</strong><span class="d-block small text-muted">After staff confirms, schedule your eye check-up. The staff will record your prescription, lens customization, and payment during your visit.</span></span>
+                            </label>
+                        </fieldset>
                         <div class="mb-3 d-none">
-                            <label for="orderAddress" class="form-label fw-semibold">Your address <span class="text-danger">*</span></label>
-                            <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city" required></textarea>
+                            <label for="orderAddress" class="form-label fw-semibold">Your address</label>
+                            <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city"></textarea>
                         </div>
                         <div class="mb-3 d-none" id="checkoutPrescriptionSection">
                             <label for="checkoutPrescriptionSource" class="form-label fw-semibold">Prescription <span class="text-muted">(optional)</span></label>
@@ -3207,8 +3218,14 @@
         async function submitCheckout(event) {
             event.preventDefault();
             const submitButton = event.target.querySelector('button[type="submit"]');
+            const selectedOption = document.querySelector('input[name="reservationChoice"]:checked')?.value;
+            if (!selectedOption) {
+                alert('Choose Frame only or Frame + eye check-up to continue.');
+                return;
+            }
             submitButton.disabled = true;
-            const result = await apiCall('/customer/orders/checkout', 'POST', {});
+            const requiresEyeCheckup = selectedOption === 'with-checkup';
+            const result = await apiCall('/customer/orders/checkout', 'POST', { requires_eye_checkup: requiresEyeCheckup });
 
             submitButton.disabled = false;
 
@@ -3218,7 +3235,9 @@
             }
 
             if (checkoutModalInstance) checkoutModalInstance.hide();
-            alert(`Frame reservation #${result.order.order_id} submitted. You can schedule a checkup after staff confirms it.`);
+            alert(requiresEyeCheckup
+                ? `Frame reservation #${result.order.order_id} submitted. You can schedule an eye check-up after staff confirms it.`
+                : `Frame-only reservation #${result.order.order_id} submitted. Show your reservation QR to staff when you visit to pay and claim the frame.`);
             loadSection('orders');
         }
 
@@ -3827,6 +3846,7 @@
                     <div class="mb-1"><strong>Phone:</strong> ${escapeText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</div>
                     <div class="mb-1"><strong>Address:</strong> ${escapeText(order.delivery_address || order.Customer?.address || 'Not provided')}</div>
                     <div class="mb-1"><strong>Notes:</strong> ${escapeText(order.notes || 'None')}</div>
+                    ${order.reservation_only ? `<div class="mb-1"><strong>Reservation option:</strong> ${order.requires_eye_checkup ? 'Frame + eye check-up' : 'Frame only'}</div>` : ''}
                     <div><strong>Last updated:</strong> ${formatDateTime(order.updated_at)}</div>
                 </div>
                 ${prescriptionDetails}
@@ -3877,7 +3897,7 @@
                     <div class="d-flex justify-content-between mb-1"><span>Discount:</span> <span>${discountLabel}</span></div>
                     <div class="d-flex justify-content-between border-top pt-2 mt-2" style="font-size: 1.15rem;"><span>Total:</span> <strong class="text-primary">₱${Number(order.total_amount || 0).toFixed(2)}</strong></div>
                 </div>
-                ${order.qr_code ? `
+                ${order.qr_code && (!order.reservation_only || !order.requires_eye_checkup) ? `
                     <div class="text-center border rounded-3 p-3 mt-3">
                         <div class="fw-semibold mb-2">${order.reservation_only ? 'Frame reservation QR code' : 'Order pickup QR code'}</div>
                         <img src="${order.qr_code}" alt="QR code for order #${order.order_id}" width="180" height="180">
@@ -3972,7 +3992,7 @@
                                     <div class="order-item">
                                         <div style="flex: 1;">
                                             <span class="order-item-name">${item.product_name || item.Product?.product_name || 'Product'} <small class="text-muted">(${item.quantity || 1}x)</small></span>
-                                            ${order.reservation_only ? '<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Show your reservation QR when you visit. A check-up is only needed for customized lenses.</div>' : `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>`}
+                                            ${order.reservation_only ? `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">${order.requires_eye_checkup ? 'Frame + eye check-up reservation; schedule your check-up after staff confirms.' : 'Frame-only reservation; show your reservation QR to staff when you visit.'}</div>` : `<div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 2px;">Lens: ${lensLabel}</div>`}
                                         </div>
                                         ${order.reservation_only ? '' : `<span class="order-item-price">₱${Number(item.subtotal || item.price || 0).toFixed(2)}</span>`}
                                     </div>
@@ -3982,7 +4002,7 @@
                             <div class="order-footer">
                                 <div class="order-actions">
                                     <button type="button" class="btn btn-sm btn-primary" onclick="viewCustomerOrder(${order.order_id})">View Order</button>
-                                    ${order.reservation_only && normalizeStatus(order.status) === 'processing' && (!order.reservation_appointment || normalizeStatus(order.reservation_appointment.status) === 'cancelled') ? `<button type="button" class="btn btn-sm btn-success" onclick="openAppointmentModal(null, ${order.order_id})"><i class="fas fa-calendar-check me-1"></i>${order.reservation_appointment ? 'Schedule New Checkup' : 'Schedule Checkup'}</button>` : ''}
+                                    ${order.reservation_only && order.requires_eye_checkup && normalizeStatus(order.status) === 'processing' && (!order.reservation_appointment || normalizeStatus(order.reservation_appointment.status) === 'cancelled') ? `<button type="button" class="btn btn-sm btn-success" onclick="openAppointmentModal(null, ${order.order_id})"><i class="fas fa-calendar-check me-1"></i>${order.reservation_appointment ? 'Schedule New Checkup' : 'Schedule Checkup'}</button>` : ''}
                                     ${order.reservation_appointment && normalizeStatus(order.reservation_appointment.status) !== 'cancelled' ? `<span class="small text-primary align-self-center">Checkup: ${formatDate(order.reservation_appointment.appointment_date)} at ${formatTime(order.reservation_appointment.appointment_time)}</span>` : ''}
                                     ${canCancelOrder(order) ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1" aria-hidden="true"></i>Cancel</button>` : ''}
                                     ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas ${order.pickup_date_request_status === 'pending' ? 'fa-clock' : 'fa-calendar-day'} me-1" aria-hidden="true"></i>${order.pickup_date_request_status === 'pending' ? 'Date request pending' : order.pickup_missed ? 'Request new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}

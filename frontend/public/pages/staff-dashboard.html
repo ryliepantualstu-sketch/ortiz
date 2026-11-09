@@ -1691,7 +1691,7 @@
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
                             <td>${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
-                            <td>${order.reservation_only ? 'Frame reservation' : getStaffOrderPrescriptionSummary(order)}${renderStaffCustomerFeedback(order.feedback)}</td>
+                            <td>${order.reservation_only ? `Frame reservation · ${order.requires_eye_checkup ? 'with eye check-up' : 'frame only'}` : getStaffOrderPrescriptionSummary(order)}${renderStaffCustomerFeedback(order.feedback)}</td>
                             <td>${order.reservation_only ? 'No payment due' : `₱${parseFloat(order.total_amount || 0).toFixed(2)}`}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
@@ -1716,7 +1716,7 @@
                                         ${order.reservation_only ? `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Confirm Frame Reservation</button></li>
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Decline Reservation</button></li>
-                                        <li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${String(order.status || '').toLowerCase() !== 'processing' ? 'disabled' : ''}><i class="fas fa-qrcode me-2" aria-hidden="true"></i>Scan Reservation QR</button></li>
+                                        ${!order.requires_eye_checkup ? `<li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${String(order.status || '').toLowerCase() !== 'processing' ? 'disabled' : ''}><i class="fas fa-qrcode me-2" aria-hidden="true"></i>Scan Reservation QR</button></li>` : ''}
                                         ` : `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${['processing', 'ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-box me-2" aria-hidden="true"></i>Process</button></li>
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'ready for pickup')" ${['ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-bell me-2" aria-hidden="true"></i>Ready for Pickup</button></li>
@@ -1994,8 +1994,9 @@
                     <p><strong>Date &amp; Time Ordered:</strong> ${formatOrderDateTime(order.order_date || order.created_at)}</p>
                     <p><strong>Last Updated:</strong> ${formatOrderDateTime(order.updated_at)}</p>
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
+                    ${isReservation ? `<p><strong>Reservation option:</strong> ${order.requires_eye_checkup ? 'Frame + eye check-up' : 'Frame only'}</p>` : ''}
                     <p><strong>Payment:</strong> ${order.payment_status || 'Unpaid'}${order.payment_status === 'Paid' ? ` via ${order.payment_method || 'Cash'}` : ''}</p>
-                    ${isReservation ? `<div class="mb-3"><label for="staffReservationPaymentMethod" class="form-label fw-semibold">Frame-only payment method</label><select id="staffReservationPaymentMethod" class="form-select" ${orderStatus !== 'processing' ? 'disabled' : ''}><option value="Cash">Cash</option><option value="Card">Card</option><option value="Online">Online</option></select><div class="form-text">Scan the customer’s reservation QR before completing the sale.</div></div>` : ''}
+                    ${isReservation && !order.requires_eye_checkup ? `<div class="mb-3"><label for="staffReservationPaymentMethod" class="form-label fw-semibold">Frame-only payment method</label><select id="staffReservationPaymentMethod" class="form-select" ${orderStatus !== 'processing' ? 'disabled' : ''}><option value="Cash">Cash</option><option value="Card">Card</option><option value="Online">Online</option></select><div class="form-text">Scan the customer’s reservation QR before completing the sale.</div></div>` : ''}
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
                     ${order.pickup_date_request_status ? `<p><strong>Pickup Date Request:</strong> ${formatOrderDate(order.pickup_date_requested)} <span class="badge ${order.pickup_date_request_status === 'pending' ? 'bg-warning text-dark' : order.pickup_date_request_status === 'approved' ? 'bg-success' : 'bg-secondary'}">${order.pickup_date_request_status}</span></p>` : ''}
                     ${prescriptionDetails}
@@ -2111,9 +2112,13 @@
             }
 
             const order = result.order;
-            if (order.reservation_only && String(order.status || '').toLowerCase() === 'processing') {
+            if (order.reservation_only && !order.requires_eye_checkup && String(order.status || '').toLowerCase() === 'processing') {
                 loadSection('qr');
                 startQrScanner();
+                return;
+            }
+            if (order.reservation_only) {
+                alert('This reservation includes an eye check-up. Use the appointment flow to complete it.');
                 return;
             }
             if (String(order.status || '').toLowerCase() !== 'ready for pickup') {

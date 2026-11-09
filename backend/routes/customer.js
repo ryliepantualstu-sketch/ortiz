@@ -602,10 +602,11 @@ router.post('/appointments/book', authMiddleware, requireRole('customer'), async
         order_id: reservationOrderId,
         customer_id: customer.customer_id,
         reservation_only: true,
+        requires_eye_checkup: true,
         status: 'processing'
       } });
       if (!reservation) {
-        return res.status(409).json({ success: false, message: 'This frame reservation has not been confirmed by staff' });
+        return res.status(409).json({ success: false, message: 'This reservation is not confirmed for an eye check-up' });
       }
       const existingReservationAppointment = await Appointment.findOne({ where: { reservation_order_id: reservationOrderId, status: { [Op.ne]: 'cancelled' } } });
       if (existingReservationAppointment) {
@@ -1078,6 +1079,9 @@ router.patch('/appointments/:id/cancel', authMiddleware, requireRole('customer')
 // Submit a frame reservation from the customer's cart. Staff approval is required before scheduling.
 router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (req, res) => {
   try {
+    const requiresEyeCheckup = typeof req.body?.requires_eye_checkup === 'boolean'
+      ? req.body.requires_eye_checkup
+      : true;
     const user = await User.findByPk(req.user.user_id);
     if (!user) {
       return res.status(401).json({
@@ -1108,7 +1112,10 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
       total_amount: 0,
       discount_amount: 0,
       reservation_only: true,
-      notes: 'Frame reservation; lens customization and payment are completed in store.',
+      requires_eye_checkup: requiresEyeCheckup,
+      notes: requiresEyeCheckup
+        ? 'Frame reservation with eye check-up; lens customization and payment are completed in store.'
+        : 'Frame-only reservation; no eye check-up requested. Customer will show the reservation QR and pay in store.',
       status: 'pending'
     });
     for (const cartItem of cartItems) {
@@ -1135,13 +1142,16 @@ router.post('/orders/checkout', authMiddleware, requireRole('customer'), async (
 
     res.status(201).json({
       success: true,
-      message: 'Frame reservation submitted. You can schedule your eye checkup after staff confirms it.',
+      message: requiresEyeCheckup
+        ? 'Frame reservation submitted. You can schedule your eye checkup after staff confirms it.'
+        : 'Frame-only reservation submitted. Show your reservation QR to staff when you visit to pay and claim the frame.',
       order: {
         order_id: order.order_id,
         total_amount: 0,
         status: 'pending',
         items_count: cartItems.length,
-        reservation_only: true
+        reservation_only: true,
+        requires_eye_checkup: requiresEyeCheckup
       }
     });
   } catch (error) {

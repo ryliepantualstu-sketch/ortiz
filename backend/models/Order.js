@@ -96,6 +96,11 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: false
   },
+  requires_eye_checkup: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  },
   walk_in_claim_code: {
     type: DataTypes.STRING(12),
     allowNull: true
