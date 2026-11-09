@@ -377,13 +377,6 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="registerWalkInClaimCode">
-                                <i class="fas fa-receipt"></i> Walk-in Receipt Claim Code(s) <span class="text-muted">(optional)</span>
-                            </label>
-                            <input type="text" class="form-control text-uppercase" id="registerWalkInClaimCode" name="walk_in_claim_codes" placeholder="Code(s) from walk-in receipt(s), separated by commas" maxlength="139" autocomplete="off">
-                        </div>
-
-                        <div class="form-group">
                             <label class="form-label" for="registerBirthday">
                                 <i class="fas fa-birthday-cake"></i> Birthday
                             </label>
@@ -620,7 +613,6 @@
             const phone = document.getElementById('registerPhone').value.trim();
             const birthday = document.getElementById('registerBirthday').value;
             const address = document.getElementById('registerAddress').value.trim();
-            const walk_in_claim_codes = document.getElementById('registerWalkInClaimCode').value.trim().toUpperCase();
             const password = document.getElementById('registerPassword').value;
             const confirm_password = document.getElementById('registerConfirm').value;
 
@@ -655,7 +647,6 @@
                 phone,
                 birthday,
                 address,
-                walk_in_claim_codes,
                 password,
                 confirm_password
             });

@@ -8,7 +8,7 @@ const User = require('../models/User');
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
 const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/customerName');
-const { parseWalkInClaimCodes, claimWalkInOrder, claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
+const { claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
 const { normalizeEmail, isGmailAddress } = require('../utils/emailAddress');
@@ -42,7 +42,7 @@ function createRegistrationApprovalToken(userId) {
   );
 }
 
-async function notifyOwnerOfRegistration(user, customer, claimCodes = []) {
+async function notifyOwnerOfRegistration(user, customer) {
   const ownerEmail = process.env.OWNER_EMAIL || process.env.DEFAULT_ADMIN_EMAIL || process.env.GMAIL_USER || process.env.SMTP_USER;
   if (!ownerEmail) return { success: false, reason: 'Owner email is not configured' };
 
@@ -53,7 +53,6 @@ async function notifyOwnerOfRegistration(user, customer, claimCodes = []) {
   const phone = escapeHtml(user.phone || customer?.phone || 'N/A');
   const birthday = escapeHtml(customer?.date_of_birth || 'Not provided');
   const address = escapeHtml(customer?.address || 'Not provided');
-  const codes = claimCodes.length ? claimCodes.map(escapeHtml).join(', ') : 'None';
   const text = [
     'A customer account is waiting for owner approval.',
     'Name: ' + (user.full_name || 'N/A'),
@@ -61,7 +60,6 @@ async function notifyOwnerOfRegistration(user, customer, claimCodes = []) {
     'Phone: ' + (user.phone || customer?.phone || 'N/A'),
     'Birthday: ' + (customer?.date_of_birth || 'Not provided'),
     'Address: ' + (customer?.address || 'Not provided'),
-    'Walk-in receipt claim code(s): ' + (claimCodes.join(', ') || 'None'),
     'Review and approve: ' + approvalUrl
   ].join('\n');
 
@@ -69,7 +67,7 @@ async function notifyOwnerOfRegistration(user, customer, claimCodes = []) {
     to: ownerEmail,
     subject: 'Customer account approval: ' + (user.full_name || user.email),
     text,
-    html: '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#243247"><h2>Customer registration awaiting approval</h2><p>A customer submitted an account request. Review the details before approving:</p><table style="border-collapse:collapse;width:100%"><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Full name</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + fullName + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Email</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + email + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Phone</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + phone + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Birthday</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + birthday + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Address</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + address + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Walk-in claim code(s)</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + codes + '</td></tr></table><p style="margin:24px 0"><a href="' + approvalUrl + '" style="display:inline-block;background:#087f75;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">Review and confirm account</a></p><p style="color:#64748b;font-size:13px">This secure approval link expires in 48 hours. Opening it will not approve the account until you press the confirmation button.</p></div>'
+    html: '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#243247"><h2>Customer registration awaiting approval</h2><p>A customer submitted an account request. Review the details before approving:</p><table style="border-collapse:collapse;width:100%"><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Full name</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + fullName + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Email</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + email + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Phone</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + phone + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Birthday</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + birthday + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Address</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + address + '</td></tr></table><p style="margin:24px 0"><a href="' + approvalUrl + '" style="display:inline-block;background:#087f75;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">Review and confirm account</a></p><p style="color:#64748b;font-size:13px">This secure approval link expires in 48 hours. Opening it will not approve the account until you press the confirmation button.</p></div>'
   });
 }
 
@@ -212,11 +210,9 @@ router.post('/google', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { password, confirm_password, phone, birthday, address } = req.body;
-    const rawClaimCodes = req.body.walk_in_claim_codes ?? req.body.walk_in_claim_code;
     const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
     const role = 'customer';
-    const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
 
     // Validation
@@ -224,13 +220,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please fill all required fields'
-      });
-    }
-
-    if (walkInClaimCodes === null) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enter up to 10 valid 12-character claim codes from walk-in receipts, separated by commas'
       });
     }
 
@@ -291,29 +280,18 @@ router.post('/register', async (req, res) => {
       if (address) customerPayload.address = address;
       const customer = await Customer.create(customerPayload, { transaction });
 
-      for (const claimCode of walkInClaimCodes) {
-        const claimed = await claimWalkInOrder(Order, customer.customer_id, claimCode, transaction);
-        if (!claimed) {
-          throw Object.assign(
-            new Error(`Walk-in claim code ${claimCode} is invalid, already used, or is not for an unclaimed walk-in sale`),
-            { status: 400 }
-          );
-        }
-      }
-
       await claimWalkInOrdersByIdentity(
         Order,
         customer.customer_id,
         full_name,
         normalizedPhone,
-        transaction,
-        walkInClaimCodes.length > 0
+        transaction
       );
 
       return { user, customer };
     });
     const { user, customer } = registration;
-    const ownerNotice = await notifyOwnerOfRegistration(user, customer, walkInClaimCodes);
+    const ownerNotice = await notifyOwnerOfRegistration(user, customer);
     if (!ownerNotice.success) {
       console.error('[REGISTRATION OWNER EMAIL ERROR]', ownerNotice.error || ownerNotice.reason || 'Email delivery failed');
     }
