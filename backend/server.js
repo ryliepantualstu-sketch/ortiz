@@ -436,6 +436,21 @@ const ensureSchemaColumns = async () => {
       allowNull: false,
       defaultValue: 0
     });
+    await addColumnIfMissing('orders', 'lens_only', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
+    await addColumnIfMissing('orders', 'lens_price', {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
+    });
+    await addColumnIfMissing('orders', 'lens_option', {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: 'regular-lens'
+    });
     await addColumnIfMissing('appointments', 'reservation_order_id', {
       type: DataTypes.INTEGER,
       allowNull: true

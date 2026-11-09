@@ -57,6 +57,11 @@
         <td class="iv-r">₱${peso(item.subtotal)}</td>
       </tr>`;
     });
+    if (order.lens_only) {
+      const lens = LENS_LABELS[order.lens_option] || 'Regular Lens';
+      const price = Number(order.lens_price || 0);
+      rows.push(`<tr><td>Customized lenses <span class="iv-small">(${esc(lens)})</span></td><td class="iv-c">1</td><td class="iv-r">₱${peso(price)}</td><td class="iv-r">₱${peso(price)}</td></tr>`);
+    }
     if (Number(order.checkup_fee || 0) > 0) {
       const fee = Number(order.checkup_fee);
       rows.push(`<tr><td>Eye check-up fee</td><td class="iv-c">1</td><td class="iv-r">₱${peso(fee)}</td><td class="iv-r">₱${peso(fee)}</td></tr>`);

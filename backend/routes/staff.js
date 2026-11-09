@@ -547,6 +547,51 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
         ]
       });
+    } else if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup' && req.body.lens_only) {
+      const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
+      if (error) {
+        return res.status(400).json({ success: false, message: 'A complete prescription is required for a lens-only sale' });
+      }
+      const lensPrice = Number(req.body.lens_price);
+      const lensOption = req.body.lens_option || 'regular-lens';
+      if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
+      }
+      if (!['regular-lens', 'photochromic'].includes(lensOption)) {
+        return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
+      }
+
+      Object.assign(updates, prescription);
+      const createdOrderId = await sequelize.transaction(async (transaction) => {
+        await appointment.update(updates, { transaction });
+        const lensOrder = await Order.create({
+          customer_id: appointment.customer_id,
+          ...prescription,
+          prescription_appointment_id: appointment.appointment_id,
+          total_amount: Number((lensPrice + Number(updates.checkup_fee || 0)).toFixed(2)),
+          discount_amount: 0,
+          payment_status: 'Paid',
+          payment_method: updates.payment_method,
+          checkup_fee: Number(Number(updates.checkup_fee || 0).toFixed(2)),
+          lens_only: true,
+          lens_price: Number(lensPrice.toFixed(2)),
+          lens_option: lensOption,
+          customer_name: null,
+          delivery_address: null,
+          is_walk_in: false,
+          reservation_only: false,
+          status: 'processing',
+          notes: `Lens-only sale (${lensOption}) completed after eye checkup #${appointment.appointment_id}.`
+        }, { transaction });
+        await createOrderQrCode(lensOrder, { transaction });
+        return lensOrder.order_id;
+      });
+      completedReservationOrder = await Order.findByPk(createdOrderId, {
+        include: [
+          { model: OrderItem, include: [{ model: Product }] },
+          { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+        ]
+      });
     } else {
       await appointment.update(updates);
       if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup') {
@@ -590,7 +635,9 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     res.json({
       success: true,
       message: completedReservationOrder
-        ? appointment.reservation_order_id
+        ? completedReservationOrder.lens_only
+          ? 'Checkup completed. Lens-only sale, prescription, payment, QR, and receipt are saved to the customer account.'
+          : appointment.reservation_order_id
           ? 'Checkup completed. The reserved frame and prescription are saved as an order for lens customization.'
           : 'Checkup completed. The frame, customized lenses, prescription, payment, and receipt are saved to the customer order.'
         : 'Appointment updated successfully',

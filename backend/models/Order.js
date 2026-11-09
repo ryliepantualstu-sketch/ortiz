@@ -66,6 +66,21 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: 0
   },
+  lens_only: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  lens_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
+  },
+  lens_option: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    defaultValue: 'regular-lens'
+  },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true

@@ -3655,7 +3655,7 @@
             document.getElementById('customerReceiptBtn').classList.toggle('d-none', !isPaid && !['picked up', 'completed'].includes(normalizeStatus(order.status)));
             const items = getOrderItems(order);
             const isFrameOnlyReservation = order.reservation_only && !order.requires_eye_checkup;
-            const subtotal = items.reduce((sum, item) => {
+            const subtotal = order.lens_only ? Number(order.lens_price || 0) : items.reduce((sum, item) => {
                 const itemPrice = isFrameOnlyReservation
                     ? Number(item.frame_price ?? item.Product?.frame_only_price ?? item.Product?.price ?? 0)
                     : Number(item.subtotal || item.price || 0) / Math.max(1, Number(item.quantity || 1));
@@ -3692,7 +3692,7 @@
                     <div class="mb-1"><strong>Phone:</strong> ${escapeText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</div>
                     <div class="mb-1"><strong>Address:</strong> ${escapeText(order.delivery_address || order.Customer?.address || 'Not provided')}</div>
                     <div class="mb-1"><strong>Notes:</strong> ${escapeText(order.notes || 'None')}</div>
-                    ${order.reservation_only ? `<div class="mb-1"><strong>Reservation option:</strong> ${order.requires_eye_checkup ? 'Frame + eye check-up' : 'Frame only'}</div>` : ''}
+                    ${order.reservation_only ? `<div class="mb-1"><strong>Reservation option:</strong> ${order.requires_eye_checkup ? 'Frame + eye check-up' : 'Frame only'}</div>` : order.lens_only ? '<div class="mb-1"><strong>Purchase:</strong> Lenses only</div>' : ''}
                     <div><strong>Last updated:</strong> ${formatDateTime(order.updated_at)}</div>
                 </div>
                 ${prescriptionDetails}
@@ -3719,7 +3719,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${items.map(item => {
+                            ${order.lens_only ? `<tr><td><strong>Customized lenses</strong><br><small class="text-muted">Lens: ${{ 'regular-lens': 'Regular Lens', photochromic: 'Photochromic' }[order.lens_option] || 'Regular Lens'}</small></td><td>1</td><td>₱${Number(order.lens_price || 0).toFixed(2)}</td><td>₱${Number(order.lens_price || 0).toFixed(2)}</td></tr>` : items.map(item => {
                                 const lensLabel = {
                                     'frame-only': 'Frame Only',
                                     'regular-lens': 'Regular Lens',
@@ -3834,7 +3834,7 @@
                             ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_date_request_status === 'pending' ? `Requested pickup date: ${formatDate(`${order.pickup_date_requested}T00:00:00`)} (waiting for staff)` : order.pickup_missed ? `<span class="text-danger">Missed pickup (${formatDate(`${order.pickup_date}T00:00:00`)}) - request a new date</span>` : order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
                             ${order.delivery_address ? `<div class="small text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>${escapeText(order.delivery_address)}</div>` : ''}
                             <div class="order-items">
-                                ${getOrderItems(order).map(item => {
+                                ${order.lens_only ? `<div class="order-item"><div style="flex:1"><span class="order-item-name">Customized lenses <small class="text-muted">(1x)</small></span><div style="font-size:0.85rem;color:#7f8c8d;margin-top:2px">Lens: ${{ 'regular-lens': 'Regular Lens', photochromic: 'Photochromic' }[order.lens_option] || 'Regular Lens'}</div></div><span class="order-item-price">₱${Number(order.lens_price || 0).toFixed(2)}</span></div>` : getOrderItems(order).map(item => {
                                     const lensLabel = {
                                         'frame-only': 'Frame Only',
                                         'regular-lens': 'Regular Lens',
