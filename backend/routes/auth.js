@@ -28,7 +28,10 @@ function createAuthToken(user) {
 }
 
 function getAppUrl() {
-  return String(process.env.APP_URL || 'http://localhost:' + (process.env.PORT || 3000)).replace(/\/+$/, '');
+  const railwayUrl = 'https://ortiz-production-2d70.up.railway.app';
+  const configuredUrl = String(process.env.APP_URL || '').trim();
+  const useConfiguredUrl = configuredUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:\/|$)/i.test(configuredUrl);
+  return String(useConfiguredUrl ? configuredUrl : railwayUrl).replace(/\/+$/, '');
 }
 
 function createRegistrationApprovalToken(userId) {
