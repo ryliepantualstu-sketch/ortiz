@@ -1719,7 +1719,7 @@
                                         ` : `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${['processing', 'ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-box me-2" aria-hidden="true"></i>Process</button></li>
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'ready for pickup')" ${['ready for pickup', 'ready-for-pickup', 'picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-bell me-2" aria-hidden="true"></i>Ready for Pickup</button></li>
-                                        <li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Mark Picked Up</button></li>
+                                        <li><button type="button" class="dropdown-item" onclick="openStaffPickupModal(${order.order_id})" ${!['ready for pickup'].includes((order.status || '').toLowerCase()) || String(order.payment_status || '').toLowerCase() !== 'paid' ? 'disabled' : ''}><i class="fas fa-qrcode me-2" aria-hidden="true"></i>Scan QR for Pickup</button></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${['picked up', 'picked-up', 'cancelled'].includes((order.status || '').toLowerCase()) ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Cancel</button></li>
                                         `}
@@ -1963,7 +1963,10 @@
                 const claimQrVerified = Number(window.verifiedOrderPickup?.order_id) === Number(order.order_id);
                 const isFinal = ['picked up', 'picked-up', 'cancelled'].includes(orderStatus);
                 document.getElementById('staffReceiptBtn').classList.toggle('d-none', !paymentFinal && !['picked up', 'picked-up'].includes(orderStatus));
-                document.getElementById('staffPickupBtn').classList.toggle('d-none', isReservation || isFinal || !isReadyAndPaid || !claimQrVerified);
+                const pickupButton = document.getElementById('staffPickupBtn');
+                const pickupAllowed = !isReservation && !isFinal && isReadyAndPaid && claimQrVerified;
+                pickupButton.classList.toggle('d-none', !pickupAllowed);
+                pickupButton.disabled = !pickupAllowed;
                 document.getElementById('staffReservationConfirmBtn').classList.toggle('d-none', !isReservation || orderStatus !== 'pending');
                 const items = order.OrderItems || [];
                 const itemSubtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
@@ -2338,7 +2341,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-success d-none" id="staffReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
                 <button type="button" class="btn btn-success d-none" id="staffReservationConfirmBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffReservation(id); })()"><i class="fas fa-check me-1"></i>Confirm Reservation</button>
-                <button type="button" class="btn btn-success" id="staffPickupBtn" onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Verify QR &amp; Claim Product</button>
+                <button type="button" class="btn btn-success d-none" id="staffPickupBtn" disabled onclick="(function(){ const id = document.getElementById('staffOrderDetailModal').dataset.orderId; if (id) confirmStaffPickup(id); })()">Mark Picked Up</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
     </div>
