@@ -917,6 +917,34 @@ router.get('/orders', authMiddleware, requireRole('admin'), async (req, res) => 
   }
 });
 
+// Get customer feedback for the admin feedback module
+router.get('/feedback', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const feedback = await CustomerFeedback.findAll({
+      include: [
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email'] }] },
+        { model: Order, attributes: ['order_id', 'status'], required: false },
+        { model: Appointment, attributes: ['appointment_id', 'service_type', 'appointment_date', 'status'], required: false }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+    const ratings = feedback.map(item => Number(item.rating) || 0);
+    const averageRating = ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : 0;
+
+    res.json({
+      success: true,
+      feedback,
+      summary: {
+        total: feedback.length,
+        average_rating: Number(averageRating.toFixed(1)),
+        five_star_count: ratings.filter(rating => rating === 5).length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch customer feedback', error: error.message });
+  }
+});
+
 // Get inventory
 router.get('/inventory', authMiddleware, requireRole('admin'), async (req, res) => {
   try {

@@ -1034,6 +1034,7 @@
                     <li><a class="nav-link" href="#" onclick="return loadSection('products', event)"><i class="fas fa-cubes"></i><span>Products</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-glasses"></i><span>Reservations</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
+                    <li><a class="nav-link" href="#" onclick="return loadSection('feedback', event)"><i class="fas fa-star"></i><span>Customer Feedback</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('schedule', event)"><i class="fas fa-calendar-alt"></i><span>Schedule Management</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('inventory', event)"><i class="fas fa-warehouse"></i><span>Inventory</span></a></li>
                     <li><a class="nav-link" href="#" onclick="return loadSection('reports', event)"><i class="fas fa-chart-pie"></i><span>Reports</span></a></li>
@@ -1336,6 +1337,25 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Feedback Section -->
+                    <div id="feedbackSection" style="display: none;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                            <div><h4 class="mb-1">Customer Feedback</h4><p class="text-muted mb-0">Ratings and comments from completed appointments and reservations.</p></div>
+                            <button class="btn btn-outline-primary" type="button" onclick="loadCustomerFeedback()"><i class="fas fa-rotate me-2"></i>Refresh</button>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">Total feedback</div><div class="fs-3 fw-bold" id="feedbackTotal">—</div></div></div>
+                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">Average rating</div><div class="fs-3 fw-bold text-warning" id="feedbackAverage">—</div></div></div>
+                            <div class="col-md-4"><div class="table-container p-4 h-100"><div class="text-muted small">5-star feedback</div><div class="fs-3 fw-bold" id="feedbackFiveStar">—</div></div></div>
+                        </div>
+                        <div class="table-container">
+                            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                                <thead class="table-light"><tr><th>Date</th><th>Customer</th><th>Related to</th><th>Rating</th><th>Comment</th></tr></thead>
+                                <tbody id="customerFeedbackTable"><tr><td colspan="5" class="text-center text-muted py-4">Loading feedback...</td></tr></tbody>
+                            </table></div>
                         </div>
                     </div>
 
@@ -2479,6 +2499,7 @@ This will deactivate the account and keep the user record for history.`)) {
             document.getElementById('productsSection').style.display = 'none';
             document.getElementById('ordersSection').style.display = 'none';
             document.getElementById('appointmentsSection').style.display = 'none';
+            document.getElementById('feedbackSection').style.display = 'none';
             document.getElementById('scheduleSection').style.display = 'none';
             document.getElementById('inventorySection').style.display = 'none';
             document.getElementById('reportsSection').style.display = 'none';
@@ -2520,6 +2541,11 @@ This will deactivate the account and keep the user record for history.`)) {
                     document.getElementById('pageTitle').textContent = 'Appointments';
                     document.getElementById('appointmentsSection').style.display = 'block';
                     loadAppointments();
+                    break;
+                case 'feedback':
+                    document.getElementById('pageTitle').textContent = 'Customer Feedback';
+                    document.getElementById('feedbackSection').style.display = 'block';
+                    loadCustomerFeedback();
                     break;
                 case 'schedule':
                     document.getElementById('pageTitle').textContent = 'Schedule Management';
@@ -3122,6 +3148,47 @@ This will deactivate the account and keep the user record for history.`)) {
                 }
             } catch (error) {
                 console.error('Appointments error:', error);
+            }
+        }
+
+        async function loadCustomerFeedback() {
+            const tbody = document.getElementById('customerFeedbackTable');
+            if (!tbody) return;
+            try {
+                const result = await apiCall('/admin/feedback');
+                if (!result || !result.success) throw new Error(result?.message || 'Failed to load feedback');
+
+                const summary = result.summary || {};
+                document.getElementById('feedbackTotal').textContent = summary.total ?? 0;
+                document.getElementById('feedbackAverage').textContent = `${Number(summary.average_rating || 0).toFixed(1)} / 5`;
+                document.getElementById('feedbackFiveStar').textContent = summary.five_star_count ?? 0;
+
+                const feedback = result.feedback || [];
+                if (!feedback.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No customer feedback yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = feedback.map(item => {
+                    const rating = Math.max(1, Math.min(5, Number(item.rating || 0)));
+                    const customerName = item.Customer?.User?.full_name || 'Customer';
+                    const related = item.Order
+                        ? `Reservation #${item.Order.order_id}`
+                        : item.Appointment
+                            ? `Appointment #${item.Appointment.appointment_id}${item.Appointment.service_type ? ` · ${item.Appointment.service_type}` : ''}`
+                            : item.order_id ? `Reservation #${item.order_id}` : `Appointment #${item.appointment_id}`;
+                    const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : '—';
+                    return `<tr>
+                        <td>${escapeAdminOrderText(date)}</td>
+                        <td>${escapeAdminOrderText(customerName)}</td>
+                        <td>${escapeAdminOrderText(related)}</td>
+                        <td><span class="text-warning" aria-label="${rating} out of 5 stars">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span><div class="small text-muted">${rating}/5</div></td>
+                        <td class="text-wrap" style="min-width: 240px; max-width: 520px;">${escapeAdminOrderText(item.comment)}</td>
+                    </tr>`;
+                }).join('');
+            } catch (error) {
+                console.error('Customer feedback error:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Could not load customer feedback</td></tr>';
             }
         }
 
