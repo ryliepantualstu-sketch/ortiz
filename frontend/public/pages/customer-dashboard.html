@@ -1870,7 +1870,7 @@
 
     <!-- 3. Checkout Modal -->
     <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered reservation-modal-dialog">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold" id="checkoutModalLabel">Submit Frame Reservation</h5>
@@ -1878,60 +1878,18 @@
                 </div>
                 <div class="modal-body p-4">
                     <form id="checkoutForm">
-                        <p class="text-muted mb-3">Choose how you plan to buy your reserved frame.</p>
-                        <fieldset class="mb-3">
+                        <p class="text-muted mb-3">Choose how you want to continue with this frame reservation.</p>
+                        <fieldset class="reservation-options mb-3">
                             <legend class="form-label fw-semibold">Reservation option <span class="text-danger">*</span></legend>
-                            <label class="d-flex gap-3 align-items-start border rounded-3 p-3 mb-2" for="reservationFrameOnlyOption" style="cursor:pointer">
+                            <label class="reservation-option-card" for="reservationFrameOnlyOption">
                                 <input class="form-check-input mt-1" type="radio" name="reservationChoice" id="reservationFrameOnlyOption" value="frame-only" required>
-                                <span><strong>Frame only</strong><span class="d-block small text-muted">No eye check-up needed. After staff confirms, choose a pickup date within 3 days and collect the frame on the approved date. Show your reservation QR to staff, then pay and claim the frame.</span></span>
+                                <span><strong>Frame only</strong><span class="d-block small text-muted">Choose a pickup date within 3 days after staff confirms. Bring your reservation QR to pay and collect the frame.</span></span>
                             </label>
-                            <label class="d-flex gap-3 align-items-start border rounded-3 p-3" for="reservationWithCheckupOption" style="cursor:pointer">
+                            <label class="reservation-option-card" for="reservationWithCheckupOption">
                                 <input class="form-check-input mt-1" type="radio" name="reservationChoice" id="reservationWithCheckupOption" value="with-checkup" required>
-                                <span><strong>Frame + eye check-up</strong><span class="d-block small text-muted">After staff confirms, schedule your eye check-up. The staff will record your prescription, lens customization, and payment during your visit.</span></span>
+                                <span><strong>Frame + eye check-up</strong><span class="d-block small text-muted">After staff confirms, schedule your eye check-up. Staff will record your results and discuss lens customization during your visit.</span></span>
                             </label>
                         </fieldset>
-                        <div class="mb-3 d-none">
-                            <label for="orderAddress" class="form-label fw-semibold">Your address</label>
-                            <textarea id="orderAddress" class="form-control rounded-3" rows="2" placeholder="House no., street, barangay, city"></textarea>
-                        </div>
-                        <div class="mb-3 d-none" id="checkoutPrescriptionSection">
-                            <label for="checkoutPrescriptionSource" class="form-label fw-semibold">Prescription <span class="text-muted">(optional)</span></label>
-                            <select id="checkoutPrescriptionSource" class="form-select rounded-3" onchange="updateCheckoutPrescriptionSource()">
-                                <option value="none">No prescription</option>
-                                <option value="appointment">Use a completed eye checkup</option>
-                                <option value="manual">Enter my prescription</option>
-                            </select>
-                            <div id="checkoutAppointmentPrescriptionFields" class="d-none mt-2">
-                                <label for="checkoutPrescriptionAppointment" class="form-label small">Completed eye checkup</label>
-                                <select id="checkoutPrescriptionAppointment" class="form-select rounded-3" onchange="updateCheckoutPrescriptionPreview()">
-                                    <option value="">Choose a completed eye checkup</option>
-                                </select>
-                                <div id="checkoutPrescriptionMessage" class="form-text text-muted mt-1"></div>
-                                <div id="checkoutPrescriptionPreview" class="small border rounded-3 p-2 mt-2 d-none" aria-live="polite"></div>
-                            </div>
-                            <div id="checkoutManualPrescriptionFields" class="d-none mt-3">
-                                <div class="small text-muted mb-2">Ilagay ang grado ayon sa reseta. Kailangan ang AXIS kung hindi zero ang CYL.</div>
-                                <div class="row g-2 align-items-end mb-2">
-                                    <div class="col-3 fw-semibold">OD (Right)</div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutRightSph">SPH</label><div class="position-relative"><span class="checkout-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control checkout-prescription-value" id="checkoutRightSph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updateCheckoutPositiveSign(event.currentTarget)" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div></div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutRightCyl">CYL</label><div class="position-relative"><span class="checkout-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control checkout-prescription-value" id="checkoutRightCyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updateCheckoutPositiveSign(event.currentTarget)" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div></div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutRightAxis">AXIS</label><input class="form-control" id="checkoutRightAxis" type="number" min="1" max="180" step="1" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div>
-                                </div>
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-3 fw-semibold">OS (Left)</div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutLeftSph">SPH</label><div class="position-relative"><span class="checkout-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control checkout-prescription-value" id="checkoutLeftSph" type="number" step="0.25" style="padding-left: 1.5rem;" oninput="updateCheckoutPositiveSign(event.currentTarget)" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div></div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutLeftCyl">CYL</label><div class="position-relative"><span class="checkout-positive-sign d-none position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 2; pointer-events: none;">+</span><input class="form-control checkout-prescription-value" id="checkoutLeftCyl" type="number" step="0.25" value="0" style="padding-left: 1.5rem;" oninput="updateCheckoutPositiveSign(event.currentTarget)" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div></div>
-                                    <div class="col-3"><label class="form-label small" for="checkoutLeftAxis">AXIS</label><input class="form-control" id="checkoutLeftAxis" type="number" min="1" max="180" step="1" onkeydown="preventCheckoutPrescriptionLetters(event)" onpaste="preventCheckoutPrescriptionLetterPaste(event)"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3 d-none">
-                            <label for="orderNotes" class="form-label fw-semibold">Pickup instructions / Notes</label>
-                            <textarea id="orderNotes" class="form-control rounded-3" rows="3" placeholder="Optional notes for your order (e.g. pickup day, questions)"></textarea>
-                            <div class="form-text text-muted mt-2">
-                                <i class="fas fa-info-circle text-primary"></i> Orders are for in-clinic pickup and fulfillment at Ortiz Optical.
-                            </div>
-                        </div>
                         <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-bold">
                             <i class="fas fa-glasses me-2"></i> Send Reservation for Confirmation
                         </button>
@@ -3096,122 +3054,17 @@
             await loadCart();
         }
 
-        function cartRequiresPrescription() {
-            return cartItems.some(item => (item.lens_option || 'regular-lens') !== 'frame-only');
-        }
-
-        function isCompleteEyePrescription(appointment) {
-            if ((appointment.status || '').toLowerCase() !== 'completed' || appointment.service_type !== 'Eye Checkup') return false;
-            for (const eye of ['right', 'left']) {
-                const sphere = appointment[`${eye}_sph`];
-                const cylinder = Number(appointment[`${eye}_cyl`] || 0);
-                const axis = appointment[`${eye}_axis`];
-                if (sphere === null || sphere === undefined || !Number.isFinite(Number(sphere)) || !Number.isFinite(cylinder)) return false;
-                if (cylinder !== 0 && (!Number.isInteger(Number(axis)) || Number(axis) < 0 || Number(axis) > 180)) return false;
-            }
-            return true;
-        }
-
         function formatPrescriptionValue(value) {
             return value === null || value === undefined ? '—' : Number(value).toFixed(2);
         }
 
-        function updateCheckoutPrescriptionPreview() {
-            const select = document.getElementById('checkoutPrescriptionAppointment');
-            const preview = document.getElementById('checkoutPrescriptionPreview');
-            const appointment = checkoutPrescriptionAppointments.get(Number(select.value));
-            if (!appointment) {
-                preview.classList.add('d-none');
-                preview.textContent = '';
-                return;
-            }
-
-            preview.textContent = `OD: SPH ${formatPrescriptionValue(appointment.right_sph)}, CYL ${formatPrescriptionValue(appointment.right_cyl)}, AXIS ${appointment.right_axis ?? '—'} | OS: SPH ${formatPrescriptionValue(appointment.left_sph)}, CYL ${formatPrescriptionValue(appointment.left_cyl)}, AXIS ${appointment.left_axis ?? '—'}`;
-            preview.classList.remove('d-none');
-        }
-
-        function updateCheckoutPrescriptionSource() {
-            const source = document.getElementById('checkoutPrescriptionSource').value;
-            document.getElementById('checkoutAppointmentPrescriptionFields').classList.toggle('d-none', source !== 'appointment');
-            document.getElementById('checkoutManualPrescriptionFields').classList.toggle('d-none', source !== 'manual');
-            document.getElementById('checkoutPrescriptionAppointment').required = source === 'appointment';
-            ['checkoutRightSph', 'checkoutLeftSph'].forEach(id => {
-                document.getElementById(id).required = source === 'manual';
-            });
-        }
-
-        function updateCheckoutPositiveSign(input) {
-            const value = input.value.trim();
-            const sign = input.parentElement.querySelector('.checkout-positive-sign');
-            sign.classList.toggle('d-none', !value || !Number.isFinite(Number(value)) || Number(value) <= 0);
-        }
-
-        function preventCheckoutPrescriptionLetters(event) {
-            if (event.key.length === 1 && /[a-z]/i.test(event.key)) {
-                event.preventDefault();
-            }
-        }
-
-        function preventCheckoutPrescriptionLetterPaste(event) {
-            const pastedText = event.clipboardData?.getData('text') || '';
-            if (/[a-z]/i.test(pastedText)) {
-                event.preventDefault();
-            }
-        }
-
-        async function loadCheckoutPrescriptions() {
-            const section = document.getElementById('checkoutPrescriptionSection');
-            const select = document.getElementById('checkoutPrescriptionAppointment');
-            const message = document.getElementById('checkoutPrescriptionMessage');
-            const preview = document.getElementById('checkoutPrescriptionPreview');
-            const required = cartRequiresPrescription();
-            section.classList.toggle('d-none', !required);
-            select.innerHTML = '<option value="">Choose a completed eye checkup</option>';
-            message.textContent = '';
-            preview.classList.add('d-none');
-            checkoutPrescriptionAppointments = new Map();
-            updateCheckoutPrescriptionSource();
-            if (!required) return;
-
-            message.textContent = 'You can still place your order without a saved prescription.';
-            const result = await apiCall('/customer/appointments');
-            if (!result || !result.success) {
-                message.textContent = result?.message || 'Could not load completed eye checkups. Please try again.';
-                return;
-            }
-
-            result.appointments.filter(isCompleteEyePrescription).forEach(appointment => {
-                checkoutPrescriptionAppointments.set(Number(appointment.appointment_id), appointment);
-                const option = document.createElement('option');
-                option.value = appointment.appointment_id;
-                option.textContent = `Exam #${appointment.appointment_id} — ${formatDate(appointment.appointment_date)}`;
-                select.appendChild(option);
-            });
-            if (checkoutPrescriptionAppointments.size === 0) {
-                message.textContent = 'No completed eye checkup prescription found. You can enter your prescription manually or continue without one.';
-            }
-        }
-
-        let checkoutPrescriptionAppointments = new Map();
-
-        async function openCheckoutModal() {
+        function openCheckoutModal() {
             if (cartItems.length === 0) return;
             if (!checkoutModalInstance) {
                 checkoutModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('checkoutModal'));
             }
             document.getElementById('checkoutForm').reset();
-            document.querySelectorAll('.checkout-prescription-value').forEach(updateCheckoutPositiveSign);
             checkoutModalInstance.show();
-            await loadCheckoutPrescriptions();
-            try {
-                const profile = await apiCall('/customer/profile');
-                const addressInput = document.getElementById('orderAddress');
-                if (profile && profile.success && profile.customer?.address && !addressInput.value) {
-                    addressInput.value = profile.customer.address;
-                }
-            } catch (error) {
-                console.warn('Could not prefill address', error);
-            }
         }
 
         async function submitCheckout(event) {

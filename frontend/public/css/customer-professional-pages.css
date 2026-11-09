@@ -1184,6 +1184,76 @@ body.customer-professional .modal-dialog {
   position: relative !important;
 }
 
+body.customer-professional #checkoutModal .reservation-modal-dialog {
+  width: calc(100% - 1.5rem);
+  max-width: 560px;
+  margin: 0.75rem auto;
+}
+
+body.customer-professional #checkoutModal .modal-content {
+  overflow: hidden;
+}
+
+body.customer-professional #checkoutModal .modal-body {
+  padding: 1.25rem 1.5rem 1.5rem !important;
+}
+
+body.customer-professional #checkoutModal .reservation-options legend {
+  margin-bottom: 0.65rem;
+  color: var(--cust-ink);
+  font-size: 1rem;
+}
+
+body.customer-professional #checkoutModal .reservation-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 0.65rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--cust-line);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+body.customer-professional #checkoutModal .reservation-option-card:last-child {
+  margin-bottom: 0;
+}
+
+body.customer-professional #checkoutModal .reservation-option-card:has(input:checked) {
+  border-color: var(--cust-teal, #0d8f83);
+  background: #f0faf8;
+  box-shadow: 0 0 0 2px rgba(13, 143, 131, 0.1);
+}
+
+body.customer-professional #checkoutModal .reservation-option-card input {
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+  accent-color: var(--cust-teal, #0d8f83);
+}
+
+body.customer-professional #checkoutModal .reservation-option-card strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--cust-ink);
+}
+
+body.customer-professional #checkoutModal .reservation-option-card .small {
+  line-height: 1.5;
+}
+
+@media (max-width: 575.98px) {
+  body.customer-professional #checkoutModal .modal-dialog {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+  }
+
+  body.customer-professional #checkoutModal .modal-body {
+    padding: 1rem !important;
+  }
+}
+
 body.customer-professional .modal-content {
   border-radius: 28px !important;
   background: #fffdf8 !important;
