@@ -2653,8 +2653,7 @@
 
         function getStockLabel(product) {
             if (product.stock_quantity === 0) return 'Out of Stock';
-            if (product.stock_quantity <= (product.min_stock_level || 5)) return 'Low Stock';
-            return 'Ready to Ship';
+            return 'Available Stock';
         }
 
         function updateSummaryCards(filteredProducts) {
