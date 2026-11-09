@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Approve Customer Account | Ortiz Optical</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { min-height: 100vh; display: grid; place-items: center; background: #f4f7f6; color: #243247; font-family: Arial, sans-serif; }
+    .card { width: min(92vw, 540px); border: 0; border-radius: 18px; box-shadow: 0 16px 48px #1233; }
+    .brand { color: #087f75; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="card p-4 p-md-5">
+    <p class="brand mb-2">ORTIZ OPTICAL</p>
+    <h1 class="h3">Customer account approval</h1>
+    <p id="approvalMessage" class="text-secondary">Confirm that you approve this customer account.</p>
+    <button id="approveButton" class="btn btn-success" type="button">Confirm and approve account</button>
+  </main>
+  <script src="../js/api.js"></script>
+  <script>
+    const approvalToken = new URLSearchParams(window.location.search).get('token');
+    const approvalMessage = document.getElementById('approvalMessage');
+    const approveButton = document.getElementById('approveButton');
+
+    if (!approvalToken) {
+      approvalMessage.textContent = 'Approval link is missing or invalid.';
+      approveButton.disabled = true;
+    }
+
+    approveButton.addEventListener('click', async () => {
+      if (!approvalToken) return;
+      approveButton.disabled = true;
+      approveButton.textContent = 'Approving…';
+      try {
+        const result = await apiCall('/auth/register/approve', 'POST', { token: approvalToken });
+        approvalMessage.textContent = result.message || (result.success ? 'Account approved.' : 'Unable to approve this account.');
+        if (result.success) {
+          approveButton.textContent = 'Account approved';
+        } else {
+          approveButton.disabled = false;
+          approveButton.textContent = 'Try again';
+        }
+      } catch (error) {
+        approvalMessage.textContent = 'Could not connect to Ortiz Optical. Please try again.';
+        approveButton.disabled = false;
+        approveButton.textContent = 'Try again';
+      }
+    });
+  </script>
+</body>
+</html>

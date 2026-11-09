@@ -249,6 +249,12 @@ const ensureSchemaColumns = async () => {
     }
   };
 
+  await addColumnIfMissing('users', 'approval_status', {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'approved'
+  });
+
   const changeColumnIfDifferent = async (tableName, columnName, definition) => {
     const columns = await qi.describeTable(tableName);
     const column = columns[columnName];

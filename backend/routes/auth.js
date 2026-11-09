@@ -11,7 +11,7 @@ const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/cu
 const { parseWalkInClaimCodes, claimWalkInOrder, claimWalkInOrdersByIdentity } = require('../utils/walkInClaim');
 const { authMiddleware } = require('../middleware/auth');
 const { sendEmailNotification } = require('../utils/notificationService');
-const { normalizeEmail, isGmailAddress, issueOtp, verifyOtp, discardOtp } = require('../utils/emailOtp');
+const { normalizeEmail, isGmailAddress } = require('../utils/emailAddress');
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -25,6 +25,59 @@ function createAuthToken(user) {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );
+}
+
+function getAppUrl() {
+  return String(process.env.APP_URL || 'http://localhost:' + (process.env.PORT || 3000)).replace(/\/+$/, '');
+}
+
+function createRegistrationApprovalToken(userId) {
+  return jwt.sign(
+    { user_id: userId, purpose: 'approve-customer-registration' },
+    process.env.JWT_SECRET,
+    { expiresIn: '48h' }
+  );
+}
+
+async function notifyOwnerOfRegistration(user, customer, claimCodes = []) {
+  const ownerEmail = process.env.OWNER_EMAIL || process.env.DEFAULT_ADMIN_EMAIL || process.env.GMAIL_USER || process.env.SMTP_USER;
+  if (!ownerEmail) return { success: false, reason: 'Owner email is not configured' };
+
+  const approvalToken = createRegistrationApprovalToken(user.user_id);
+  const approvalUrl = getAppUrl() + '/pages/approve-registration.html?token=' + encodeURIComponent(approvalToken);
+  const fullName = escapeHtml(user.full_name || 'N/A');
+  const email = escapeHtml(user.email || 'N/A');
+  const phone = escapeHtml(user.phone || customer?.phone || 'N/A');
+  const birthday = escapeHtml(customer?.date_of_birth || 'Not provided');
+  const address = escapeHtml(customer?.address || 'Not provided');
+  const codes = claimCodes.length ? claimCodes.map(escapeHtml).join(', ') : 'None';
+  const text = [
+    'A customer account is waiting for owner approval.',
+    'Name: ' + (user.full_name || 'N/A'),
+    'Email: ' + (user.email || 'N/A'),
+    'Phone: ' + (user.phone || customer?.phone || 'N/A'),
+    'Birthday: ' + (customer?.date_of_birth || 'Not provided'),
+    'Address: ' + (customer?.address || 'Not provided'),
+    'Walk-in receipt claim code(s): ' + (claimCodes.join(', ') || 'None'),
+    'Review and approve: ' + approvalUrl
+  ].join('\n');
+
+  return sendEmailNotification({
+    to: ownerEmail,
+    subject: 'Customer account approval: ' + (user.full_name || user.email),
+    text,
+    html: '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#243247"><h2>Customer registration awaiting approval</h2><p>A customer submitted an account request. Review the details before approving:</p><table style="border-collapse:collapse;width:100%"><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Full name</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + fullName + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Email</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + email + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Phone</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + phone + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Birthday</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + birthday + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Address</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + address + '</td></tr><tr><td style="padding:8px;border-bottom:1px solid #ddd"><strong>Walk-in claim code(s)</strong></td><td style="padding:8px;border-bottom:1px solid #ddd">' + codes + '</td></tr></table><p style="margin:24px 0"><a href="' + approvalUrl + '" style="display:inline-block;background:#087f75;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">Review and confirm account</a></p><p style="color:#64748b;font-size:13px">This secure approval link expires in 48 hours. Opening it will not approve the account until you press the confirmation button.</p></div>'
+  });
+}
+
+async function sendCustomerApprovalEmail(user) {
+  const loginUrl = getAppUrl() + '/index.html';
+  return sendEmailNotification({
+    to: user.email,
+    subject: 'Congratulations! Your Ortiz Optical account is approved',
+    text: 'Congratulations, ' + user.full_name + '! The owner has approved your Ortiz Optical account. You can now log in here: ' + loginUrl,
+    html: '<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#243247"><h2 style="color:#087f75">Congratulations, ' + escapeHtml(user.full_name) + '!</h2><p>The owner has approved your Ortiz Optical account. You can now sign in and use your account.</p><p style="margin:24px 0"><a href="' + loginUrl + '" style="display:inline-block;background:#087f75;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">Go to Ortiz Optical</a></p><p>If you did not request this account, please contact Ortiz Optical.</p></div>'
+  });
 }
 
 router.get('/google/config', (req, res) => {
@@ -86,7 +139,9 @@ router.post('/google', async (req, res) => {
           full_name: fullName,
           email,
           password: crypto.randomBytes(32).toString('hex'),
-          role: 'customer'
+          role: 'customer',
+          is_active: false,
+          approval_status: 'pending'
         }, { transaction });
 
         await Customer.create({ user_id: existingUser.user_id }, { transaction });
@@ -110,6 +165,18 @@ router.post('/google', async (req, res) => {
       });
     }
     const user = result.user;
+
+    if (user.role === 'customer' && user.approval_status === 'pending') {
+      if (user.is_active) {
+        user.is_active = false;
+        await user.save();
+      }
+      const customer = await Customer.findOne({ where: { user_id: user.user_id } });
+      const notice = await notifyOwnerOfRegistration(user, customer);
+      return res.status(202).json({ success: false, approval_pending: true, message: notice.success
+        ? 'Your account is waiting for owner approval. We will email you when it is approved.'
+        : 'Your account is waiting for owner approval, but we could not notify the owner. Please contact the store.' });
+    }
 
     if (!user.is_active) {
       return res.status(401).json({
@@ -138,55 +205,13 @@ router.post('/google', async (req, res) => {
   }
 });
 
-// Register
-router.post('/register/request-otp', async (req, res) => {
-  const email = normalizeEmail(req.body && req.body.email);
-  if (!isGmailAddress(email)) {
-    return res.status(400).json({ success: false, message: 'Please use a valid Gmail address (example@gmail.com)' });
-  }
-
-  try {
-    if (await User.findOne({ where: { email } })) {
-      return res.status(409).json({ success: false, message: 'Email already registered' });
-    }
-
-    const issued = issueOtp(email);
-    if (!issued.ok) {
-      return res.status(429).json({
-        success: false,
-        message: `Please wait ${issued.retryAfter} seconds before requesting another code`,
-        retry_after: issued.retryAfter
-      });
-    }
-
-    const sent = await sendEmailNotification({
-      to: email,
-      subject: 'Your Ortiz Optical verification code',
-      text: `Your email verification code is ${issued.code}. It expires in 10 minutes. If you did not request this, you can ignore this email.`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#243247"><h2>Verify your email</h2><p>Use this code to finish creating your Ortiz Optical account:</p><p style="font-size:30px;font-weight:bold;letter-spacing:8px;color:#167c80">${issued.code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p></div>`
-    });
-
-    if (!sent.success) {
-      discardOtp(email);
-      console.error('[REGISTRATION OTP EMAIL ERROR]', sent.error || sent.reason || 'Email delivery failed');
-      return res.status(503).json({ success: false, message: 'Unable to send a verification email right now. Please try again later.' });
-    }
-
-    return res.json({ success: true, message: 'Verification code sent. Check your Gmail inbox.' });
-  } catch (error) {
-    discardOtp(email);
-    console.error('[REGISTRATION OTP ERROR]', error);
-    return res.status(500).json({ success: false, message: 'Unable to send a verification email right now.' });
-  }
-});
-
+// New customer accounts remain inactive until the owner approves them.
 router.post('/register', async (req, res) => {
   try {
     const { password, confirm_password, phone, birthday, address } = req.body;
     const rawClaimCodes = req.body.walk_in_claim_codes ?? req.body.walk_in_claim_code;
     const full_name = normalizeCustomerName(req.body.full_name);
     const email = normalizeEmail(req.body.email);
-    const otp = req.body.otp;
     const role = 'customer';
     const walkInClaimCodes = parseWalkInClaimCodes(rawClaimCodes);
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
@@ -244,26 +269,15 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (!otp) {
-      return res.status(400).json({ success: false, message: 'Verify your email with the 6-digit code before creating your account' });
-    }
-    const otpResult = verifyOtp(email, otp);
-    if (!otpResult.ok) {
-      const message = otpResult.reason === 'too_many_attempts'
-        ? 'Too many incorrect codes. Request a new verification code.'
-        : otpResult.reason === 'expired'
-          ? 'Verification code expired. Request a new code.'
-          : 'Incorrect verification code. Please check the email and try again.';
-      return res.status(400).json({ success: false, message });
-    }
-
     const registration = await sequelize.transaction(async (transaction) => {
       const user = await User.create({
         full_name,
         email,
         password,
         phone: normalizedPhone,
-        role
+        role,
+        is_active: false,
+        approval_status: 'pending'
       }, { transaction });
 
       const customerPayload = {
@@ -293,23 +307,21 @@ router.post('/register', async (req, res) => {
         walkInClaimCodes.length > 0
       );
 
-      return { user };
+      return { user, customer };
     });
-    const { user } = registration;
-
-    // Generate token
-    const token = createAuthToken(user);
+    const { user, customer } = registration;
+    const ownerNotice = await notifyOwnerOfRegistration(user, customer, walkInClaimCodes);
+    if (!ownerNotice.success) {
+      console.error('[REGISTRATION OWNER EMAIL ERROR]', ownerNotice.error || ownerNotice.reason || 'Email delivery failed');
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      token,
-      user: {
-        user_id: user.user_id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role
-      }
+      approval_pending: true,
+      owner_notified: ownerNotice.success,
+      message: ownerNotice.success
+        ? 'Account request submitted. Please wait for owner approval; we will email you when you can log in.'
+        : 'Account request saved, but the owner notification could not be sent. Please contact the store to complete approval.'
     });
   } catch (error) {
     console.error(error);
@@ -318,6 +330,45 @@ router.post('/register', async (req, res) => {
       message: error.status ? error.message : 'Registration failed',
       ...(error.status ? {} : { error: error.message })
     });
+  }
+});
+
+router.post('/register/approve', async (req, res) => {
+  const token = req.body && req.body.token;
+  if (typeof token !== 'string' || !token) {
+    return res.status(400).json({ success: false, message: 'Approval token is required' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: 'This approval link is invalid or has expired' });
+  }
+  if (decoded.purpose !== 'approve-customer-registration' || !Number.isInteger(Number(decoded.user_id))) {
+    return res.status(400).json({ success: false, message: 'This approval link is invalid' });
+  }
+
+  try {
+    const user = await User.findOne({ where: { user_id: Number(decoded.user_id), role: 'customer' } });
+    if (!user) return res.status(404).json({ success: false, message: 'Customer account was not found' });
+    if (user.approval_status === 'approved' && user.is_active) {
+      return res.json({ success: true, already_approved: true, notification_sent: true, message: 'This customer account is already approved.' });
+    }
+    if (user.approval_status !== 'pending') {
+      return res.status(409).json({ success: false, message: 'This account is not waiting for approval' });
+    }
+
+    user.approval_status = 'approved';
+    user.is_active = true;
+    await user.save();
+    const notice = await sendCustomerApprovalEmail(user);
+    res.json({ success: true, notification_sent: notice.success, message: notice.success
+      ? 'Account approved. The customer has been sent a congratulations email.'
+      : 'Account approved, but the congratulations email could not be sent.' });
+  } catch (error) {
+    console.error('[CUSTOMER APPROVAL ERROR]', error);
+    res.status(500).json({ success: false, message: 'Unable to approve this account right now' });
   }
 });
 
@@ -343,14 +394,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check if user is active
-    if (!user.is_active) {
-      return res.status(401).json({
-        success: false,
-        message: 'Your account has been deactivated'
-      });
-    }
-
     // Compare password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
@@ -358,6 +401,13 @@ router.post('/login', async (req, res) => {
         success: false,
         message: 'Invalid credentials'
       });
+    }
+
+    if (user.role === 'customer' && user.approval_status === 'pending') {
+      return res.status(403).json({ success: false, approval_pending: true, message: 'Your account is waiting for owner approval. We will email you when it is approved.' });
+    }
+    if (!user.is_active) {
+      return res.status(401).json({ success: false, message: 'Your account has been deactivated' });
     }
 
     // Generate token

@@ -34,6 +34,11 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
+  approval_status: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'approved'
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

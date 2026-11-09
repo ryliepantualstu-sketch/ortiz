@@ -11,6 +11,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'approved',
     INDEX (email),
     INDEX (role)
 );
