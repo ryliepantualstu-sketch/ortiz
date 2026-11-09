@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const Appointment = require('../models/Appointment');
@@ -16,6 +16,14 @@ const { buildOrderQrPayload, createOrderQrCode, attachOrderQrDetails } = require
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getPriceByLensOption } = require('../utils/pricing');
+const { normalizePhoneNumber, resolveWalkInCustomerMatch } = require('../utils/walkInCustomerMatch');
+const { normalizeCustomerName } = require('../utils/customerName');
+const {
+  createWalkInClaimCode,
+  findWalkInClaim,
+  findLatestWalkInClaimCodeByIdentity,
+  normalizeWalkInClaimCode
+} = require('../utils/walkInClaim');
 const { getManilaToday, getReservationPickupDeadline, isValidPickupDate } = require('../utils/orderPickup');
 
 function normalizeAppointmentDate(value) {
@@ -643,6 +651,190 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       success: false,
       message: 'Failed to update appointment',
       error: error.message
+    });
+  }
+});
+
+// Walk-in sale: staff records an over-the-counter purchase, stock is deducted right away
+router.get('/orders/walk-in/claim-code', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const customerName = normalizeCustomerName(req.query.customer_name);
+    const customerPhone = normalizePhoneNumber(req.query.customer_phone);
+    if (!customerName || !/^\+?\d{7,15}$/.test(customerPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A customer name and valid phone number are required'
+      });
+    }
+
+    const claimCode = await findLatestWalkInClaimCodeByIdentity(Order, customerName, customerPhone);
+    res.json({ success: true, claim_code: claimCode });
+  } catch (error) {
+    console.error('Failed to look up walk-in claim code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to look up walk-in claim code'
+    });
+  }
+});
+
+router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const customerName = normalizeCustomerName(req.body.customer_name);
+    const customerPhone = normalizePhoneNumber(req.body.customer_phone);
+    const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+    const rawExistingClaimCode = req.body.existing_claim_code;
+    const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
+    const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
+    const paymentMethod = req.body.payment_method || 'Cash';
+    const isCustomizedLensSale = requestedItems.some(item => item.lens_option !== 'frame-only');
+    const existingClaimCode = rawExistingClaimCode ? normalizeWalkInClaimCode(rawExistingClaimCode) : null;
+
+    if (!customerName) {
+      return res.status(400).json({ success: false, message: 'Customer name is required' });
+    }
+    if (!/^\+?\d{7,15}$/.test(customerPhone)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid customer phone number (7 to 15 digits)' });
+    }
+    if (requestedItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+    if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
+    }
+    let checkupFee = 0;
+    let prescription = {};
+    if (isCustomizedLensSale) {
+      if (req.body.checkup_fee === undefined || String(req.body.checkup_fee).trim() === '') {
+        return res.status(400).json({ success: false, message: 'Enter the eye check-up fee for customized lenses' });
+      }
+      checkupFee = Number(req.body.checkup_fee);
+      if (!Number.isFinite(checkupFee) || checkupFee < 0 || checkupFee >= 100000000) {
+        return res.status(400).json({ success: false, message: 'Enter a valid check-up fee of zero or more' });
+      }
+      const normalized = normalizePrescription(req.body.prescription || {});
+      if (normalized.error) {
+        return res.status(400).json({ success: false, message: normalized.error });
+      }
+      prescription = normalized.prescription;
+      if (!Object.keys(prescription).length) {
+        return res.status(400).json({ success: false, message: 'Enter the customer’s eye-check results before ordering customized lenses' });
+      }
+    }
+    if (rawExistingClaimCode && !existingClaimCode) {
+      return res.status(400).json({ success: false, message: 'Enter a valid 12-character code from a walk-in receipt' });
+    }
+
+    const matchingAccounts = await User.findAll({
+      attributes: ['user_id', 'full_name', 'phone'],
+      where: {
+        role: 'customer',
+        is_active: true,
+        [Op.and]: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('full_name')),
+          customerName.toLowerCase()
+        )
+      },
+      include: [{ model: Customer, required: true, attributes: ['customer_id', 'phone'] }]
+    });
+    const accountMatch = resolveWalkInCustomerMatch(matchingAccounts, customerPhone);
+
+    const orderId = await sequelize.transaction(async (transaction) => {
+      const existingClaim = existingClaimCode
+        ? await findWalkInClaim(Order, existingClaimCode, transaction)
+        : null;
+      if (existingClaimCode && !existingClaim) {
+        throw Object.assign(new Error('Walk-in claim code not found'), { status: 404 });
+      }
+
+      const lines = [];
+      for (const entry of requestedItems) {
+        const quantity = Number.parseInt(entry.quantity, 10);
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          throw Object.assign(new Error('Quantity must be at least 1'), { status: 400 });
+        }
+        const product = await Product.findByPk(entry.product_id, { transaction, lock: transaction.LOCK.UPDATE });
+        if (!product || !product.is_active) {
+          throw Object.assign(new Error('Product not found or unavailable'), { status: 404 });
+        }
+        if ((product.stock_quantity || 0) < quantity) {
+          throw Object.assign(new Error(`Not enough stock for ${product.product_name} (available: ${product.stock_quantity || 0})`), { status: 409 });
+        }
+        const lensOption = entry.lens_option || 'regular-lens';
+        if (!['frame-only', 'regular-lens', 'photochromic'].includes(lensOption)) {
+          throw Object.assign(new Error('Choose a valid lens customization'), { status: 400 });
+        }
+        const price = Number(getPriceByLensOption(product, lensOption));
+        lines.push({ product, quantity, lensOption, price });
+      }
+
+      const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+      const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
+      const totalAmount = Number((subtotal - discountAmount + checkupFee).toFixed(2));
+      const customerId = existingClaimCode
+        ? existingClaim.customer_id
+        : accountMatch.customer_id;
+      const walkInClaimCode = customerId
+        ? null
+        : existingClaimCode || createWalkInClaimCode();
+
+      const order = await Order.create({
+        customer_id: customerId,
+        ...prescription,
+        total_amount: totalAmount,
+        discount_type: discountType,
+        discount_amount: discountAmount,
+        checkup_fee: Number(checkupFee.toFixed(2)),
+        payment_status: 'Paid',
+        payment_method: paymentMethod,
+        customer_name: customerName,
+        walk_in_phone: customerPhone,
+        delivery_address: address || null,
+        is_walk_in: true,
+        walk_in_claim_code: walkInClaimCode,
+        status: isCustomizedLensSale ? 'processing' : 'picked up',
+        notes: isCustomizedLensSale ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.' : 'Completed paid walk-in frame-only sale; frame handed to customer at the counter.'
+      }, { transaction });
+      await createOrderQrCode(order, { transaction });
+
+      for (const line of lines) {
+        await OrderItem.create({
+          order_id: order.order_id,
+          product_id: line.product.product_id,
+          quantity: line.quantity,
+          price: line.price,
+          subtotal: line.price * line.quantity,
+          lens_option: line.lensOption
+        }, { transaction });
+        await line.product.update(
+          { stock_quantity: line.product.stock_quantity - line.quantity },
+          { transaction }
+        );
+      }
+
+      return order.order_id;
+    });
+
+    const order = await Order.findByPk(orderId, {
+      include: [
+        { model: OrderItem, include: [{ model: Product }] },
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+      ]
+    });
+    const [orderWithQr] = await attachOrderQrDetails([order]);
+
+    res.status(201).json({
+      success: true,
+      message: isCustomizedLensSale ? 'Walk-in check-up and customized-lens order recorded' : 'Walk-in frame-only order completed',
+      account_linked: Boolean(order.customer_id),
+      account_match_ambiguous: accountMatch.ambiguous,
+      order: orderWithQr
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to record walk-in sale',
+      ...(error.status ? {} : { error: error.message })
     });
   }
 });
