@@ -3,6 +3,7 @@ const router = express.Router();
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const Appointment = require('../models/Appointment');
 const Order = require('../models/Order');
+const CustomerFeedback = require('../models/CustomerFeedback');
 const OrderItem = require('../models/OrderItem');
 const Customer = require('../models/Customer');
 const User = require('../models/User');
@@ -64,6 +65,11 @@ async function attachAppointmentVerificationDetails(appointments) {
     })
     : [];
   const reservationById = new Map(reservationOrders.map((order) => [Number(order.order_id), order.toJSON()]));
+  const feedbackRecords = await CustomerFeedback.findAll({
+    where: { appointment_id: { [Op.in]: appointments.map(appointment => appointment.appointment_id) } },
+    attributes: ['appointment_id', 'rating', 'comment', 'created_at']
+  });
+  const feedbackByAppointment = new Map(feedbackRecords.map(feedback => [Number(feedback.appointment_id), feedback.toJSON()]));
 
   return appointments.map((appointment) => {
     const qrCode = qrCodeByReferenceId.get(appointment.appointment_id);
@@ -74,7 +80,8 @@ async function attachAppointmentVerificationDetails(appointments) {
       qr_ready: Boolean(qrCode),
       qr_verified: Boolean(qrCode?.is_used),
       qr_scanned_at: qrCode?.scanned_at || null,
-      frame_reservation_order: reservationById.get(Number(appointment.reservation_order_id)) || null
+      frame_reservation_order: reservationById.get(Number(appointment.reservation_order_id)) || null,
+      feedback: feedbackByAppointment.get(Number(appointment.appointment_id)) || null
     };
   });
 }
@@ -904,6 +911,11 @@ router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => 
       ],
       order: [['created_at', 'DESC']]
     });
+    const feedbackRecords = orders.length ? await CustomerFeedback.findAll({
+      where: { order_id: { [Op.in]: orders.map(order => order.order_id) } },
+      attributes: ['order_id', 'rating', 'comment', 'created_at']
+    }) : [];
+    const feedbackByOrder = new Map(feedbackRecords.map(feedback => [Number(feedback.order_id), feedback.toJSON()]));
     const ordersWithPrescription = orders.map((order) => {
       const orderData = order.toJSON();
       orderData.prescription = {
@@ -915,6 +927,7 @@ router.get('/orders', authMiddleware, requireRole('staff'), async (req, res) => 
         left_cyl: orderData.left_cyl,
         left_axis: orderData.left_axis
       };
+      orderData.feedback = feedbackByOrder.get(Number(orderData.order_id)) || null;
       return orderData;
     });
 

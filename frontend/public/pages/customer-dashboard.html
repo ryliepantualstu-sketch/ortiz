@@ -756,6 +756,13 @@
             min-height: 2.6em;
         }
 
+        .feedback-stars { display: flex; align-items: center; gap: 5px; }
+        .feedback-star { border: 0; background: transparent; padding: 2px; color: #d3d7df; font-size: 1.8rem; transition: color .15s ease, transform .15s ease; }
+        .feedback-star.active { color: #f5a623; }
+        .feedback-star:hover { transform: scale(1.12); }
+        .customer-feedback-summary { border-left: 3px solid #f5a623; padding: 8px 12px; background: #fffaf0; border-radius: 8px; }
+        .customer-feedback-rating { color: #d99114; letter-spacing: 1px; }
+
         .product-category {
             font-size: 0.78rem;
             font-weight: 700;
@@ -1998,6 +2005,43 @@
                     <button type="button" class="btn btn-outline-success d-none" id="customerReceiptBtn" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
                     <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="customerFeedbackModal" tabindex="-1" aria-labelledby="customerFeedbackModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <form id="customerFeedbackForm" onsubmit="submitCustomerFeedback(event)">
+                    <div class="modal-header border-0 pb-0">
+                        <div>
+                            <h5 class="modal-title fw-bold" id="customerFeedbackModalTitle">Share your feedback</h5>
+                            <div class="small text-muted" id="customerFeedbackRecordLabel"></div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="customerFeedbackRecordType">
+                        <input type="hidden" id="customerFeedbackRecordId">
+                        <input type="hidden" id="customerFeedbackRating" value="">
+                        <label class="form-label fw-semibold d-block">Your rating</label>
+                        <div class="feedback-stars mb-3" role="group" aria-label="Choose a rating from one to five stars">
+                            <button type="button" class="feedback-star" onclick="setCustomerFeedbackRating(1)" aria-label="1 star"><i class="fas fa-star"></i></button>
+                            <button type="button" class="feedback-star" onclick="setCustomerFeedbackRating(2)" aria-label="2 stars"><i class="fas fa-star"></i></button>
+                            <button type="button" class="feedback-star" onclick="setCustomerFeedbackRating(3)" aria-label="3 stars"><i class="fas fa-star"></i></button>
+                            <button type="button" class="feedback-star" onclick="setCustomerFeedbackRating(4)" aria-label="4 stars"><i class="fas fa-star"></i></button>
+                            <button type="button" class="feedback-star" onclick="setCustomerFeedbackRating(5)" aria-label="5 stars"><i class="fas fa-star"></i></button>
+                            <span class="small text-muted ms-2" id="customerFeedbackRatingLabel">Select a rating</span>
+                        </div>
+                        <label for="customerFeedbackComment" class="form-label fw-semibold">Comment</label>
+                        <textarea class="form-control" id="customerFeedbackComment" rows="4" maxlength="2000" placeholder="Tell us about your experience" required></textarea>
+                        <div class="small text-danger mt-2" id="customerFeedbackError" aria-live="polite"></div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="customerFeedbackSubmit">Submit feedback</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -3546,6 +3590,79 @@
             await loadAppointments();
         }
 
+        function openCustomerFeedback(recordType, recordId) {
+            const modal = document.getElementById('customerFeedbackModal');
+            document.getElementById('customerFeedbackForm').reset();
+            document.getElementById('customerFeedbackRecordType').value = recordType;
+            document.getElementById('customerFeedbackRecordId').value = recordId;
+            document.getElementById('customerFeedbackRecordLabel').textContent = `${recordType === 'order' ? 'Completed order' : 'Completed appointment'} #${recordId}`;
+            document.getElementById('customerFeedbackError').textContent = '';
+            setCustomerFeedbackRating(0);
+            bootstrap.Modal.getOrCreateInstance(modal).show();
+        }
+
+        function setCustomerFeedbackRating(rating) {
+            document.getElementById('customerFeedbackRating').value = rating || '';
+            document.getElementById('customerFeedbackRatingLabel').textContent = rating ? `${rating} out of 5` : 'Select a rating';
+            document.querySelectorAll('#customerFeedbackModal .feedback-star').forEach((star, index) => {
+                star.classList.toggle('active', index < rating);
+                star.setAttribute('aria-pressed', index < rating ? 'true' : 'false');
+            });
+        }
+
+        function renderCustomerFeedback(feedback) {
+            if (!feedback) return '';
+            const rating = Math.min(5, Math.max(1, Number(feedback.rating || 0)));
+            const stars = Array.from({ length: 5 }, (_, index) => `<i class="fas fa-star${index < rating ? '' : ' text-muted opacity-25'}"></i>`).join('');
+            return `<div class="customer-feedback-summary small mt-2"><div class="customer-feedback-rating">${stars} <strong>${rating}/5</strong></div><div class="mt-1">${escapeText(feedback.comment)}</div></div>`;
+        }
+
+        function renderCustomerFeedbackAction(feedback, recordType, recordId) {
+            return feedback
+                ? renderCustomerFeedback(feedback)
+                : `<button type="button" class="btn btn-sm btn-outline-warning" onclick="openCustomerFeedback('${recordType}', ${recordId})"><i class="fas fa-star me-1"></i>Leave feedback</button>`;
+        }
+
+        async function submitCustomerFeedback(event) {
+            event.preventDefault();
+            const rating = Number(document.getElementById('customerFeedbackRating').value);
+            const comment = document.getElementById('customerFeedbackComment').value.trim();
+            const error = document.getElementById('customerFeedbackError');
+            const button = document.getElementById('customerFeedbackSubmit');
+            if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+                error.textContent = 'Choose a star rating from 1 to 5.';
+                return;
+            }
+            if (!comment) {
+                error.textContent = 'Please add a comment.';
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const recordType = document.getElementById('customerFeedbackRecordType').value;
+                const recordId = Number(document.getElementById('customerFeedbackRecordId').value);
+                const result = await apiCall('/customer/feedback', 'POST', {
+                    record_type: recordType,
+                    record_id: recordId,
+                    rating,
+                    comment
+                });
+                if (!result?.success) {
+                    error.textContent = result?.message || 'Unable to submit feedback.';
+                    return;
+                }
+                bootstrap.Modal.getInstance(document.getElementById('customerFeedbackModal'))?.hide();
+                if (recordType === 'appointment') await loadAppointments();
+                else await loadOrders();
+            } catch (submitError) {
+                console.error('Customer feedback error:', submitError);
+                error.textContent = 'Unable to submit feedback. Please try again.';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
         function showCustomerAppointmentReceipt(appointmentId) {
             const appointment = appointmentsById.get(String(appointmentId));
             if (!appointment || String(appointment.payment_status || '').toLowerCase() !== 'paid') return;
@@ -3600,6 +3717,7 @@
                                 <div class="apt-notice ${apt.qr_verified ? 'verified' : ''}">
                                     ${getCustomerAppointmentNotice(apt)}
                                 </div>
+                                ${(apt.status || '').toLowerCase() === 'completed' ? renderCustomerFeedbackAction(apt.feedback, 'appointment', apt.appointment_id) : ''}
                             </td>
                         </tr>
                     `).join('');
@@ -3868,6 +3986,7 @@
                                     ${order.reservation_appointment && normalizeStatus(order.reservation_appointment.status) !== 'cancelled' ? `<span class="small text-primary align-self-center">Checkup: ${formatDate(order.reservation_appointment.appointment_date)} at ${formatTime(order.reservation_appointment.appointment_time)}</span>` : ''}
                                     ${canCancelOrder(order) ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1" aria-hidden="true"></i>Cancel</button>` : ''}
                                     ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas ${order.pickup_date_request_status === 'pending' ? 'fa-clock' : 'fa-calendar-day'} me-1" aria-hidden="true"></i>${order.pickup_date_request_status === 'pending' ? 'Date request pending' : order.pickup_missed ? 'Request new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
+                                    ${['picked up', 'completed'].includes(normalizeStatus(order.status)) ? renderCustomerFeedbackAction(order.feedback, 'order', order.order_id) : ''}
                                 </div>
                                 ${order.reservation_only ? '' : `<div class="order-total">
                                     ${Number(order.checkup_fee || 0) > 0 ? `<div class="order-subtotal">Eye check-up: <strong>₱${Number(order.checkup_fee).toFixed(2)}</strong></div>` : ''}

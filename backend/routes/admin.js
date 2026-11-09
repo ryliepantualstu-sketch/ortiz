@@ -11,6 +11,7 @@ const { normalizeCustomerName, findCustomerNameConflict } = require('../utils/cu
 const Product = require('../models/Product');
 const Appointment = require('../models/Appointment');
 const Order = require('../models/Order');
+const CustomerFeedback = require('../models/CustomerFeedback');
 const OrderItem = require('../models/OrderItem');
 const Customer = require('../models/Customer');
 const Cart = require('../models/Cart');
@@ -839,10 +840,18 @@ router.get('/appointments', authMiddleware, requireRole('admin'), async (req, re
       ],
       order: [['appointment_date', 'DESC']]
     });
+    const feedbackRecords = appointments.length ? await CustomerFeedback.findAll({
+      where: { appointment_id: { [Op.in]: appointments.map(appointment => appointment.appointment_id) } },
+      attributes: ['appointment_id', 'rating', 'comment', 'created_at']
+    }) : [];
+    const feedbackByAppointment = new Map(feedbackRecords.map(feedback => [Number(feedback.appointment_id), feedback.toJSON()]));
 
     res.json({
       success: true,
-      appointments
+      appointments: appointments.map(appointment => ({
+        ...appointment.toJSON(),
+        feedback: feedbackByAppointment.get(Number(appointment.appointment_id)) || null
+      }))
     });
   } catch (error) {
     res.status(500).json({
@@ -886,10 +895,18 @@ router.get('/orders', authMiddleware, requireRole('admin'), async (req, res) => 
       ],
       order: [['created_at', 'DESC']]
     });
+    const feedbackRecords = orders.length ? await CustomerFeedback.findAll({
+      where: { order_id: { [Op.in]: orders.map(order => order.order_id) } },
+      attributes: ['order_id', 'rating', 'comment', 'created_at']
+    }) : [];
+    const feedbackByOrder = new Map(feedbackRecords.map(feedback => [Number(feedback.order_id), feedback.toJSON()]));
 
     res.json({
       success: true,
-      orders
+      orders: orders.map(order => ({
+        ...order.toJSON(),
+        feedback: feedbackByOrder.get(Number(order.order_id)) || null
+      }))
     });
   } catch (error) {
     res.status(500).json({
@@ -927,7 +944,8 @@ router.get('/orders/:id', authMiddleware, requireRole('admin'), async (req, res)
     const order = await Order.findByPk(req.params.id, {
       include: [
         { model: OrderItem, include: [{ model: Product }] },
-        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] },
+        { model: CustomerFeedback, as: 'feedback' }
       ]
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });

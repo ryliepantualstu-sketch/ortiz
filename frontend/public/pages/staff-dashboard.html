@@ -1624,7 +1624,7 @@
                         <tr>
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
                             <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}</td>
+                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}${renderStaffCustomerFeedback(apt.feedback)}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
                                 <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
@@ -1657,7 +1657,7 @@
                         <tr>
                             <td>${formatAppointmentDate(apt.appointment_date || 'N/A')}</td>
                             <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}</td>
+                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}${renderStaffCustomerFeedback(apt.feedback)}</td>
                             <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
                             <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
                             <td>
@@ -1691,7 +1691,7 @@
                         <tr>
                             <td>#${order.order_id || 'N/A'}</td>
                             <td>${escapeStaffOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}</td>
-                            <td>${order.reservation_only ? 'Frame reservation' : getStaffOrderPrescriptionSummary(order)}</td>
+                            <td>${order.reservation_only ? 'Frame reservation' : getStaffOrderPrescriptionSummary(order)}${renderStaffCustomerFeedback(order.feedback)}</td>
                             <td>${order.reservation_only ? 'No payment due' : `₱${parseFloat(order.total_amount || 0).toFixed(2)}`}</td>
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
@@ -1917,6 +1917,12 @@
             const textNode = document.createElement('span');
             textNode.textContent = value == null ? '' : String(value);
             return textNode.innerHTML;
+        }
+
+        function renderStaffCustomerFeedback(feedback) {
+            if (!feedback) return '';
+            const rating = Math.max(1, Math.min(5, Number(feedback.rating || 0)));
+            return `<div class="small text-warning mt-1">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)} <strong>${rating}/5</strong><div class="text-muted">${escapeStaffOrderText(feedback.comment)}</div></div>`;
         }
 
         function getStaffOrderPrescriptionSummary(order) {

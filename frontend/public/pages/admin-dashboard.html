@@ -2668,6 +2668,12 @@ This will deactivate the account and keep the user record for history.`)) {
             return textNode.innerHTML;
         }
 
+        function renderAdminFeedback(feedback) {
+            if (!feedback) return '';
+            const rating = Math.max(1, Math.min(5, Number(feedback.rating || 0)));
+            return `<div class="small text-warning mt-1">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)} <strong>${rating}/5</strong><div class="text-muted">${escapeAdminOrderText(feedback.comment)}</div></div>`;
+        }
+
         async function loadOrders() {
             try {
                 const result = await apiCall('/admin/orders');
@@ -2901,6 +2907,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
                     <p><strong>Notes:</strong> ${order.notes || 'None'}</p>
                     ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
+                    ${order.feedback ? `<div class="border rounded-3 bg-light p-2 mb-3"><strong>Customer feedback</strong>${renderAdminFeedback(order.feedback)}</div>` : ''}
                     <p><strong>Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None'}</p>
                     <p><strong>Status:</strong> <span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'N/A'}</span></p>
                     <div class="table-responsive">
@@ -3104,7 +3111,7 @@ This will deactivate the account and keep the user record for history.`)) {
                         <tr>
                             <td>${formatAppointmentDate(apt.appointment_date)}</td>
                             <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}</td>
+                            <td>${apt.service_type || 'N/A'}${renderAdminFeedback(apt.feedback)}</td>
                             <td>${formatAppointmentTime(apt.appointment_time)}</td>
                             <td><span class="badge ${getAppointmentBadgeClass(apt.status)}">${apt.status || 'pending'}</span></td>
                             <td><div class="appointment-actions d-flex flex-wrap gap-1"><button class="btn btn-sm btn-success" onclick="updateAppointmentStatus(${apt.appointment_id}, 'confirmed')" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button> <button class="btn btn-sm btn-primary" onclick="updateAppointmentStatus(${apt.appointment_id}, 'completed')" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button> <button class="btn btn-sm btn-danger" onclick="updateAppointmentStatus(${apt.appointment_id}, 'cancelled')" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button></div></td>

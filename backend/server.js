@@ -24,6 +24,7 @@ const Product = require('./models/Product');
 const Appointment = require('./models/Appointment');
 const Order = require('./models/Order');
 const OrderItem = require('./models/OrderItem');
+const CustomerFeedback = require('./models/CustomerFeedback');
 const Cart = require('./models/Cart');
 const QRCode = require('./models/QRCode');
 const Schedule = require('./models/Schedule');
@@ -42,6 +43,13 @@ Appointment.belongsTo(Customer, { foreignKey: 'customer_id' });
 
 Customer.hasMany(Order, { foreignKey: 'customer_id' });
 Order.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Order.hasOne(CustomerFeedback, { foreignKey: 'order_id', as: 'feedback' });
+CustomerFeedback.belongsTo(Order, { foreignKey: 'order_id' });
+Appointment.hasOne(CustomerFeedback, { foreignKey: 'appointment_id', as: 'feedback' });
+CustomerFeedback.belongsTo(Appointment, { foreignKey: 'appointment_id' });
+Customer.hasMany(CustomerFeedback, { foreignKey: 'customer_id' });
+CustomerFeedback.belongsTo(Customer, { foreignKey: 'customer_id' });
 
 Order.hasMany(OrderItem, { foreignKey: 'order_id' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
@@ -492,6 +500,7 @@ const startServer = async () => {
     }
 
     await ensureSchemaColumns();
+    await CustomerFeedback.sync();
     await ensureDefaultAdmin();
 
     // Ensure the stock audit table can be created safely before any other sync operations.

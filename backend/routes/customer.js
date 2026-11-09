@@ -6,6 +6,7 @@ const Customer = require('../models/Customer');
 const Product = require('../models/Product');
 const Appointment = require('../models/Appointment');
 const Order = require('../models/Order');
+const CustomerFeedback = require('../models/CustomerFeedback');
 const OrderItem = require('../models/OrderItem');
 const Cart = require('../models/Cart');
 const QRCode = require('../models/QRCode');
@@ -804,10 +805,19 @@ router.get('/appointments', authMiddleware, requireRole('customer'), async (req,
     });
 
     const appointmentsWithQr = await attachAppointmentQrDetails(appointments);
+    const feedback = appointments.length ? await CustomerFeedback.findAll({
+      where: { customer_id: customer.customer_id, appointment_id: { [Op.in]: appointments.map(apt => apt.appointment_id) } },
+      attributes: ['feedback_id', 'appointment_id', 'rating', 'comment', 'created_at']
+    }) : [];
+    const feedbackByAppointment = new Map(feedback.map(item => [Number(item.appointment_id), item.toJSON()]));
+    const appointmentsWithFeedback = appointmentsWithQr.map(appointment => ({
+      ...appointment,
+      feedback: feedbackByAppointment.get(Number(appointment.appointment_id)) || null
+    }));
 
     res.json({
       success: true,
-      appointments: appointmentsWithQr
+      appointments: appointmentsWithFeedback
     });
   } catch (error) {
     res.status(500).json({
@@ -1256,6 +1266,11 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
     });
 
     const ordersWithQr = await attachOrderQrDetails(orders);
+    const feedback = orders.length ? await CustomerFeedback.findAll({
+      where: { customer_id: customer.customer_id, order_id: { [Op.in]: orders.map(order => order.order_id) } },
+      attributes: ['feedback_id', 'order_id', 'rating', 'comment', 'created_at']
+    }) : [];
+    const feedbackByOrder = new Map(feedback.map(item => [Number(item.order_id), item.toJSON()]));
     const reservationIds = orders.filter((order) => order.reservation_only).map((order) => order.order_id);
     const reservationAppointments = reservationIds.length
       ? await Appointment.findAll({ where: { reservation_order_id: { [Op.in]: reservationIds } } })
@@ -1265,7 +1280,8 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
       const orderData = typeof order.toJSON === 'function' ? order.toJSON() : order;
       return {
         ...orderData,
-        reservation_appointment: appointmentByReservation.get(Number(orderData.order_id)) || null
+        reservation_appointment: appointmentByReservation.get(Number(orderData.order_id)) || null,
+        feedback: feedbackByOrder.get(Number(orderData.order_id)) || null
       };
     });
 
@@ -1279,6 +1295,64 @@ router.get('/orders', authMiddleware, requireRole('customer'), async (req, res) 
       message: 'Failed to fetch orders',
       error: error.message
     });
+  }
+});
+
+router.post('/feedback', authMiddleware, requireRole('customer'), async (req, res) => {
+  try {
+    const recordType = String(req.body?.record_type || '').trim().toLowerCase();
+    const recordId = Number(req.body?.record_id);
+    const rating = Number(req.body?.rating);
+    const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : '';
+    if (!['order', 'appointment'].includes(recordType) || !Number.isInteger(recordId) || recordId < 1) {
+      return res.status(400).json({ success: false, message: 'Choose a valid completed order or appointment' });
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Choose a rating from 1 to 5 stars' });
+    }
+    if (!comment || comment.length > 2000) {
+      return res.status(400).json({ success: false, message: 'Enter a comment (up to 2,000 characters)' });
+    }
+
+    const customer = await getOrCreateCustomerRecord(Customer, req.user.user_id, req.user.phone || null);
+    let orderId = null;
+    let appointmentId = null;
+    if (recordType === 'order') {
+      const order = await Order.findOne({ where: { order_id: recordId, customer_id: customer.customer_id } });
+      if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+      if (!['picked up', 'completed'].includes(String(order.status || '').trim().toLowerCase())) {
+        return res.status(409).json({ success: false, message: 'Feedback is available after the order is completed and picked up' });
+      }
+      orderId = order.order_id;
+    } else {
+      const appointment = await Appointment.findOne({ where: { appointment_id: recordId, customer_id: customer.customer_id } });
+      if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
+      if (String(appointment.status || '').trim().toLowerCase() !== 'completed') {
+        return res.status(409).json({ success: false, message: 'Feedback is available after the appointment is completed' });
+      }
+      appointmentId = appointment.appointment_id;
+    }
+
+    const existingFeedback = await CustomerFeedback.findOne({
+      where: recordType === 'order' ? { order_id: orderId } : { appointment_id: appointmentId }
+    });
+    if (existingFeedback) {
+      return res.status(409).json({ success: false, message: 'Feedback has already been submitted for this record' });
+    }
+
+    const feedback = await CustomerFeedback.create({
+      customer_id: customer.customer_id,
+      order_id: orderId,
+      appointment_id: appointmentId,
+      rating,
+      comment
+    });
+    res.status(201).json({ success: true, message: 'Thank you for your feedback', feedback });
+  } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: 'Feedback has already been submitted for this record' });
+    }
+    res.status(500).json({ success: false, message: 'Failed to submit feedback', error: error.message });
   }
 });
 
