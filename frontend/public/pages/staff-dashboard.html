@@ -2199,6 +2199,7 @@
         // Walk-in sale
         let walkInProducts = [];
         let walkInItems = [];
+        let walkInLensOnly = false;
 
         function walkInPrice(product, lens) {
             const map = { 'frame-only': product.frame_only_price, 'regular-lens': product.regular_lens_price, 'photochromic': product.photochromic_price };
@@ -2210,6 +2211,8 @@
             ['wiName', 'wiPhone', 'wiAddress'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('wiQty').value = 1;
             document.getElementById('wiLens').value = 'regular-lens';
+            document.getElementById('wiLensOnlyPrice').value = '';
+            document.getElementById('wiLensCustomization').value = 'regular-lens';
             document.getElementById('wiCheckupFee').value = '';
             document.getElementById('wiPaymentMethod').value = 'Cash';
             ['wiRightSph', 'wiRightCyl', 'wiRightAxis', 'wiLeftSph', 'wiLeftCyl', 'wiLeftAxis'].forEach(id => { document.getElementById(id).value = ''; });
@@ -2226,6 +2229,7 @@
         }
 
         function toggleWalkInCheckupFields() {
+            if (document.getElementById('wiLens').value === 'lenses-only') walkInItems = [];
             renderWalkInItems();
         }
 
@@ -2251,13 +2255,24 @@
 
         function renderWalkInItems() {
             const lensLabels = { 'frame-only': 'Frame only', 'regular-lens': 'Regular lens', 'photochromic': 'Photochromic' };
-            document.getElementById('wiItems').innerHTML = walkInItems.length ? walkInItems.map((i, idx) => {
+            walkInLensOnly = document.getElementById('wiLens').value === 'lenses-only';
+            const lensOnlyPrice = Number(document.getElementById('wiLensOnlyPrice').value || 0);
+            const itemRows = walkInLensOnly
+                ? `<tr><td>Customized lenses</td><td>${document.getElementById('wiLensCustomization').selectedOptions[0].text}</td><td class="text-end">&#8369;${lensOnlyPrice.toFixed(2)}</td><td>1</td><td class="text-end">&#8369;${lensOnlyPrice.toFixed(2)}</td><td></td></tr>`
+                : walkInItems.map((i, idx) => {
                 const price = walkInPrice(i.product, i.lens);
                 return `<tr><td>${escapeStaffOrderText(i.product.product_name)}</td><td>${lensLabels[i.lens]}</td><td class="text-end">&#8369;${price.toFixed(2)}</td><td>${i.qty}</td><td class="text-end">&#8369;${(price * i.qty).toFixed(2)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeWalkInItem(${idx})">&times;</button></td></tr>`;
-            }).join('') : '<tr><td colspan="6" class="text-center text-muted">No items yet</td></tr>';
-            const subtotal = walkInItems.reduce((s, i) => s + walkInPrice(i.product, i.lens) * i.qty, 0);
-            const hasCustomItem = walkInItems.some(item => item.lens !== 'frame-only');
+            }).join('');
+            document.getElementById('wiItems').innerHTML = itemRows || '<tr><td colspan="6" class="text-center text-muted">No items yet</td></tr>';
+            const subtotal = walkInLensOnly ? lensOnlyPrice : walkInItems.reduce((s, i) => s + walkInPrice(i.product, i.lens) * i.qty, 0);
+            const hasCustomItem = walkInLensOnly || walkInItems.some(item => item.lens !== 'frame-only');
             const needsCheckupFields = hasCustomItem || (!walkInItems.length && document.getElementById('wiLens').value !== 'frame-only');
+            document.getElementById('wiProductColumn').classList.toggle('d-none', walkInLensOnly);
+            document.getElementById('wiQtyColumn').classList.toggle('d-none', walkInLensOnly);
+            document.getElementById('wiAddColumn').classList.toggle('d-none', walkInLensOnly);
+            document.getElementById('wiLensOnlyPriceRow').classList.toggle('d-none', !walkInLensOnly);
+            document.getElementById('wiLensCustomizationRow').classList.toggle('d-none', !walkInLensOnly);
+            document.getElementById('wiLensOnlyPrice').required = walkInLensOnly;
             document.getElementById('wiCheckupFields').classList.toggle('d-none', !needsCheckupFields);
             document.getElementById('wiCheckupFee').required = needsCheckupFields;
             document.getElementById('wiRightSph').required = needsCheckupFields;
@@ -2267,7 +2282,7 @@
             document.getElementById('wiSubtotal').textContent = '\u20B1' + subtotal.toFixed(2);
             document.getElementById('wiDiscountAmt').textContent = '\u20B1' + discount.toFixed(2);
             document.getElementById('wiTotal').textContent = '\u20B1' + (subtotal - discount + checkupFee).toFixed(2);
-            const saleNeedsCustomization = walkInItems.length ? hasCustomItem : needsCheckupFields;
+            const saleNeedsCustomization = walkInLensOnly || (walkInItems.length ? hasCustomItem : needsCheckupFields);
             document.getElementById('wiSubmit').textContent = saleNeedsCustomization ? 'Collect Payment & Start Custom Order' : 'Complete Frame-Only Order';
         }
 
@@ -2279,8 +2294,9 @@
                 alert('Enter a valid customer phone number (7 to 15 digits)');
                 return;
             }
-            if (!walkInItems.length) { alert('Add at least one item'); return; }
-            const hasCustomizedLenses = walkInItems.some(item => item.lens !== 'frame-only');
+            const lensOnly = document.getElementById('wiLens').value === 'lenses-only';
+            if (!walkInItems.length && !lensOnly) { alert('Add at least one item'); return; }
+            const hasCustomizedLenses = lensOnly || walkInItems.some(item => item.lens !== 'frame-only');
             const prescription = {
                 right_sph: document.getElementById('wiRightSph').value,
                 right_cyl: document.getElementById('wiRightCyl').value,
@@ -2291,6 +2307,10 @@
             };
             if (hasCustomizedLenses && (!prescription.right_sph || !prescription.left_sph || document.getElementById('wiCheckupFee').value === '')) {
                 alert('Enter the check-up fee and both eye sphere results before ordering customized lenses.');
+                return;
+            }
+            if (lensOnly && document.getElementById('wiLensOnlyPrice').value === '') {
+                alert('Enter the lens price for this lens-only order.');
                 return;
             }
             const btn = document.getElementById('wiSubmit');
@@ -2304,6 +2324,9 @@
                     payment_method: document.getElementById('wiPaymentMethod').value,
                     checkup_fee: hasCustomizedLenses ? document.getElementById('wiCheckupFee').value : 0,
                     prescription: hasCustomizedLenses ? prescription : undefined,
+                    lens_only: lensOnly,
+                    lens_price: lensOnly ? document.getElementById('wiLensOnlyPrice').value : undefined,
+                    lens_option: lensOnly ? document.getElementById('wiLensCustomization').value : undefined,
                     items: walkInItems.map(i => ({ product_id: i.product.product_id, quantity: i.qty, lens_option: i.lens }))
                 });
                 if (result && result.success) {
@@ -2449,15 +2472,20 @@
         </div>
         <div class="alert alert-info py-2"><i class="fas fa-info-circle me-1"></i>Customized lenses need the eye-check results and check-up fee. The paid order stays in processing until the finished product is ready for QR-verified pickup.</div>
         <div class="row g-2 mb-2 align-items-end">
-          <div class="col-md-5"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
+          <div class="col-md-5" id="wiProductColumn"><label class="form-label">Product</label><select class="form-select" id="wiProduct"></select></div>
           <div class="col-md-3"><label class="form-label">Lens</label>
             <select class="form-select" id="wiLens" onchange="toggleWalkInCheckupFields()">
               <option value="frame-only">Frame only</option>
               <option value="regular-lens" selected>Regular lens</option>
               <option value="photochromic">Photochromic</option>
+              <option value="lenses-only">Lenses only</option>
             </select></div>
-          <div class="col-md-2"><label class="form-label">Qty</label><input type="number" class="form-control" id="wiQty" value="1" min="1"></div>
-          <div class="col-md-2"><button type="button" class="btn btn-outline-primary w-100" onclick="addWalkInItem()">Add</button></div>
+          <div class="col-md-2" id="wiQtyColumn"><label class="form-label">Qty</label><input type="number" class="form-control" id="wiQty" value="1" min="1"></div>
+          <div class="col-md-2" id="wiAddColumn"><button type="button" class="btn btn-outline-primary w-100" onclick="addWalkInItem()">Add</button></div>
+        </div>
+        <div class="row g-2 mb-3 d-none" id="wiLensCustomizationRow">
+          <div class="col-md-6"><label class="form-label" for="wiLensCustomization">Lens customization</label><select class="form-select" id="wiLensCustomization" onchange="renderWalkInItems()"><option value="regular-lens">Regular lens</option><option value="photochromic">Photochromic</option></select></div>
+          <div class="col-md-6" id="wiLensOnlyPriceRow"><label class="form-label" for="wiLensOnlyPrice">Lens price per pair (₱) *</label><input type="number" class="form-control" id="wiLensOnlyPrice" min="0" step="0.01" oninput="renderWalkInItems()"></div>
         </div>
         <div id="wiCheckupFields" class="border rounded-3 p-3 mb-3 bg-light">
           <h6 class="fw-bold mb-3"><i class="fas fa-eye me-2 text-primary"></i>Eye Check-up &amp; Prescription</h6>

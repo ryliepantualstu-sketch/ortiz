@@ -687,7 +687,10 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     const discountType = ['senior', 'pwd'].includes(req.body.discount_type) ? req.body.discount_type : null;
     const requestedItems = Array.isArray(req.body.items) ? req.body.items : [];
     const paymentMethod = req.body.payment_method || 'Cash';
-    const isCustomizedLensSale = requestedItems.some(item => item.lens_option !== 'frame-only');
+    const isLensOnlySale = req.body.lens_only === true || req.body.lens_only === 'true';
+    const isCustomizedLensSale = isLensOnlySale || requestedItems.some(item => item.lens_option !== 'frame-only');
+    const lensOnlyPrice = Number(req.body.lens_price);
+    const lensOnlyOption = req.body.lens_option || 'regular-lens';
     const existingClaimCode = rawExistingClaimCode ? normalizeWalkInClaimCode(rawExistingClaimCode) : null;
 
     if (!customerName) {
@@ -696,8 +699,17 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
     if (!/^\+?\d{7,15}$/.test(customerPhone)) {
       return res.status(400).json({ success: false, message: 'Enter a valid customer phone number (7 to 15 digits)' });
     }
-    if (requestedItems.length === 0) {
+    if (requestedItems.length === 0 && !isLensOnlySale) {
       return res.status(400).json({ success: false, message: 'Add at least one item' });
+    }
+    if (isLensOnlySale && requestedItems.length > 0) {
+      return res.status(400).json({ success: false, message: 'A lens-only sale cannot include frame products' });
+    }
+    if (isLensOnlySale && (!Number.isFinite(lensOnlyPrice) || lensOnlyPrice < 0 || lensOnlyPrice >= 100000000)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
+    }
+    if (isLensOnlySale && !['regular-lens', 'photochromic'].includes(lensOnlyOption)) {
+      return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
     }
     if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
       return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
@@ -768,7 +780,9 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         lines.push({ product, quantity, lensOption, price });
       }
 
-      const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+      const subtotal = isLensOnlySale
+        ? lensOnlyPrice
+        : lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
       const discountAmount = discountType ? Number((subtotal * 0.2).toFixed(2)) : 0;
       const totalAmount = Number((subtotal - discountAmount + checkupFee).toFixed(2));
       const customerId = existingClaimCode
@@ -785,6 +799,9 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         discount_type: discountType,
         discount_amount: discountAmount,
         checkup_fee: Number(checkupFee.toFixed(2)),
+        lens_only: isLensOnlySale,
+        lens_price: isLensOnlySale ? Number(lensOnlyPrice.toFixed(2)) : 0,
+        lens_option: isLensOnlySale ? lensOnlyOption : 'regular-lens',
         payment_status: 'Paid',
         payment_method: paymentMethod,
         customer_name: customerName,
@@ -793,7 +810,11 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
         is_walk_in: true,
         walk_in_claim_code: walkInClaimCode,
         status: isCustomizedLensSale ? 'processing' : 'picked up',
-        notes: isCustomizedLensSale ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.' : 'Completed paid walk-in frame-only sale; frame handed to customer at the counter.'
+        notes: isLensOnlySale
+          ? 'Walk-in eye checkup completed; prescription saved and customized lenses only are being prepared.'
+          : isCustomizedLensSale
+            ? 'Walk-in eye checkup completed; prescription saved and customized lenses are being prepared.'
+            : 'Completed paid walk-in frame-only sale; frame handed to customer at the counter.'
       }, { transaction });
       await createOrderQrCode(order, { transaction });
 
@@ -825,7 +846,11 @@ router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req,
 
     res.status(201).json({
       success: true,
-      message: isCustomizedLensSale ? 'Walk-in check-up and customized-lens order recorded' : 'Walk-in frame-only order completed',
+      message: isLensOnlySale
+        ? 'Walk-in check-up and lens-only order recorded'
+        : isCustomizedLensSale
+          ? 'Walk-in check-up and customized-lens order recorded'
+          : 'Walk-in frame-only order completed',
       account_linked: Boolean(order.customer_id),
       account_match_ambiguous: accountMatch.ambiguous,
       order: orderWithQr
