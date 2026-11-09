@@ -437,19 +437,25 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           throw Object.assign(new Error('The reserved frame item could not be found'), { status: 409 });
         }
         let totalAmount = checkupFee;
+        let itemSubtotal = 0;
         for (const item of items) {
           const framePrice = Number(item.frame_price ?? item.Product.frame_only_price ?? item.Product.price ?? 0);
           const price = Number((framePrice + lensPrice).toFixed(2));
           const subtotal = Number((price * Number(item.quantity || 0)).toFixed(2));
           totalAmount += subtotal;
+          itemSubtotal += subtotal;
           await item.update({ frame_price: framePrice, lens_price: lensPrice, price, subtotal, lens_option: lensOption }, { transaction });
         }
+        const discountType = ['senior', 'pwd'].includes(reservedOrder.discount_type) ? reservedOrder.discount_type : null;
+        const discountAmount = discountType ? Number((itemSubtotal * 0.2).toFixed(2)) : 0;
         await reservedOrder.update({
           ...prescription,
           order_date: new Date(),
           updated_at: new Date(),
           prescription_appointment_id: appointment.appointment_id,
-          total_amount: Number(totalAmount.toFixed(2)),
+          total_amount: Number((totalAmount - discountAmount).toFixed(2)),
+          discount_type: discountType,
+          discount_amount: discountAmount,
           payment_status: 'Paid',
           payment_method: paymentMethod,
           checkup_fee: Number(checkupFee.toFixed(2)),
@@ -1049,7 +1055,7 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
         throw Object.assign(new Error('This reservation is not a frame-only reservation'), { status: 409 });
       }
 
-      let totalAmount = 0;
+      let subtotalAmount = 0;
       for (const item of items) {
         const product = await Product.findByPk(item.product_id, { transaction, lock: transaction.LOCK.UPDATE });
         const quantity = Number(item.quantity || 0);
@@ -1058,19 +1064,23 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
         }
         const framePrice = Number(item.frame_price ?? product.frame_only_price ?? product.price ?? 0);
         const subtotal = Number((framePrice * quantity).toFixed(2));
-        totalAmount += subtotal;
+        subtotalAmount += subtotal;
         await item.update({ price: framePrice, subtotal, lens_price: 0, lens_option: 'frame-only' }, { transaction });
         if (!order.reservation_stock_reserved) {
           await product.update({ stock_quantity: Number(product.stock_quantity) - quantity }, { transaction });
         }
       }
 
+      const discountType = ['senior', 'pwd'].includes(order.discount_type) ? order.discount_type : null;
+      const discountAmount = discountType ? Number((subtotalAmount * 0.2).toFixed(2)) : 0;
+      const totalAmount = Number((subtotalAmount - discountAmount).toFixed(2));
+
       await order.update({
         order_date: new Date(),
         updated_at: new Date(),
         total_amount: Number(totalAmount.toFixed(2)),
-        discount_amount: 0,
-        discount_type: null,
+        discount_amount: discountAmount,
+        discount_type: discountType,
         payment_status: 'Paid',
         payment_method: paymentMethod,
         checkup_fee: 0,
@@ -1335,7 +1345,7 @@ router.put('/orders/:id/discount', authMiddleware, requireRole('staff'), async (
   try {
     const { discount_type } = req.body; // expected 'senior' | 'pwd' | null
     const order = await Order.findByPk(req.params.id, {
-      include: [{ model: OrderItem }]
+      include: [{ model: OrderItem, include: [{ model: Product }] }]
     });
 
     if (!order) {
@@ -1346,9 +1356,16 @@ router.put('/orders/:id/discount', authMiddleware, requireRole('staff'), async (
       return res.status(409).json({ success: false, message: 'The order has already been paid; its discount and total can no longer be changed' });
     }
 
-    // Calculate subtotal from items
+    // Reservations keep their finalized sale price until collection, so calculate
+    // the discount base from the saved frame price while they are still reserved.
     const items = order.OrderItems || [];
-    const subtotal = items.reduce((s, it) => s + Number(it.subtotal || 0), 0);
+    const subtotal = items.reduce((sum, item) => {
+      if (!order.reservation_only) return sum + Number(item.subtotal || 0);
+      const candidates = [item.frame_price, item.Product?.frame_only_price, item.Product?.price, item.price]
+        .map(Number)
+        .filter((price) => Number.isFinite(price) && price > 0);
+      return sum + (candidates[0] || 0) * Number(item.quantity || 0);
+    }, 0);
 
     const validTypes = ['senior', 'pwd'];
     const applyDiscount = validTypes.includes(discount_type);
