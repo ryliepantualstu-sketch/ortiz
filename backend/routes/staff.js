@@ -386,6 +386,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       updates.checkup_fee = Number(checkupFee.toFixed(2));
       updates.payment_status = 'Paid';
       updates.payment_method = paymentMethod;
+      updates.updated_at = new Date();
     }
 
     if (status && status.toLowerCase() === 'completed' && appointment.reservation_order_id) {
@@ -445,6 +446,8 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         }
         await reservedOrder.update({
           ...prescription,
+          order_date: new Date(),
+          updated_at: new Date(),
           prescription_appointment_id: appointment.appointment_id,
           total_amount: Number(totalAmount.toFixed(2)),
           payment_status: 'Paid',
@@ -622,7 +625,7 @@ router.get('/orders/walk-in/claim-code', authMiddleware, requireRole('staff'), a
   }
 });
 
-router.post('/orders/walk-in', authMiddleware, requireRole('staff', 'admin'), async (req, res) => {
+router.post('/orders/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
   try {
     const customerName = normalizeCustomerName(req.body.customer_name);
     const customerPhone = normalizePhoneNumber(req.body.customer_phone);
@@ -1042,6 +1045,8 @@ router.post('/orders/:id/complete-frame-only-reservation', authMiddleware, requi
       }
 
       await order.update({
+        order_date: new Date(),
+        updated_at: new Date(),
         total_amount: Number(totalAmount.toFixed(2)),
         discount_amount: 0,
         discount_type: null,

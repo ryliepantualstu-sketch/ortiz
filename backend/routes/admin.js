@@ -945,6 +945,75 @@ router.get('/feedback', authMiddleware, requireRole('admin'), async (req, res) =
   }
 });
 
+// Get today's paid sales and frame quantities for the admin POS dashboard (Manila business day).
+router.get('/pos/daily-sales', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const businessDate = getManilaToday();
+    const [year, month, day] = businessDate.split('-').map(Number);
+    const start = new Date(Date.UTC(year, month - 1, day, -8, 0, 0));
+    const end = new Date(Date.UTC(year, month - 1, day + 1, -8, 0, 0));
+    const orders = await Order.findAll({
+      where: {
+        order_date: { [Op.gte]: start, [Op.lt]: end },
+        payment_status: 'Paid',
+        reservation_only: false
+      },
+      include: [
+        { model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] },
+        { model: OrderItem, include: [{ model: Product, attributes: ['product_id', 'product_name', 'category'] }] }
+      ],
+      order: [['order_date', 'DESC']]
+    });
+    const standaloneAppointments = await Appointment.findAll({
+      attributes: ['appointment_id', 'checkup_fee', 'appointment_date', 'payment_method', 'created_at', 'updated_at'],
+      include: [{ model: Customer, attributes: ['customer_id', 'user_id'], include: [{ model: User, attributes: ['full_name', 'email'] }] }],
+      where: { appointment_date: businessDate, status: 'completed', payment_status: 'Paid', reservation_order_id: null },
+      order: [['appointment_date', 'DESC']]
+    });
+    const linkedOrders = standaloneAppointments.length ? await Order.findAll({
+      attributes: ['prescription_appointment_id'],
+      where: {
+        prescription_appointment_id: { [Op.in]: standaloneAppointments.map(appointment => appointment.appointment_id) },
+        payment_status: 'Paid',
+        reservation_only: false
+      }
+    }) : [];
+    const appointmentIdsWithOrders = new Set(linkedOrders.map(order => Number(order.prescription_appointment_id)));
+    const standaloneSales = standaloneAppointments
+      .filter(appointment => !appointmentIdsWithOrders.has(Number(appointment.appointment_id)))
+      .map(appointment => ({
+        order_id: `APT-${appointment.appointment_id}`,
+        transaction_type: 'Eye check-up',
+        total_amount: appointment.checkup_fee,
+        status: 'completed',
+        payment_status: 'Paid',
+        payment_method: appointment.payment_method,
+        order_date: appointment.updated_at || appointment.created_at || appointment.appointment_date,
+        Customer: appointment.Customer,
+        OrderItems: [{ quantity: 0, subtotal: appointment.checkup_fee, Product: { product_name: 'Eye check-up' } }]
+      }));
+    const transactions = [
+      ...orders.map(order => ({ ...order.toJSON(), transaction_type: 'Frame sale' })),
+      ...standaloneSales
+    ].sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+    const framesSold = orders.reduce((sum, order) => sum + (order.OrderItems || []).reduce((items, item) => items + Number(item.quantity || 0), 0), 0);
+    const totalSales = transactions.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+    res.json({
+      success: true,
+      business_date: businessDate,
+      summary: {
+        total_sales: Number(totalSales.toFixed(2)),
+        frames_sold: framesSold,
+        transaction_count: transactions.length
+      },
+      transactions
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch today’s POS sales', error: error.message });
+  }
+});
+
 // Get inventory
 router.get('/inventory', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
