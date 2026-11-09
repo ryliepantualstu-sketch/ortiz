@@ -10,7 +10,7 @@ const Product = require('../models/Product');
 const QRCode = require('../models/QRCode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { normalizePrescription } = require('../utils/prescription');
-const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
+const { notifyAppointmentUpdate, notifyOrderUpdate, notifyPickupDateDecision } = require('../utils/notificationService');
 const { buildOrderQrPayload, createOrderQrCode, attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
@@ -23,7 +23,7 @@ const {
   findLatestWalkInClaimCodeByIdentity,
   normalizeWalkInClaimCode
 } = require('../utils/walkInClaim');
-const { getManilaToday } = require('../utils/orderPickup');
+const { getManilaToday, isValidPickupDate } = require('../utils/orderPickup');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -84,13 +84,14 @@ router.get('/dashboard-stats', authMiddleware, requireRole('staff'), async (req,
   try {
     const today = getManilaToday();
 
-    const [todaysAppointments, pendingOrders, completedToday, pendingAppointments, pendingReservations, readyForPickup] = await Promise.all([
+    const [todaysAppointments, pendingOrders, completedToday, pendingAppointments, pendingReservations, readyForPickup, pendingPickupDateRequests] = await Promise.all([
       Appointment.count({ where: { appointment_date: today } }),
       Order.count({ where: { status: 'pending' } }),
       Appointment.count({ where: { appointment_date: today, status: 'completed' } }),
       Appointment.count({ where: { status: 'pending' } }),
       Order.count({ where: { reservation_only: true, status: 'pending' } }),
-      Order.count({ where: { status: 'ready for pickup', payment_status: 'Paid' } })
+      Order.count({ where: { status: 'ready for pickup', payment_status: 'Paid' } }),
+      Order.count({ where: { pickup_date_request_status: 'pending' } })
     ]);
 
     res.json({
@@ -101,7 +102,8 @@ router.get('/dashboard-stats', authMiddleware, requireRole('staff'), async (req,
         completed_today: completedToday,
         pending_appointments: pendingAppointments,
         pending_reservations: pendingReservations,
-        ready_for_pickup: readyForPickup
+        ready_for_pickup: readyForPickup,
+        pending_pickup_date_requests: pendingPickupDateRequests
       }
     });
   } catch (error) {
@@ -1001,6 +1003,59 @@ router.get('/orders/:id', authMiddleware, requireRole('staff'), async (req, res)
     res.json({ success: true, order: orderData });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch order', error: error.message });
+  }
+});
+
+router.put('/orders/:id/pickup-date-request', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const decision = String(req.body?.decision || '').trim().toLowerCase();
+    if (!['approve', 'decline'].includes(decision)) {
+      return res.status(400).json({ success: false, message: 'Choose approve or decline for this pickup date request' });
+    }
+
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }]
+    });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (String(order.status || '').toLowerCase() !== 'ready for pickup') {
+      return res.status(409).json({ success: false, message: 'Pickup dates can only be approved while the order is ready for pickup' });
+    }
+    if (order.pickup_date_request_status !== 'pending' || !order.pickup_date_requested) {
+      return res.status(409).json({ success: false, message: 'There is no pending pickup date request for this order' });
+    }
+
+    let approvedDate = null;
+    if (decision === 'approve') {
+      approvedDate = String(order.pickup_date_requested);
+      if (!isValidPickupDate(approvedDate)) {
+        return res.status(409).json({ success: false, message: 'The requested pickup date has passed. Ask the customer to submit a new date.' });
+      }
+      if (order.pickup_missed && (order.pickup_reschedule_count || 0) >= 1) {
+        return res.status(409).json({ success: false, message: 'This order has reached its allowed re-pickup limit' });
+      }
+      await order.update({
+        pickup_date: approvedDate,
+        pickup_date_request_status: 'approved',
+        pickup_reschedule_count: order.pickup_missed ? Number(order.pickup_reschedule_count || 0) + 1 : Number(order.pickup_reschedule_count || 0)
+      });
+    } else {
+      await order.update({ pickup_date_request_status: 'rejected' });
+    }
+
+    notifyPickupDateDecision({
+      user: order.Customer?.User,
+      order,
+      approved: decision === 'approve',
+      pickupDate: approvedDate
+    }).catch(error => console.error('Pickup date decision notification failed:', error.message));
+
+    res.json({
+      success: true,
+      message: decision === 'approve' ? `Pickup date approved for ${approvedDate}` : 'Pickup date request declined',
+      order
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to review pickup date request', error: error.message });
   }
 });
 

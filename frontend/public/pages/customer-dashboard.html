@@ -3715,11 +3715,11 @@
                 ${canCancelOrder(order) ? `<div class="mb-3"><button type="button" class="btn btn-outline-danger btn-sm" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1"></i>Cancel Order</button></div>` : ''}
                 ${isReadyForPickup ? `
                     <div class="border rounded-3 p-3 mb-3 bg-light">
-                        <label for="pickupDateInput-${order.order_id}" class="form-label fw-semibold mb-1">Choose your pickup date</label>
-                        <p class="small text-muted mb-2">${order.pickup_missed ? `<span class="text-danger fw-semibold">You missed your pickup on ${formatDate(`${order.pickup_date}T00:00:00`)}.</span> ${Number(order.pickup_reschedule_count || 0) >= 1 ? 'This order will be cancelled automatically.' : 'Please choose a new pickup date. If it is missed again, the order will be cancelled automatically.'}` : order.pickup_date ? `Current date: ${formatDate(`${order.pickup_date}T00:00:00`)}${Number(order.pickup_reschedule_count || 0) >= 1 ? ' <span class="text-danger">(final re-pickup: the order is auto-cancelled if not claimed)</span>' : ''}` : 'Select the day you plan to collect your order.'}</p>
+                        <label for="pickupDateInput-${order.order_id}" class="form-label fw-semibold mb-1">${order.pickup_date ? 'Request a pickup date change' : 'Choose your pickup date'}</label>
+                        <p class="small text-muted mb-2">${order.pickup_date_request_status === 'pending' ? `<span class="text-warning fw-semibold">Your requested date (${formatDate(`${order.pickup_date_requested}T00:00:00`)}) is waiting for staff approval.</span>` : order.pickup_date_request_status === 'rejected' ? '<span class="text-danger fw-semibold">Staff declined your previous date request. Choose another date to send a new request.</span>' : order.pickup_missed ? `<span class="text-danger fw-semibold">You missed your pickup on ${formatDate(`${order.pickup_date}T00:00:00`)}.</span> ${Number(order.pickup_reschedule_count || 0) >= 1 ? 'This order will be cancelled automatically.' : 'Please request a new date. If it is missed again, the order will be cancelled automatically.'}` : order.pickup_date ? `Current confirmed date: ${formatDate(`${order.pickup_date}T00:00:00`)}. Staff must approve any change.` : 'Choose the day you plan to collect your order. Staff must approve the date first.'}</p>
                         <div class="d-flex flex-wrap gap-2">
-                            <input type="date" class="form-control" id="pickupDateInput-${order.order_id}" min="${getLocalDateInputValue()}" value="${order.pickup_date || ''}" aria-label="Pickup date for order ${order.order_id}" style="max-width: 230px;">
-                            <button type="button" class="btn btn-primary" onclick="saveOrderPickupDate(${order.order_id})">Save date</button>
+                            <input type="date" class="form-control" id="pickupDateInput-${order.order_id}" min="${getLocalDateInputValue()}" value="${['pending', 'rejected'].includes(order.pickup_date_request_status) ? (order.pickup_date_requested || order.pickup_date || '') : (order.pickup_date || '')}" aria-label="Pickup date for order ${order.order_id}" style="max-width: 230px;" ${order.pickup_date_request_status === 'pending' ? 'disabled' : ''}>
+                            <button type="button" class="btn btn-primary" onclick="saveOrderPickupDate(${order.order_id})" ${order.pickup_date_request_status === 'pending' ? 'disabled' : ''}>${order.pickup_date_request_status === 'pending' ? 'Awaiting approval' : 'Request date'}</button>
                         </div>
                         <div id="pickupDateFeedback-${order.order_id}" class="small mt-2" aria-live="polite"></div>
                     </div>
@@ -3784,8 +3784,9 @@
             }
 
             saveButton.disabled = true;
+            let requestPending = false;
             feedback.className = 'small mt-2 text-muted';
-            feedback.textContent = 'Saving pickup date...';
+            feedback.textContent = 'Sending pickup date request...';
             try {
                 const result = await apiCall(`/customer/orders/${orderId}/pickup-date`, 'PUT', { pickup_date: dateInput.value });
                 if (!result || !result.success) {
@@ -3795,16 +3796,22 @@
                 }
 
                 const order = customerOrders.find(item => Number(item.order_id) === Number(orderId));
-                if (order) order.pickup_date = result.order.pickup_date;
-                feedback.className = 'small mt-2 text-success';
-                feedback.textContent = 'Pickup date saved.';
+                if (order) {
+                    order.pickup_date_requested = result.order.pickup_date_requested;
+                    order.pickup_date_request_status = result.order.pickup_date_request_status;
+                }
+                requestPending = true;
+                dateInput.disabled = true;
+                saveButton.textContent = 'Awaiting approval';
+                feedback.className = 'small mt-2 text-warning';
+                feedback.textContent = 'Request sent to staff. Your pickup date will change after they approve it.';
                 await loadOrders();
             } catch (error) {
                 console.error('Pickup date update error:', error);
                 feedback.className = 'small mt-2 text-danger';
                 feedback.textContent = 'Unable to save pickup date. Please try again.';
             } finally {
-                saveButton.disabled = false;
+                saveButton.disabled = requestPending;
             }
         }
 
@@ -3834,7 +3841,7 @@
                                     <span class="badge bg-${getOrderStatusBadgeClass(order.status)}">${order.reservation_only ? (normalizeStatus(order.status) === 'processing' ? 'Confirmed by staff' : normalizeStatus(order.status) === 'pending' ? 'Awaiting staff confirmation' : formatStatus(order.status)) : formatStatus(order.status)}</span>
                                 </div>
                             </div>
-                            ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_missed ? `<span class="text-danger">Missed pickup (${formatDate(`${order.pickup_date}T00:00:00`)}) - set a new date</span>` : order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
+                            ${normalizeStatus(order.status) === 'ready for pickup' ? `<div class="small text-primary fw-semibold mb-2"><i class="fas fa-calendar-check me-1"></i>${order.pickup_date_request_status === 'pending' ? `Requested pickup date: ${formatDate(`${order.pickup_date_requested}T00:00:00`)} (waiting for staff)` : order.pickup_missed ? `<span class="text-danger">Missed pickup (${formatDate(`${order.pickup_date}T00:00:00`)}) - request a new date</span>` : order.pickup_date ? `Pickup date: ${formatDate(`${order.pickup_date}T00:00:00`)}` : 'Choose a pickup date in order details'}</div>` : ''}
                             ${order.delivery_address ? `<div class="small text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>${escapeText(order.delivery_address)}</div>` : ''}
                             <div class="order-items">
                                 ${getOrderItems(order).map(item => {
@@ -3860,7 +3867,7 @@
                                     ${order.reservation_only && normalizeStatus(order.status) === 'processing' && (!order.reservation_appointment || normalizeStatus(order.reservation_appointment.status) === 'cancelled') ? `<button type="button" class="btn btn-sm btn-success" onclick="openAppointmentModal(null, ${order.order_id})"><i class="fas fa-calendar-check me-1"></i>${order.reservation_appointment ? 'Schedule New Checkup' : 'Schedule Checkup'}</button>` : ''}
                                     ${order.reservation_appointment && normalizeStatus(order.reservation_appointment.status) !== 'cancelled' ? `<span class="small text-primary align-self-center">Checkup: ${formatDate(order.reservation_appointment.appointment_date)} at ${formatTime(order.reservation_appointment.appointment_time)}</span>` : ''}
                                     ${canCancelOrder(order) ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelCustomerOrder(${order.order_id})"><i class="fas fa-ban me-1" aria-hidden="true"></i>Cancel</button>` : ''}
-                                    ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas fa-calendar-day me-1" aria-hidden="true"></i>${order.pickup_missed ? 'Set new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
+                                    ${normalizeStatus(order.status) === 'ready for pickup' ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewCustomerOrder(${order.order_id})"><i class="fas ${order.pickup_date_request_status === 'pending' ? 'fa-clock' : 'fa-calendar-day'} me-1" aria-hidden="true"></i>${order.pickup_date_request_status === 'pending' ? 'Date request pending' : order.pickup_missed ? 'Request new pickup date' : order.pickup_date ? 'Change pickup date' : 'Set pickup date'}</button>` : ''}
                                 </div>
                                 ${order.reservation_only ? '' : `<div class="order-total">
                                     ${Number(order.checkup_fee || 0) > 0 ? `<div class="order-subtotal">Eye check-up: <strong>₱${Number(order.checkup_fee).toFixed(2)}</strong></div>` : ''}

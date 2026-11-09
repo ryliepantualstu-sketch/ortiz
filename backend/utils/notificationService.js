@@ -286,9 +286,36 @@ async function notifyOrderUpdate({ user, order, status }) {
   }
 }
 
+async function notifyStaffPickupDateRequest({ staff, order, customerName, pickupDate }) {
+  if (!staff) return;
+  const recipient = staff.email;
+  const name = String(customerName || 'Customer').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const orderId = Number(order.order_id);
+  const subject = `Ortiz Optical - Pickup date approval needed for order #${orderId}`;
+  const text = `${customerName || 'A customer'} requested pickup on ${pickupDate} for order #${orderId}. Review the request in the staff dashboard.`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px"><h2>Pickup date approval needed</h2><p>${name} requested a pickup date of <strong>${pickupDate}</strong> for order <strong>#${orderId}</strong>.</p><p>Open the staff dashboard to approve or decline this request.</p></div>`;
+  if (recipient) sendEmailNotification({ to: recipient, subject, text, html }).catch(error => console.error('Pickup date staff email failed:', error.message));
+  if (staff.phone) sendSMSNotification({ to: staff.phone, message: text }).catch(error => console.error('Pickup date staff SMS failed:', error.message));
+}
+
+async function notifyPickupDateDecision({ user, order, approved, pickupDate }) {
+  if (!user) return;
+  const orderId = Number(order.order_id);
+  const decision = approved ? 'approved' : 'declined';
+  const subject = `Ortiz Optical - Pickup date request ${decision} for order #${orderId}`;
+  const text = approved
+    ? `Your pickup date request for order #${orderId} was approved. Your pickup date is ${pickupDate}.`
+    : `Your pickup date request for order #${orderId} was declined. Please choose another pickup date and submit a new request.`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px"><h2>Pickup date request ${decision}</h2><p>Hello <strong>${user.full_name || 'Customer'}</strong>,</p><p>${approved ? `Your pickup date for order #${orderId} is confirmed for <strong>${pickupDate}</strong>.` : `Staff declined the requested date for order #${orderId}. Please choose another date and send a new request.`}</p></div>`;
+  if (user.email) sendEmailNotification({ to: user.email, subject, text, html }).catch(error => console.error('Pickup date decision email failed:', error.message));
+  if (user.phone) sendSMSNotification({ to: user.phone, message: text }).catch(error => console.error('Pickup date decision SMS failed:', error.message));
+}
+
 module.exports = {
   sendEmailNotification,
   sendSMSNotification,
   notifyAppointmentUpdate,
-  notifyOrderUpdate
+  notifyOrderUpdate,
+  notifyStaffPickupDateRequest,
+  notifyPickupDateDecision
 };

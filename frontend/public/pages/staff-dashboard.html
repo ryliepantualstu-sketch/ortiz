@@ -458,6 +458,11 @@
             color: white;
         }
 
+        .stat-card:nth-child(6) .stat-icon {
+            background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);
+            color: white;
+        }
+
         .stat-content {
             flex: 1;
             position: relative;
@@ -882,7 +887,7 @@
                 <li><a class="nav-link" href="#" onclick="return loadSection('appointments', event)"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
                 <li><a class="nav-link" href="#" onclick="return loadSection('qr', event)"><i class="fas fa-qrcode"></i><span>QR Verification</span></a></li>
                 <li><a class="nav-link" href="#" onclick="return loadSection('customers', event)"><i class="fas fa-user-friends"></i><span>Customers</span></a></li>
-                <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-bag-shopping"></i><span>Orders</span></a></li>
+                <li><a class="nav-link" href="#" onclick="return loadSection('orders', event)"><i class="fas fa-bag-shopping"></i><span>Orders</span><span class="badge bg-warning text-dark ms-auto d-none" id="pickupDateRequestBadge">0</span></a></li>
             </ul>
 
         </nav>
@@ -949,6 +954,13 @@
                             <div class="stat-content">
                                 <h6>Completed Today</h6>
                                 <div class="value" id="stat-completed">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card" role="button" tabindex="0" onclick="loadSection('orders', event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();loadSection('orders',event)}">
+                            <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+                            <div class="stat-content">
+                                <h6>Pickup Date Requests</h6>
+                                <div class="value" id="stat-pickup-date-requests">-</div>
                             </div>
                         </div>
                     </div>
@@ -1460,6 +1472,16 @@
             }
         }
 
+        async function reviewPickupDateRequest(orderId, decision) {
+            const result = await apiCall(`/staff/orders/${orderId}/pickup-date-request`, 'PUT', { decision });
+            if (!result?.success) {
+                alert(result?.message || 'Failed to review the pickup date request.');
+                return;
+            }
+            alert(result.message || 'Pickup date request reviewed.');
+            await Promise.all([loadOrders(), updateDashboardStats()]);
+        }
+
         function loadSection(section, event) {
             if (event) {
                 event.preventDefault();
@@ -1514,6 +1536,17 @@
             return false;
         }
 
+        function updatePickupDateRequestIndicators(count) {
+            const pendingCount = Number(count || 0);
+            const metric = document.getElementById('stat-pickup-date-requests');
+            const badge = document.getElementById('pickupDateRequestBadge');
+            if (metric) metric.textContent = pendingCount;
+            if (badge) {
+                badge.textContent = pendingCount;
+                badge.classList.toggle('d-none', pendingCount < 1);
+            }
+        }
+
         async function loadDashboard() {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -1530,6 +1563,7 @@
                     document.getElementById('stat-pending-appointments').textContent = result.stats.pending_appointments || 0;
                     document.getElementById('stat-ready-pickup').textContent = result.stats.ready_for_pickup || 0;
                     document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
+                    updatePickupDateRequestIndicators(result.stats.pending_pickup_date_requests);
                     await loadAppointments();
                 }
             } catch (error) {
@@ -1547,6 +1581,7 @@
                     document.getElementById('stat-pending-appointments').textContent = result.stats.pending_appointments || 0;
                     document.getElementById('stat-ready-pickup').textContent = result.stats.ready_for_pickup || 0;
                     document.getElementById('stat-completed').textContent = result.stats.completed_today || 0;
+                    updatePickupDateRequestIndicators(result.stats.pending_pickup_date_requests);
                 }
             } catch (err) {
                 console.warn('Failed to update dashboard stats', err);
@@ -1661,6 +1696,7 @@
                             <td>
                                 <span class="badge ${getOrderStatusClass(order.status)}">${order.status || 'Pending'}</span>${order.pickup_missed ? '<span class="badge bg-danger ms-1">Missed Pickup</span>' : ''}
                                 ${order.pickup_date ? `<div class="small text-muted mt-1">Pickup: ${formatOrderDate(order.pickup_date)}</div>` : ''}
+                                ${order.pickup_date_request_status === 'pending' ? `<div class="small text-warning fw-bold mt-1"><i class="fas fa-bell me-1"></i>Requested: ${formatOrderDate(order.pickup_date_requested)}</div>` : ''}
                             </td>
                             <td>${formatOrderDateTime(order.order_date || order.created_at)}</td>
                             <td>
@@ -1671,6 +1707,12 @@
                                         <i class="fas fa-ellipsis me-1" aria-hidden="true"></i>Actions
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        ${order.pickup_date_request_status === 'pending' ? `
+                                        <li><span class="dropdown-item-text small fw-bold">Pickup date request: ${formatOrderDate(order.pickup_date_requested)}</span></li>
+                                        <li><button type="button" class="dropdown-item text-success" onclick="reviewPickupDateRequest(${order.order_id}, 'approve')"><i class="fas fa-check me-2" aria-hidden="true"></i>Approve pickup date</button></li>
+                                        <li><button type="button" class="dropdown-item text-danger" onclick="reviewPickupDateRequest(${order.order_id}, 'decline')"><i class="fas fa-times me-2" aria-hidden="true"></i>Decline pickup date</button></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        ` : ''}
                                         ${order.reservation_only ? `
                                         <li><button type="button" class="dropdown-item" onclick="updateOrderStatus(${order.order_id}, 'processing')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-check me-2" aria-hidden="true"></i>Confirm Frame Reservation</button></li>
                                         <li><button type="button" class="dropdown-item text-danger" onclick="updateOrderStatus(${order.order_id}, 'cancelled')" ${String(order.status || '').toLowerCase() !== 'pending' ? 'disabled' : ''}><i class="fas fa-times me-2" aria-hidden="true"></i>Decline Reservation</button></li>
@@ -1940,6 +1982,7 @@
                     <p><strong>Status:</strong> <span class="badge bg-info">${order.status || 'N/A'}</span></p>
                     <p><strong>Payment:</strong> ${order.payment_status || 'Unpaid'}${order.payment_status === 'Paid' ? ` via ${order.payment_method || 'Cash'}` : ''}</p>
                     ${order.pickup_date ? `<p><strong>Customer Pickup Date:</strong> ${formatOrderDate(order.pickup_date)} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
+                    ${order.pickup_date_request_status ? `<p><strong>Pickup Date Request:</strong> ${formatOrderDate(order.pickup_date_requested)} <span class="badge ${order.pickup_date_request_status === 'pending' ? 'bg-warning text-dark' : order.pickup_date_request_status === 'approved' ? 'bg-success' : 'bg-secondary'}">${order.pickup_date_request_status}</span></p>` : ''}
                     ${prescriptionDetails}
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -2269,6 +2312,10 @@
             });
             loadUserInfo();
             loadDashboard();
+            setInterval(() => {
+                updateDashboardStats();
+                if (document.getElementById('ordersSection').style.display !== 'none') loadOrders();
+            }, 60000);
         });
     </script>
 

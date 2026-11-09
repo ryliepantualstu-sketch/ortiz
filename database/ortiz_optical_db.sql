@@ -138,6 +138,8 @@ CREATE TABLE orders (
     delivery_address VARCHAR(255),
     notes TEXT,
     pickup_date DATE NULL,
+    pickup_date_requested DATE NULL,
+    pickup_date_request_status VARCHAR(20) NULL,
     reservation_only BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

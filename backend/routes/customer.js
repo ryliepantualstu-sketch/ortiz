@@ -15,7 +15,7 @@ const Holiday = require('../models/Holiday');
 const BlockedSlot = require('../models/BlockedSlot');
 const { isTimeWithinSchedule, isAppointmentSlotInPast, buildAvailableAppointmentSlots, buildAppointmentSlotList, parseTimeToMinutes, normalizeAppointmentDate, normalizeAppointmentTime, isSundayDate } = require('../utils/appointmentAvailability');
 const { persistCustomerDiscountCardImage, getOrCreateCustomerRecord } = require('../utils/customerProfile');
-const { notifyAppointmentUpdate, notifyOrderUpdate } = require('../utils/notificationService');
+const { notifyAppointmentUpdate, notifyOrderUpdate, notifyStaffPickupDateRequest } = require('../utils/notificationService');
 const { attachOrderQrDetails } = require('../utils/orderQr');
 const { Op } = require('sequelize');
 const { isValidPickupDate } = require('../utils/orderPickup');
@@ -1163,18 +1163,33 @@ router.put('/orders/:id/pickup-date', authMiddleware, requireRole('customer'), a
     if (!isValidPickupDate(pickup_date)) {
       return res.status(400).json({ success: false, message: 'Choose a valid pickup date that is today or later' });
     }
-
-    // Only a missed pickup date counts as the one allowed re-pickup
-    const updates = { pickup_date };
-    if (order.pickup_missed) {
-      if ((order.pickup_reschedule_count || 0) >= 1) {
-        return res.status(409).json({ success: false, message: 'This order can no longer be rescheduled for pickup' });
-      }
-      updates.pickup_reschedule_count = (order.pickup_reschedule_count || 0) + 1;
+    if (String(order.payment_status || '').toLowerCase() !== 'paid') {
+      return res.status(409).json({ success: false, message: 'Payment must be complete before requesting a pickup date' });
+    }
+    if (order.pickup_date_request_status === 'pending') {
+      return res.status(409).json({ success: false, message: 'A pickup date request is already waiting for staff approval' });
+    }
+    if (String(order.pickup_date || '') === String(pickup_date)) {
+      return res.status(400).json({ success: false, message: 'Choose a different pickup date to submit a change request' });
+    }
+    if (order.pickup_missed && (order.pickup_reschedule_count || 0) >= 1) {
+      return res.status(409).json({ success: false, message: 'This order can no longer be rescheduled for pickup' });
     }
 
-    await order.update(updates);
-    res.json({ success: true, message: 'Pickup date saved', order });
+    await order.update({ pickup_date_requested: pickup_date, pickup_date_request_status: 'pending' });
+    try {
+      const [customerUser, staffUsers] = await Promise.all([
+        User.findByPk(req.user.user_id, { attributes: ['full_name'] }),
+        User.findAll({ where: { role: 'staff', is_active: true }, attributes: ['email', 'phone'] })
+      ]);
+      for (const staff of staffUsers) {
+        notifyStaffPickupDateRequest({ staff, order, customerName: customerUser?.full_name, pickupDate: pickup_date })
+          .catch(error => console.error('Pickup date staff notification failed:', error.message));
+      }
+    } catch (notificationError) {
+      console.error('Could not load staff for pickup date notification:', notificationError.message);
+    }
+    res.json({ success: true, message: 'Pickup date request sent. Staff must approve it first.', order });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to save pickup date', error: error.message });
   }

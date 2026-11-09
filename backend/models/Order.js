@@ -74,6 +74,14 @@ const Order = sequelize.define('Order', {
     type: DataTypes.DATEONLY,
     allowNull: true
   },
+  pickup_date_requested: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  pickup_date_request_status: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
   customer_name: {
     type: DataTypes.STRING(150),
     allowNull: true
