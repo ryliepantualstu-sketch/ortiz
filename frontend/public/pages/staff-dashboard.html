@@ -816,6 +816,62 @@
             background: white;
         }
 
+        .appointment-page-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .appointment-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .appointment-overview-card {
+            padding: 18px 20px;
+            border: 1px solid #e3e8ec;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(25, 53, 66, 0.05);
+        }
+
+        .appointment-overview-card span {
+            display: block;
+            color: #63737d;
+            font-size: .86rem;
+        }
+
+        .appointment-overview-card strong {
+            display: block;
+            margin-top: 5px;
+            color: #18313f;
+            font-size: 1.7rem;
+            line-height: 1.2;
+        }
+
+        .appointment-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(150px, .7fr)) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #edf0f2;
+        }
+
+        .appointment-customer-name {
+            color: #203744;
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .appointment-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .appointment-toolbar { grid-template-columns: 1fr 1fr; }
+        }
+
         @media (max-width: 576px) {
             #statsContainer {
                 grid-template-columns: 1fr !important;
@@ -843,6 +899,11 @@
             .main-content {
                 padding: 12px 10px 24px !important;
             }
+
+            .appointment-page-heading { align-items: flex-start; flex-direction: column; }
+            .appointment-overview-grid { gap: 8px; }
+            .appointment-overview-card { padding: 14px; }
+            .appointment-toolbar { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -993,14 +1054,41 @@
 
                 <!-- Appointments Section -->
                 <div id="appointmentsSection" style="display: none;">
-                    <h4 class="mb-4">Appointment Management</h4>
+                    <div class="appointment-page-heading">
+                        <div>
+                            <h4 class="mb-1">Appointment Management</h4>
+                            <p class="text-muted mb-0">Review schedules, confirm visits, and record walk-in bookings.</p>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="openWalkInAppointmentModal()">
+                            <i class="fas fa-user-plus me-2"></i>Book Walk-in Appointment
+                        </button>
+                    </div>
+                    <div class="appointment-overview-grid">
+                        <div class="appointment-overview-card"><span>All appointments</span><strong id="appointmentMetricTotal">0</strong></div>
+                        <div class="appointment-overview-card"><span>Today</span><strong id="appointmentMetricToday">0</strong></div>
+                        <div class="appointment-overview-card"><span>Awaiting confirmation</span><strong id="appointmentMetricPending">0</strong></div>
+                        <div class="appointment-overview-card"><span>Confirmed</span><strong id="appointmentMetricConfirmed">0</strong></div>
+                    </div>
                     <div class="table-container">
+                        <div class="appointment-toolbar">
+                            <input type="search" id="appointmentSearchFilter" class="form-control" placeholder="Search customer, phone, or service" oninput="filterAppointments()">
+                            <select id="appointmentStatusFilter" class="form-select" onchange="filterAppointments()">
+                                <option value="all">All statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <input type="date" id="appointmentDateFilter" class="form-control" aria-label="Filter appointments by date" onchange="filterAppointments()">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearAppointmentFilters()"><i class="fas fa-rotate-left me-1"></i>Clear</button>
+                        </div>
+                        <div class="px-3 pt-2 small text-muted" id="appointmentFilterSummary">Loading appointments…</div>
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Date</th>
-                                        <th>Customer</th>
+                                        <th>Customer / Source</th>
                                         <th>Service Type</th>
                                         <th>Time</th>
                                         <th>Status</th>
@@ -1615,6 +1703,175 @@
         }
 
         let staffAppointmentsById = new Map();
+        let allStaffAppointments = [];
+
+        function updateAppointmentOverview() {
+            const today = new Date().toLocaleDateString('en-CA');
+            const count = status => allStaffAppointments.filter(apt => String(apt.status || '').toLowerCase() === status).length;
+            document.getElementById('appointmentMetricTotal').textContent = allStaffAppointments.length;
+            document.getElementById('appointmentMetricToday').textContent = allStaffAppointments.filter(apt => String(apt.appointment_date || '').slice(0, 10) === today).length;
+            document.getElementById('appointmentMetricPending').textContent = count('pending');
+            document.getElementById('appointmentMetricConfirmed').textContent = count('confirmed');
+        }
+
+        function filterAppointments() {
+            const query = document.getElementById('appointmentSearchFilter')?.value.trim().toLowerCase() || '';
+            const status = document.getElementById('appointmentStatusFilter')?.value || 'all';
+            const date = document.getElementById('appointmentDateFilter')?.value || '';
+            const filtered = allStaffAppointments.filter(apt => {
+                const name = apt.Customer?.User?.full_name || '';
+                const phone = apt.Customer?.phone || apt.Customer?.User?.phone || '';
+                const matchesQuery = !query || [name, phone, apt.service_type, apt.appointment_id].some(value => String(value || '').toLowerCase().includes(query));
+                return matchesQuery &&
+                    (status === 'all' || String(apt.status || '').toLowerCase() === status) &&
+                    (!date || String(apt.appointment_date || '').slice(0, 10) === date);
+            });
+            renderAllAppointments(filtered);
+            const summary = document.getElementById('appointmentFilterSummary');
+            if (summary) summary.textContent = 'Showing ' + filtered.length + ' of ' + allStaffAppointments.length + ' appointments';
+        }
+
+        function clearAppointmentFilters() {
+            document.getElementById('appointmentSearchFilter').value = '';
+            document.getElementById('appointmentStatusFilter').value = 'all';
+            document.getElementById('appointmentDateFilter').value = '';
+            filterAppointments();
+        }
+
+        function renderAllAppointments(appointments) {
+            const tbody = document.getElementById('allAppointmentsTable');
+            if (!appointments.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">' +
+                    (allStaffAppointments.length ? 'No appointments match these filters.' : 'No appointments found.') +
+                    '</td></tr>';
+                return;
+            }
+            tbody.innerHTML = appointments.map(apt => {
+                const status = String(apt.status || '').toLowerCase();
+                const name = apt.Customer?.User?.full_name || 'N/A';
+                const phone = apt.Customer?.phone || apt.Customer?.User?.phone || '';
+                const isWalkIn = String(apt.notes || '').toLowerCase().includes('walk-in appointment');
+                const terminal = ['completed', 'cancelled'].includes(status);
+                const prescription = apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined
+                    ? '<div class="mt-1">' + getStaffOrderPrescriptionSummary(apt) + '</div>'
+                    : '';
+                return '<tr>' +
+                    '<td><strong>' + formatAppointmentDate(apt.appointment_date || 'N/A') + '</strong><div class="small text-muted">' + formatAppointmentTime(apt.appointment_time || 'N/A') + '</div></td>' +
+                    '<td><div class="appointment-customer-name">' + escapeStaffOrderText(name) + '</div><div class="small text-muted">' + escapeStaffOrderText(phone || 'No phone') + '</div>' +
+                    (isWalkIn ? '<span class="badge bg-info-subtle text-info-emphasis mt-1">Walk-in booking</span>' : '') + '</td>' +
+                    '<td>' + escapeStaffOrderText(apt.service_type || 'Eye Checkup') + prescription + renderStaffCustomerFeedback(apt.feedback) + '</td>' +
+                    '<td><span class="badge ' + getAppointmentStatusClass(status) + '">' + escapeStaffOrderText(status || 'pending') + '</span></td>' +
+                    '<td><span class="badge ' + (apt.qr_verified ? 'bg-success' : status === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')) + '">' +
+                    (apt.qr_verified ? 'Verified' : status === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')) + '</span>' +
+                    '<div class="small text-muted mt-2">' + getAppointmentQrMessage(apt) + '</div><div class="action-btns mt-2">' +
+                    '<button type="button" class="btn btn-sm btn-success" onclick="updateAppointmentStatus(' + Number(apt.appointment_id) + ', \'confirmed\')" ' + (terminal || status === 'confirmed' ? 'disabled' : '') + '>Confirm</button>' +
+                    '<button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(' + Number(apt.appointment_id) + ', ' + (apt.service_type === 'Eye Checkup') + ')" ' + (terminal ? 'disabled' : '') + '>Complete</button>' +
+                    '<button type="button" class="btn btn-sm btn-danger" onclick="updateAppointmentStatus(' + Number(apt.appointment_id) + ', \'cancelled\')" ' + (terminal ? 'disabled' : '') + '>Cancel</button>' +
+                    (String(apt.payment_status || '').toLowerCase() === 'paid' && !apt.reservation_order_id ? '<button type="button" class="btn btn-sm btn-outline-success" onclick="showAppointmentReceipt(' + Number(apt.appointment_id) + ')"><i class="fas fa-receipt me-1"></i>Receipt</button>' : '') +
+                    '</div></td></tr>';
+            }).join('');
+        }
+
+        async function openWalkInAppointmentModal() {
+            const form = document.getElementById('walkInAppointmentForm');
+            form.reset();
+            const dateInput = document.getElementById('walkInAppointmentDate');
+            const today = new Date();
+            const dateValue = today.toLocaleDateString('en-CA');
+            const maxDate = new Date(today);
+            maxDate.setFullYear(maxDate.getFullYear() + 1);
+            dateInput.min = dateValue;
+            dateInput.max = maxDate.toLocaleDateString('en-CA');
+            dateInput.value = dateValue;
+            await loadWalkInAppointmentSlots();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInAppointmentModal')).show();
+        }
+
+        async function loadWalkInAppointmentSlots() {
+            const date = document.getElementById('walkInAppointmentDate').value;
+            const select = document.getElementById('walkInAppointmentTime');
+            const message = document.getElementById('walkInAppointmentAvailability');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Loading available times…</option>';
+            message.textContent = '';
+            if (!date) {
+                select.innerHTML = '<option value="">Choose a date first</option>';
+                return;
+            }
+            let result;
+            try {
+                result = await apiCall('/staff/appointments/available-slots?date=' + encodeURIComponent(date));
+            } catch (error) {
+                select.innerHTML = '<option value="">Could not load time slots</option>';
+                message.textContent = 'Could not check availability. Please try again.';
+                message.className = 'form-text text-danger';
+                return;
+            }
+            const availableSlots = (result?.slots || []).filter(slot => slot.available);
+            select.innerHTML = '<option value="">Choose an available time</option>' + availableSlots
+                .map(slot => '<option value="' + escapeStaffOrderText(slot.start_time) + '">' + formatAppointmentTime(slot.start_time) + '</option>')
+                .join('');
+            select.disabled = !availableSlots.length;
+            message.textContent = result?.reason || (availableSlots.length ? availableSlots.length + ' time slots available.' : 'No available time slots.');
+            message.className = availableSlots.length ? 'form-text text-success' : 'form-text text-danger';
+        }
+
+        async function bookWalkInAppointment(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const button = form.querySelector('button[type="submit"]');
+            const payload = {
+                customer_name: document.getElementById('walkInAppointmentName').value.trim(),
+                customer_phone: document.getElementById('walkInAppointmentPhone').value.trim(),
+                address: document.getElementById('walkInAppointmentAddress').value.trim(),
+                appointment_date: document.getElementById('walkInAppointmentDate').value,
+                appointment_time: document.getElementById('walkInAppointmentTime').value
+            };
+            if (!payload.appointment_time) {
+                alert('Choose an available appointment time.');
+                return;
+            }
+            button.disabled = true;
+            try {
+                const result = await apiCall('/staff/appointments/walk-in', 'POST', payload);
+                if (!result?.success) {
+                    alert(result?.message || 'Failed to book the walk-in appointment.');
+                    return;
+                }
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInAppointmentModal')).hide();
+                const booked = result.appointment;
+                document.getElementById('walkInAppointmentSuccessDetails').textContent =
+                    booked.customer_name + ' · ' + formatAppointmentDate(booked.appointment_date) + ' at ' + formatAppointmentTime(booked.appointment_time);
+                const qrImage = document.getElementById('walkInAppointmentSuccessQr');
+                qrImage.src = booked.qr_code || '';
+                qrImage.classList.toggle('d-none', !booked.qr_code);
+                window.walkInAppointmentQr = booked.qr_code || '';
+                window.walkInAppointmentQrName = booked.customer_name || 'Walk-in customer';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('walkInAppointmentSuccessModal')).show();
+                clearAppointmentFilters();
+                await loadAllAppointments();
+                updateDashboardStats().catch(() => {});
+                if (document.getElementById('dashboardSection').style.display !== 'none') loadAppointments();
+            } catch (error) {
+                console.error('Walk-in appointment booking failed:', error);
+                alert('Could not book the appointment. Please check the selected date and time.');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function printWalkInAppointmentQr() {
+            if (!window.walkInAppointmentQr) return;
+            const printWindow = window.open('', '_blank', 'width=480,height=640');
+            if (!printWindow) {
+                alert('Allow pop-ups to print this appointment QR code.');
+                return;
+            }
+            const name = escapeStaffOrderText(window.walkInAppointmentQrName || 'Walk-in customer');
+            printWindow.document.write('<!doctype html><html><head><title>Appointment QR</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:32px;color:#18313f}img{width:260px;height:260px}p{margin:8px}</style></head><body><h2>Ortiz Optical</h2><p>Appointment check-in QR</p><img src="' + window.walkInAppointmentQr + '"><p>' + name + '</p></body></html>');
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 500);
+        }
 
         function showAppointmentReceipt(appointmentId) {
             const appointment = staffAppointmentsById.get(Number(appointmentId));
@@ -1675,32 +1932,11 @@
         async function loadAllAppointments() {
             try {
                 const result = await apiCall('/staff/appointments');
-                const tbody = document.getElementById('allAppointmentsTable');
-
-                if (result && result.success && result.appointments && result.appointments.length > 0) {
-                    staffAppointmentsById = new Map(result.appointments.map(appointment => [Number(appointment.appointment_id), appointment]));
-                    tbody.innerHTML = result.appointments.map(apt => `
-                        <tr>
-                            <td>${formatAppointmentDate(apt.appointment_date || 'N/A')}</td>
-                            <td>${apt.Customer?.User?.full_name || 'N/A'}</td>
-                            <td>${apt.service_type || 'N/A'}${apt.right_sph !== null && apt.right_sph !== undefined && apt.left_sph !== null && apt.left_sph !== undefined ? `<div class="mt-1">${getStaffOrderPrescriptionSummary(apt)}</div>` : ''}${renderStaffCustomerFeedback(apt.feedback)}</td>
-                            <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
-                            <td><span class="badge ${getAppointmentStatusClass(apt.status)}">${apt.status || 'Pending'}</span></td>
-                            <td>
-                                <span class="badge ${apt.qr_verified ? 'bg-success' : (apt.status || '').toLowerCase() === 'confirmed' ? 'bg-primary' : (apt.qr_ready ? 'bg-secondary' : 'bg-dark')}">${apt.qr_verified ? 'Verified' : (apt.status || '').toLowerCase() === 'confirmed' ? 'Confirmed' : (apt.qr_ready ? 'QR Ready' : 'No QR')}</span>
-                                <div class="small text-muted mt-2">${getAppointmentQrMessage(apt)}</div>
-                                <div class="action-btns mt-2">
-                                    <button type="button" class="btn btn-sm btn-success" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'confirmed'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Confirm</button>
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="completeAppointment(${apt.appointment_id}, ${apt.service_type === 'Eye Checkup'})" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Complete</button>
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="(function(){ if (typeof event !== 'undefined') { event.preventDefault(); event.stopPropagation(); } updateAppointmentStatus(${apt.appointment_id}, 'cancelled'); })()" ${['completed', 'cancelled'].includes((apt.status || '').toLowerCase()) ? 'disabled' : ''}>Cancel</button>
-                                    ${String(apt.payment_status || '').toLowerCase() === 'paid' && !apt.reservation_order_id ? `<button type="button" class="btn btn-sm btn-outline-success" onclick="showAppointmentReceipt(${apt.appointment_id})"><i class="fas fa-receipt me-1"></i>Receipt</button>` : ''}
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No appointments found.</td></tr>';
-                }
+                if (!result?.success) throw new Error(result?.message || 'Failed to load appointments');
+                allStaffAppointments = result.appointments || [];
+                staffAppointmentsById = new Map(allStaffAppointments.map(appointment => [Number(appointment.appointment_id), appointment]));
+                updateAppointmentOverview();
+                filterAppointments();
             } catch (error) {
                 console.error('All appointments error:', error);
                 document.getElementById('allAppointmentsTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load appointments.</td></tr>';
@@ -2462,6 +2698,77 @@
           <button type="submit" class="btn btn-primary">Save Prescription &amp; Complete</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- On-site appointment booking for customers who walk into the clinic. -->
+<div class="modal fade" id="walkInAppointmentModal" tabindex="-1" aria-labelledby="walkInAppointmentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="walkInAppointmentModalLabel">Book Walk-in Appointment</h5>
+          <div class="small text-muted">Schedule a future eye check-up for a customer at the clinic.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="walkInAppointmentForm" onsubmit="bookWalkInAppointment(event)">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="walkInAppointmentName">Customer name *</label>
+            <input class="form-control" id="walkInAppointmentName" type="text" maxlength="255" autocomplete="name" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label" for="walkInAppointmentPhone">Phone number *</label>
+              <input class="form-control" id="walkInAppointmentPhone" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="walkInAppointmentAddress">Address</label>
+              <input class="form-control" id="walkInAppointmentAddress" type="text" maxlength="255" autocomplete="street-address">
+            </div>
+          </div>
+          <div class="alert alert-info py-2 small">This walk-in booking will be confirmed immediately and receive a QR code for check-in.</div>
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label" for="walkInAppointmentDate">Appointment date *</label>
+              <input class="form-control" id="walkInAppointmentDate" type="date" onchange="loadWalkInAppointmentSlots()" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="walkInAppointmentTime">Available time *</label>
+              <select class="form-select" id="walkInAppointmentTime" required disabled>
+                <option value="">Choose a date first</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-text mt-2" id="walkInAppointmentAvailability" aria-live="polite"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-calendar-check me-1"></i>Confirm Appointment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="walkInAppointmentSuccessModal" tabindex="-1" aria-labelledby="walkInAppointmentSuccessLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center">
+      <div class="modal-header">
+        <h5 class="modal-title" id="walkInAppointmentSuccessLabel">Appointment confirmed</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1" id="walkInAppointmentSuccessDetails"></p>
+        <p class="small text-muted">Show or print this QR code for the customer to use at check-in.</p>
+        <img id="walkInAppointmentSuccessQr" class="img-fluid border rounded-3 p-2" alt="Appointment check-in QR code" style="width:240px;height:240px;object-fit:contain">
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-outline-primary" onclick="printWalkInAppointmentQr()"><i class="fas fa-print me-1"></i>Print QR</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+      </div>
     </div>
   </div>
 </div>

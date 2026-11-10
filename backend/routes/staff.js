@@ -9,6 +9,10 @@ const Customer = require('../models/Customer');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const QRCode = require('../models/QRCode');
+const Schedule = require('../models/Schedule');
+const Holiday = require('../models/Holiday');
+const BlockedSlot = require('../models/BlockedSlot');
+const QrcodeLibrary = require('qrcode');
 const { buildStaffConfirmationUpdate } = require('../utils/appointmentConfirmation');
 const { normalizePrescription } = require('../utils/prescription');
 const { notifyAppointmentUpdate, notifyOrderUpdate, notifyPickupDateDecision } = require('../utils/notificationService');
@@ -25,6 +29,14 @@ const {
   normalizeWalkInClaimCode
 } = require('../utils/walkInClaim');
 const { getManilaToday, getReservationPickupDeadline, isValidPickupDate } = require('../utils/orderPickup');
+const {
+  buildAppointmentSlotList,
+  isAppointmentSlotInPast,
+  isSundayDate,
+  normalizeAppointmentDate: normalizeAvailableAppointmentDate,
+  normalizeAppointmentTime: normalizeAvailableAppointmentTime
+} = require('../utils/appointmentAvailability');
+const { randomUUID, randomBytes } = require('crypto');
 
 function normalizeAppointmentDate(value) {
   if (!value) return '';
@@ -35,6 +47,53 @@ function normalizeAppointmentDate(value) {
 function normalizeAppointmentTime(value) {
   if (!value) return '';
   return String(value).slice(0, 5);
+}
+
+async function findAppointmentSchedule(dateValue) {
+  const date = normalizeAvailableAppointmentDate(dateValue);
+  if (!date) return null;
+  const dateObject = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(dateObject.getTime())) return null;
+  const dayOfWeek = dateObject.toLocaleDateString('en-US', { weekday: 'long' });
+  const dateSchedule = await Schedule.findOne({ where: { schedule_date: date } });
+  if (dateSchedule) return dateSchedule;
+  return Schedule.findOne({ where: { day_of_week: dayOfWeek, is_operational: true } });
+}
+
+async function getWalkInAppointmentSlots(dateValue) {
+  const date = normalizeAvailableAppointmentDate(dateValue);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { slots: [], reason: 'Choose a valid appointment date' };
+  }
+  if (isSundayDate(date)) return { slots: [], reason: 'Ortiz Optical is closed on Sundays' };
+  const holiday = await Holiday.findOne({ where: { holiday_date: date } });
+  if (holiday) return { slots: [], reason: `Holiday: ${holiday.holiday_name}` };
+  const schedule = await findAppointmentSchedule(date);
+  if (!schedule || !schedule.is_operational) return { slots: [], reason: 'Not operational on this date' };
+  const [blockedSlots, existingAppointments] = await Promise.all([
+    BlockedSlot.findAll({ where: { block_date: date } }),
+    Appointment.findAll({
+      where: { appointment_date: date, status: { [Op.ne]: 'cancelled' } },
+      attributes: ['appointment_date', 'appointment_time']
+    })
+  ]);
+  const slots = buildAppointmentSlotList(date, schedule, blockedSlots, existingAppointments);
+  return {
+    slots,
+    reason: slots.some(slot => slot.available) ? null : 'No appointment slots are available for this date'
+  };
+}
+
+function buildStaffAppointmentQrPayload(appointment, customerName) {
+  return JSON.stringify({
+    type: 'appointment',
+    appointment_id: appointment.appointment_id,
+    customer_id: appointment.customer_id,
+    customer_name: customerName,
+    appointment_date: normalizeAppointmentDate(appointment.appointment_date),
+    appointment_time: normalizeAppointmentTime(appointment.appointment_time),
+    service_type: appointment.service_type
+  });
 }
 
 async function attachAppointmentVerificationDetails(appointments) {
@@ -181,6 +240,166 @@ router.get('/appointments', authMiddleware, requireRole('staff'), async (req, re
       success: false,
       message: 'Failed to fetch appointments',
       error: error.message
+    });
+  }
+});
+
+router.get('/appointments/available-slots', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    if (!req.query.date) {
+      return res.status(400).json({ success: false, message: 'Choose an appointment date' });
+    }
+    const availability = await getWalkInAppointmentSlots(req.query.date);
+    res.json({
+      success: true,
+      available: availability.slots.some(slot => slot.available),
+      reason: availability.reason,
+      slots: availability.slots
+    });
+  } catch (error) {
+    console.error('Failed to check staff appointment availability:', error);
+    res.status(500).json({ success: false, message: 'Failed to check appointment availability' });
+  }
+});
+
+router.post('/appointments/walk-in', authMiddleware, requireRole('staff'), async (req, res) => {
+  try {
+    const customerName = normalizeCustomerName(req.body.customer_name);
+    const phone = normalizePhoneNumber(req.body.customer_phone).replace(/^\+/, '');
+    const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+    const appointmentDate = normalizeAvailableAppointmentDate(req.body.appointment_date);
+    const appointmentTime = normalizeAvailableAppointmentTime(req.body.appointment_time);
+
+    if (!customerName || customerName.length > 255) {
+      return res.status(400).json({ success: false, message: 'Enter the walk-in customer name' });
+    }
+    if (!/^\+?\d{7,15}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid phone number (7 to 15 digits)' });
+    }
+    if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate) || !appointmentTime) {
+      return res.status(400).json({ success: false, message: 'Choose a valid appointment date and time' });
+    }
+
+    const dateObject = new Date(`${appointmentDate}T00:00:00Z`);
+    if (Number.isNaN(dateObject.getTime()) || dateObject.toISOString().slice(0, 10) !== appointmentDate) {
+      return res.status(400).json({ success: false, message: 'Choose a valid appointment date' });
+    }
+    const today = getManilaToday();
+    const todayDate = new Date(`${today}T00:00:00Z`);
+    const maxDate = new Date(todayDate);
+    maxDate.setUTCFullYear(maxDate.getUTCFullYear() + 1);
+    if (appointmentDate < today || appointmentDate > maxDate.toISOString().slice(0, 10)) {
+      return res.status(400).json({ success: false, message: 'Appointments can be booked within the next year' });
+    }
+    if (isSundayDate(appointmentDate)) {
+      return res.status(400).json({ success: false, message: 'Ortiz Optical is closed on Sundays' });
+    }
+    if (isAppointmentSlotInPast(appointmentDate, appointmentTime)) {
+      return res.status(400).json({ success: false, message: 'That appointment time has already passed' });
+    }
+
+    const availability = await getWalkInAppointmentSlots(appointmentDate);
+    const requestedSlot = availability.slots.find(slot => slot.start_time === appointmentTime);
+    if (!requestedSlot || !requestedSlot.available) {
+      return res.status(409).json({
+        success: false,
+        message: requestedSlot?.reason === 'Booked'
+          ? 'That appointment time was just booked. Choose another slot.'
+          : (availability.reason || 'That appointment time is unavailable')
+      });
+    }
+
+    let customer = await Customer.findOne({
+      where: { phone: { [Op.in]: [phone, `+${phone}`] } },
+      include: [{ model: User, attributes: ['user_id', 'full_name', 'email', 'phone', 'is_active'] }]
+    });
+    let linkedUser = customer?.User || null;
+    const appointment = await sequelize.transaction(async (transaction) => {
+      if (!customer) {
+        linkedUser = await User.findOne({
+          where: { phone: { [Op.in]: [phone, `+${phone}`] }, role: 'customer' },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (!linkedUser) {
+          linkedUser = await User.create({
+            full_name: customerName,
+            email: `walkin-${randomUUID()}@guest.ortiz.invalid`,
+            password: randomBytes(32).toString('hex'),
+            phone,
+            role: 'customer',
+            is_active: false,
+            approval_status: 'walk-in'
+          }, { transaction });
+        }
+        customer = await Customer.create({
+          user_id: linkedUser.user_id,
+          phone,
+          address: address || null
+        }, { transaction });
+      }
+
+      const duplicate = await Appointment.findOne({
+        where: {
+          [Op.or]: [
+            { appointment_date: appointmentDate, appointment_time: appointmentTime },
+            { appointment_date: appointmentDate, appointment_time: `${appointmentTime}:00` }
+          ],
+          status: { [Op.ne]: 'cancelled' }
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (duplicate) {
+        throw Object.assign(new Error('That appointment time was just booked. Choose another slot.'), { status: 409 });
+      }
+
+      const newAppointment = await Appointment.create({
+        customer_id: customer.customer_id,
+        appointment_date: appointmentDate,
+        appointment_time: appointmentTime,
+        service_type: 'Eye Checkup',
+        status: 'confirmed',
+        notes: 'Walk-in appointment',
+        created_by: req.user.user_id,
+        staff_confirmed: true,
+        staff_confirmed_by: req.user.user_id
+      }, { transaction });
+      const qrData = buildStaffAppointmentQrPayload(newAppointment, linkedUser?.full_name || customerName);
+      await QRCode.create({
+        code_type: 'Appointment',
+        reference_id: newAppointment.appointment_id,
+        qr_code_data: qrData
+      }, { transaction });
+      newAppointment.dataValues.qr_payload = qrData;
+      return newAppointment;
+    });
+
+    const qrCode = await QrcodeLibrary.toDataURL(appointment.dataValues.qr_payload);
+    if (linkedUser?.is_active) {
+      notifyAppointmentUpdate({ user: linkedUser, appointment, action: 'booked at the clinic (confirmed)' })
+        .catch(error => console.error('Walk-in appointment notification failed:', error.message));
+    }
+    res.status(201).json({
+      success: true,
+      message: 'Walk-in appointment booked and confirmed',
+      appointment: {
+        appointment_id: appointment.appointment_id,
+        customer_name: linkedUser?.full_name || customerName,
+        customer_phone: phone,
+        appointment_date: appointmentDate,
+        appointment_time: appointmentTime,
+        service_type: appointment.service_type,
+        status: appointment.status,
+        qr_payload: appointment.dataValues.qr_payload,
+        qr_code: qrCode
+      }
+    });
+  } catch (error) {
+    console.error('Failed to book walk-in appointment:', error);
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to book walk-in appointment'
     });
   }
 });
