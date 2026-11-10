@@ -1271,13 +1271,11 @@
                 .classList.toggle('d-none', !appointment?.reservation_order_id);
             document.getElementById('prescriptionPaymentOptionRow')
                 .classList.remove('d-none');
-            document.getElementById('prescriptionPurchaseSection')
-                .classList.toggle('d-none', Boolean(appointment?.reservation_order_id));
-            document.getElementById('prescriptionPurchaseChoice').value = 'checkup-only';
-            document.getElementById('prescriptionLensPrice').required = Boolean(appointment?.reservation_order_id);
+            document.getElementById('prescriptionPurchaseSection').classList.remove('d-none');
+            document.getElementById('prescriptionLensPrice').required = false;
             document.getElementById('prescriptionCheckupFee').required = true;
             form.querySelectorAll('.prescription-required').forEach(input => {
-                input.required = Boolean(appointment?.reservation_order_id);
+                input.required = false;
             });
             document.getElementById('appointmentPrescriptionModalLabel').textContent = appointment?.reservation_order_id
                 ? 'Prescription, Lens & Payment'
@@ -1288,12 +1286,12 @@
             const paymentHelp = document.getElementById('prescriptionPaymentHelp');
             if (paymentHelp) {
                 paymentHelp.textContent = appointment?.reservation_order_id
-                    ? 'Record payment for the frame, lenses, and check-up. The customer can claim the glasses after production is complete.'
+                    ? 'Choose frame only or frame and lenses, then record the frame and check-up payment.'
                     : 'Record payment for the eye check-up. A receipt will be generated when you complete the appointment.';
             }
 
             form.reset();
-            document.getElementById('prescriptionPurchaseChoice').value = 'checkup-only';
+            document.getElementById('prescriptionPurchaseChoice').value = appointment?.reservation_order_id ? 'frame-and-lenses' : 'checkup-only';
             form.querySelectorAll('.prescription-value').forEach(updatePositivePrescriptionSign);
             document.getElementById('prescriptionAppointmentId').value = appointmentId;
             loadPrescriptionFrameOptions();
@@ -1315,7 +1313,9 @@
             }, 0);
             let totalQuantity = quantity;
             const purchaseChoice = document.getElementById('prescriptionPurchaseChoice')?.value || 'checkup-only';
-            if (!reservation && purchaseChoice === 'frame-and-lenses') {
+            const buyingFrame = ['frame-and-lenses', 'frame-only'].includes(purchaseChoice);
+            const buyingLenses = ['frame-and-lenses', 'lenses-only'].includes(purchaseChoice);
+            if (!reservation && buyingFrame) {
                 const selectedFrame = document.getElementById('prescriptionFrameProduct')?.selectedOptions?.[0];
                 frameTotal = Number(selectedFrame?.dataset.framePrice || 0);
                 totalQuantity = selectedFrame?.value ? 1 : 0;
@@ -1324,7 +1324,7 @@
                 totalQuantity = 1;
             }
             const lensPriceInput = document.getElementById('prescriptionLensPrice');
-            if (lensPriceInput && resetLensPrice) {
+            if (lensPriceInput && resetLensPrice && buyingLenses) {
                 const firstItem = items[0];
                 const selectedFrame = document.getElementById('prescriptionFrameProduct')?.selectedOptions?.[0];
                 const framePrice = reservation
@@ -1335,7 +1335,7 @@
                     : Number(selectedFrame?.dataset[lensOption === 'photochromic' ? 'photochromicPrice' : 'regularLensPrice'] || framePrice);
                 lensPriceInput.value = Math.max(0, configuredTotal - framePrice).toFixed(2);
             }
-            const lensPrice = Number(lensPriceInput?.value || 0);
+            const lensPrice = buyingLenses ? Number(lensPriceInput?.value || 0) : 0;
             const checkupFee = Number(document.getElementById('prescriptionCheckupFee')?.value || 0);
             const total = frameTotal + lensPrice * totalQuantity + checkupFee;
             const amount = document.getElementById('prescriptionPaymentAmount');
@@ -1358,27 +1358,33 @@
 
         function toggleAppointmentPurchaseFields() {
             const purchaseChoice = document.getElementById('prescriptionPurchaseChoice')?.value || 'checkup-only';
-            const buyingFrame = purchaseChoice === 'frame-and-lenses';
-            const buyingLenses = buyingFrame || purchaseChoice === 'lenses-only';
             const hasReservation = Boolean(staffAppointmentsById.get(Number(document.getElementById('prescriptionAppointmentId')?.value))?.reservation_order_id);
+            const buyingFrame = ['frame-and-lenses', 'frame-only'].includes(purchaseChoice);
+            const buyingLenses = ['frame-and-lenses', 'lenses-only'].includes(purchaseChoice);
+            const lensOnlyOption = document.querySelector('#prescriptionPurchaseChoice option[value="lenses-only"]');
+            const checkupOnlyOption = document.querySelector('#prescriptionPurchaseChoice option[value="checkup-only"]');
+            if (lensOnlyOption) lensOnlyOption.disabled = hasReservation;
+            if (checkupOnlyOption) checkupOnlyOption.disabled = hasReservation;
             document.getElementById('prescriptionPurchaseFrameRow').classList.toggle('d-none', !buyingFrame || hasReservation);
             document.getElementById('prescriptionFrameProduct').required = buyingFrame && !hasReservation;
-            document.getElementById('prescriptionLensOptionRow').classList.toggle('d-none', !buyingLenses && !hasReservation);
-            document.getElementById('prescriptionLensPriceRow').classList.toggle('d-none', !buyingLenses && !hasReservation);
-            document.getElementById('prescriptionLensPrice').required = buyingLenses || hasReservation;
+            document.getElementById('prescriptionLensOptionRow').classList.toggle('d-none', !buyingLenses);
+            document.getElementById('prescriptionLensPriceRow').classList.toggle('d-none', !buyingLenses);
+            document.getElementById('prescriptionLensPrice').required = buyingLenses;
             document.querySelectorAll('#appointmentPrescriptionForm .prescription-required').forEach(input => {
-                input.required = buyingLenses || hasReservation;
+                input.required = buyingLenses;
             });
             const paymentHelp = document.getElementById('prescriptionPaymentHelp');
             if (paymentHelp) {
-                paymentHelp.textContent = hasReservation || buyingFrame
+                paymentHelp.textContent = purchaseChoice === 'frame-only'
+                    ? 'Record payment for the frame and eye check-up. No lenses will be added.'
+                    : hasReservation || purchaseChoice === 'frame-and-lenses'
                     ? 'Record payment for the frame, lenses, and check-up. The customer can claim the glasses after production is complete.'
                     : purchaseChoice === 'lenses-only'
                     ? 'Record payment for the customized lenses and check-up. The lens-only sale will appear in the customer account and receipt.'
                     : 'Record payment for the eye check-up. A receipt will be generated when you complete the appointment.';
             }
             const submitButton = document.querySelector('#appointmentPrescriptionForm button[type="submit"]');
-            if (submitButton) submitButton.innerHTML = buyingLenses || hasReservation ? 'Collect Payment &amp; Complete' : 'Collect Check-up Fee &amp; Complete';
+            if (submitButton) submitButton.innerHTML = buyingFrame || buyingLenses ? 'Collect Payment &amp; Complete' : 'Collect Check-up Fee &amp; Complete';
             updateReservationPaymentAmount(true);
         }
 
@@ -1434,9 +1440,10 @@
                 if (checkup_fee !== undefined) payload.checkup_fee = checkup_fee;
                 if (payment_method) payload.payment_method = payment_method;
                 if (purchase_frame !== undefined) {
-                    payload.purchase_frame = purchase_frame === 'frame-and-lenses';
-                    payload.purchase_lens = purchase_frame !== 'checkup-only';
+                    payload.purchase_frame = ['frame-and-lenses', 'frame-only'].includes(purchase_frame);
+                    payload.purchase_lens = ['frame-and-lenses', 'lenses-only'].includes(purchase_frame);
                     payload.lens_only = purchase_frame === 'lenses-only';
+                    payload.frame_only = purchase_frame === 'frame-only';
                 }
                 if (product_id) payload.product_id = product_id;
             }
@@ -2398,6 +2405,7 @@
             <select class="form-select" id="prescriptionPurchaseChoice" name="purchase_frame" onchange="toggleAppointmentPurchaseFields()">
               <option value="checkup-only" selected>Check-up only</option>
               <option value="frame-and-lenses">Frame and lenses</option>
+              <option value="frame-only">Frame only</option>
               <option value="lenses-only">Lenses only</option>
             </select>
           </div>

@@ -390,15 +390,16 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
     }
 
     if (status && status.toLowerCase() === 'completed' && appointment.reservation_order_id) {
-      const lensOption = req.body.lens_option || 'regular-lens';
-      if (!['regular-lens', 'photochromic'].includes(lensOption)) {
+      const frameOnlySale = req.body.frame_only === true || req.body.frame_only === 'true';
+      const lensOption = frameOnlySale ? 'frame-only' : (req.body.lens_option || 'regular-lens');
+      if (!frameOnlySale && !['regular-lens', 'photochromic'].includes(lensOption)) {
         return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
       }
       const paymentMethod = req.body.payment_method || 'Cash';
       if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
         return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
       }
-      const lensPrice = Number(req.body.lens_price);
+      const lensPrice = frameOnlySale ? 0 : Number(req.body.lens_price);
       if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
         return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
       }
@@ -410,13 +411,14 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         return res.status(400).json({ success: false, message: 'Enter a valid checkup fee of zero or more' });
       }
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
-      if (error) {
+      if (error && !frameOnlySale) {
         return res.status(400).json({
           success: false,
           message: 'A complete prescription is required to complete this reserved-frame checkup'
         });
       }
-      Object.assign(updates, prescription);
+      if (prescription) Object.assign(updates, prescription);
+      const savedPrescription = error ? {} : prescription;
 
       await sequelize.transaction(async (transaction) => {
         await appointment.update(updates, { transaction });
@@ -449,7 +451,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         const discountType = ['senior', 'pwd'].includes(reservedOrder.discount_type) ? reservedOrder.discount_type : null;
         const discountAmount = discountType ? Number((itemSubtotal * 0.2).toFixed(2)) : 0;
         await reservedOrder.update({
-          ...prescription,
+          ...savedPrescription,
           order_date: new Date(),
           updated_at: new Date(),
           prescription_appointment_id: appointment.appointment_id,
@@ -460,8 +462,10 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           payment_method: paymentMethod,
           checkup_fee: Number(checkupFee.toFixed(2)),
           reservation_only: false,
-          status: 'processing',
-          notes: `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
+          status: frameOnlySale ? 'ready for pickup' : 'processing',
+          notes: frameOnlySale
+            ? `Reserved frame and eye check-up completed for appointment #${appointment.appointment_id}; customer purchased no lenses.`
+            : `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
         }, { transaction });
         const existingOrderQr = await QRCode.findOne({
           where: { code_type: 'Order', reference_id: reservedOrder.order_id },
@@ -482,24 +486,26 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         completedReservationOrder = reservedOrder;
       });
     } else if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup' && req.body.purchase_frame) {
+      const frameOnlySale = req.body.frame_only === true || req.body.frame_only === 'true';
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
-      if (error) {
+      if (error && !frameOnlySale) {
         return res.status(400).json({ success: false, message: 'A complete prescription is required when the customer purchases frames and lenses' });
       }
+      const savedPrescription = error ? {} : prescription;
       const productId = Number(req.body.product_id);
-      const lensPrice = Number(req.body.lens_price);
-      const lensOption = req.body.lens_option || 'regular-lens';
+      const lensPrice = frameOnlySale ? 0 : Number(req.body.lens_price);
+      const lensOption = frameOnlySale ? 'frame-only' : (req.body.lens_option || 'regular-lens');
       if (!Number.isInteger(productId) || productId < 1) {
         return res.status(400).json({ success: false, message: 'Choose a frame for the customer order' });
       }
       if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
         return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
       }
-      if (!['regular-lens', 'photochromic'].includes(lensOption)) {
+      if (!frameOnlySale && !['regular-lens', 'photochromic'].includes(lensOption)) {
         return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
       }
 
-      Object.assign(updates, prescription);
+      if (savedPrescription) Object.assign(updates, savedPrescription);
       const createdOrderId = await sequelize.transaction(async (transaction) => {
         const product = await Product.findByPk(productId, { transaction, lock: transaction.LOCK.UPDATE });
         if (!product || !product.is_active) {
@@ -514,7 +520,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         await appointment.update(updates, { transaction });
         const order = await Order.create({
           customer_id: appointment.customer_id,
-          ...prescription,
+          ...savedPrescription,
           prescription_appointment_id: appointment.appointment_id,
           total_amount: totalAmount,
           discount_amount: 0,
@@ -525,8 +531,10 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           delivery_address: null,
           is_walk_in: false,
           reservation_only: false,
-          status: 'processing',
-          notes: `Frame and customized lenses ordered after eye checkup #${appointment.appointment_id}`
+          status: frameOnlySale ? 'ready for pickup' : 'processing',
+          notes: frameOnlySale
+            ? `Frame-only sale completed after eye checkup #${appointment.appointment_id}; frame is ready for QR-verified pickup.`
+            : `Frame and customized lenses ordered after eye checkup #${appointment.appointment_id}`
         }, { transaction });
         await OrderItem.create({
           order_id: order.order_id,
@@ -538,6 +546,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           subtotal: itemPrice,
           lens_option: lensOption
         }, { transaction });
+        await product.update({ stock_quantity: Number(product.stock_quantity || 0) - 1 }, { transaction });
         await createOrderQrCode(order, { transaction });
         return order.order_id;
       });
@@ -619,7 +628,7 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       });
       if (customerRecord && customerRecord.User) {
         if (completedReservationOrder) {
-          notifyOrderUpdate({ user: customerRecord.User, order: completedReservationOrder, status: 'processing' })
+          notifyOrderUpdate({ user: customerRecord.User, order: completedReservationOrder, status: completedReservationOrder.status || 'processing' })
             .catch(e => console.error(e));
         }
         notifyAppointmentUpdate({
@@ -637,6 +646,8 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       message: completedReservationOrder
         ? completedReservationOrder.lens_only
           ? 'Checkup completed. Lens-only sale, prescription, payment, QR, and receipt are saved to the customer account.'
+          : (completedReservationOrder.OrderItems || []).length > 0 && (completedReservationOrder.OrderItems || []).every(item => item.lens_option === 'frame-only')
+          ? 'Checkup completed. Frame-only sale, payment, QR, and receipt are saved to the customer account.'
           : appointment.reservation_order_id
           ? 'Checkup completed. The reserved frame and prescription are saved as an order for lens customization.'
           : 'Checkup completed. The frame, customized lenses, prescription, payment, and receipt are saved to the customer order.'
