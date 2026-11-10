@@ -1315,7 +1315,13 @@
             const purchaseChoice = document.getElementById('prescriptionPurchaseChoice')?.value || 'checkup-only';
             const buyingFrame = ['frame-and-lenses', 'frame-only'].includes(purchaseChoice);
             const buyingLenses = ['frame-and-lenses', 'lenses-only'].includes(purchaseChoice);
-            if (!reservation && buyingFrame) {
+            if (reservation && purchaseChoice === 'checkup-only') {
+                frameTotal = 0;
+                totalQuantity = 0;
+            } else if (reservation && purchaseChoice === 'lenses-only') {
+                frameTotal = 0;
+                totalQuantity = 1;
+            } else if (!reservation && buyingFrame) {
                 const selectedFrame = document.getElementById('prescriptionFrameProduct')?.selectedOptions?.[0];
                 frameTotal = Number(selectedFrame?.dataset.framePrice || 0);
                 totalQuantity = selectedFrame?.value ? 1 : 0;
@@ -1361,10 +1367,6 @@
             const hasReservation = Boolean(staffAppointmentsById.get(Number(document.getElementById('prescriptionAppointmentId')?.value))?.reservation_order_id);
             const buyingFrame = ['frame-and-lenses', 'frame-only'].includes(purchaseChoice);
             const buyingLenses = ['frame-and-lenses', 'lenses-only'].includes(purchaseChoice);
-            const lensOnlyOption = document.querySelector('#prescriptionPurchaseChoice option[value="lenses-only"]');
-            const checkupOnlyOption = document.querySelector('#prescriptionPurchaseChoice option[value="checkup-only"]');
-            if (lensOnlyOption) lensOnlyOption.disabled = hasReservation;
-            if (checkupOnlyOption) checkupOnlyOption.disabled = hasReservation;
             document.getElementById('prescriptionPurchaseFrameRow').classList.toggle('d-none', !buyingFrame || hasReservation);
             document.getElementById('prescriptionFrameProduct').required = buyingFrame && !hasReservation;
             document.getElementById('prescriptionLensOptionRow').classList.toggle('d-none', !buyingLenses);

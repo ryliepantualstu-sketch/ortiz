@@ -391,16 +391,19 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
 
     if (status && status.toLowerCase() === 'completed' && appointment.reservation_order_id) {
       const frameOnlySale = req.body.frame_only === true || req.body.frame_only === 'true';
+      const lensOnlySale = req.body.lens_only === true || req.body.lens_only === 'true';
+      const checkupOnlySale = !frameOnlySale && !lensOnlySale && !req.body.purchase_frame;
+      const buyingLenses = !frameOnlySale && !checkupOnlySale;
       const lensOption = frameOnlySale ? 'frame-only' : (req.body.lens_option || 'regular-lens');
-      if (!frameOnlySale && !['regular-lens', 'photochromic'].includes(lensOption)) {
+      if (buyingLenses && !['regular-lens', 'photochromic'].includes(lensOption)) {
         return res.status(400).json({ success: false, message: 'Choose a valid lens customization' });
       }
       const paymentMethod = req.body.payment_method || 'Cash';
       if (!['Cash', 'Card', 'Online'].includes(paymentMethod)) {
         return res.status(400).json({ success: false, message: 'Choose a valid payment method' });
       }
-      const lensPrice = frameOnlySale ? 0 : Number(req.body.lens_price);
-      if (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000) {
+      const lensPrice = buyingLenses ? Number(req.body.lens_price) : 0;
+      if (buyingLenses && (!Number.isFinite(lensPrice) || lensPrice < 0 || lensPrice >= 100000000)) {
         return res.status(400).json({ success: false, message: 'Enter a valid lens price of zero or more' });
       }
       if (req.body.checkup_fee === undefined || String(req.body.checkup_fee).trim() === '') {
@@ -410,14 +413,24 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
       if (!Number.isFinite(checkupFee) || checkupFee < 0 || checkupFee >= 100000000) {
         return res.status(400).json({ success: false, message: 'Enter a valid checkup fee of zero or more' });
       }
-      const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
-      if (error && !frameOnlySale) {
+      updates.checkup_fee = Number(checkupFee.toFixed(2));
+      updates.payment_status = 'Paid';
+      updates.payment_method = paymentMethod;
+      updates.updated_at = new Date();
+      const rawPrescription = { ...appointment.toJSON(), ...updates };
+      const hasPrescriptionValues = ['right_sph', 'right_cyl', 'right_axis', 'left_sph', 'left_cyl', 'left_axis']
+        .some(key => rawPrescription[key] !== undefined && rawPrescription[key] !== null && String(rawPrescription[key]).trim() !== '');
+      const normalizedPrescription = buyingLenses || hasPrescriptionValues
+        ? normalizePrescription(rawPrescription)
+        : { prescription: {}, error: null };
+      const { prescription, error } = normalizedPrescription;
+      if (error && buyingLenses) {
         return res.status(400).json({
           success: false,
           message: 'A complete prescription is required to complete this reserved-frame checkup'
         });
       }
-      if (prescription) Object.assign(updates, prescription);
+      if (!error && prescription) Object.assign(updates, prescription);
       const savedPrescription = error ? {} : prescription;
 
       await sequelize.transaction(async (transaction) => {
@@ -438,53 +451,122 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
         if (!items.length || items.some((item) => !item.Product)) {
           throw Object.assign(new Error('The reserved frame item could not be found'), { status: 409 });
         }
-        let totalAmount = checkupFee;
-        let itemSubtotal = 0;
-        for (const item of items) {
-          const framePrice = Number(item.frame_price ?? item.Product.frame_only_price ?? item.Product.price ?? 0);
-          const price = Number((framePrice + lensPrice).toFixed(2));
-          const subtotal = Number((price * Number(item.quantity || 0)).toFixed(2));
-          totalAmount += subtotal;
-          itemSubtotal += subtotal;
-          await item.update({ frame_price: framePrice, lens_price: lensPrice, price, subtotal, lens_option: lensOption }, { transaction });
-        }
-        const discountType = ['senior', 'pwd'].includes(reservedOrder.discount_type) ? reservedOrder.discount_type : null;
-        const discountAmount = discountType ? Number((itemSubtotal * 0.2).toFixed(2)) : 0;
-        await reservedOrder.update({
-          ...savedPrescription,
-          order_date: new Date(),
-          updated_at: new Date(),
-          prescription_appointment_id: appointment.appointment_id,
-          total_amount: Number((totalAmount - discountAmount).toFixed(2)),
-          discount_type: discountType,
-          discount_amount: discountAmount,
-          payment_status: 'Paid',
-          payment_method: paymentMethod,
-          checkup_fee: Number(checkupFee.toFixed(2)),
-          reservation_only: false,
-          status: frameOnlySale ? 'ready for pickup' : 'processing',
-          notes: frameOnlySale
-            ? `Reserved frame and eye check-up completed for appointment #${appointment.appointment_id}; customer purchased no lenses.`
-            : `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
-        }, { transaction });
-        const existingOrderQr = await QRCode.findOne({
-          where: { code_type: 'Order', reference_id: reservedOrder.order_id },
-          transaction,
-          lock: transaction.LOCK.UPDATE
-        });
-        if (existingOrderQr) {
-          await existingOrderQr.update({
-            qr_code_data: buildOrderQrPayload(reservedOrder),
-            is_used: false,
-            scanned_at: null,
-            scanned_by: null,
-            expired_at: null
+        if (checkupOnlySale || lensOnlySale) {
+          for (const item of items) {
+            const product = await Product.findByPk(item.product_id, {
+              transaction,
+              lock: transaction.LOCK.UPDATE
+            });
+            if (!product) {
+              throw Object.assign(new Error('The reserved frame product could not be returned to stock'), { status: 409 });
+            }
+            await product.update({
+              stock_quantity: Number(product.stock_quantity || 0) + Number(item.quantity || 0)
+            }, { transaction });
+          }
+          await reservedOrder.update({
+            reservation_only: false,
+            status: 'cancelled',
+            notes: checkupOnlySale
+              ? 'Customer completed the eye check-up but chose not to purchase the reserved frame.'
+              : 'Customer completed the eye check-up and chose a lens-only purchase; reserved frame returned to stock.'
           }, { transaction });
+          const reservationQr = await QRCode.findOne({
+            where: { code_type: 'Order', reference_id: reservedOrder.order_id },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+          });
+          if (reservationQr) await reservationQr.update({ is_used: true, expired_at: new Date() }, { transaction });
+
+          if (lensOnlySale) {
+            const lensOrder = await Order.create({
+              customer_id: appointment.customer_id,
+              ...savedPrescription,
+              prescription_appointment_id: appointment.appointment_id,
+              total_amount: Number((lensPrice + checkupFee).toFixed(2)),
+              discount_amount: 0,
+              payment_status: 'Paid',
+              payment_method: paymentMethod,
+              checkup_fee: Number(checkupFee.toFixed(2)),
+              lens_only: true,
+              lens_price: Number(lensPrice.toFixed(2)),
+              lens_option: lensOption,
+              customer_name: null,
+              delivery_address: null,
+              is_walk_in: false,
+              reservation_only: false,
+              status: 'processing',
+              notes: `Lens-only sale after eye checkup #${appointment.appointment_id}; reserved frame returned to stock.`
+            }, { transaction });
+            await createOrderQrCode(lensOrder, { transaction });
+            completedReservationOrder = lensOrder;
+          }
         } else {
-          await createOrderQrCode(reservedOrder, { transaction });
+          let totalAmount = checkupFee;
+          let itemSubtotal = 0;
+          for (const item of items) {
+            const framePrice = Number(item.frame_price ?? item.Product.frame_only_price ?? item.Product.price ?? 0);
+            const price = Number((framePrice + lensPrice).toFixed(2));
+            const subtotal = Number((price * Number(item.quantity || 0)).toFixed(2));
+            totalAmount += subtotal;
+            itemSubtotal += subtotal;
+            await item.update({ frame_price: framePrice, lens_price: lensPrice, price, subtotal, lens_option: lensOption }, { transaction });
+          }
+          const discountType = ['senior', 'pwd'].includes(reservedOrder.discount_type) ? reservedOrder.discount_type : null;
+          const discountAmount = discountType ? Number((itemSubtotal * 0.2).toFixed(2)) : 0;
+          await reservedOrder.update({
+            ...savedPrescription,
+            order_date: new Date(),
+            updated_at: new Date(),
+            prescription_appointment_id: appointment.appointment_id,
+            total_amount: Number((totalAmount - discountAmount).toFixed(2)),
+            discount_type: discountType,
+            discount_amount: discountAmount,
+            payment_status: 'Paid',
+            payment_method: paymentMethod,
+            checkup_fee: Number(checkupFee.toFixed(2)),
+            reservation_only: false,
+            status: frameOnlySale ? 'ready for pickup' : 'processing',
+            notes: frameOnlySale
+              ? `Reserved frame and eye check-up completed for appointment #${appointment.appointment_id}; customer purchased no lenses.`
+              : `Frame reserved by customer; prescription recorded after eye checkup #${appointment.appointment_id}. Lenses are being customized.`
+          }, { transaction });
+          const existingOrderQr = await QRCode.findOne({
+            where: { code_type: 'Order', reference_id: reservedOrder.order_id },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+          });
+          if (existingOrderQr) {
+            await existingOrderQr.update({
+              qr_code_data: buildOrderQrPayload(reservedOrder),
+              is_used: false,
+              scanned_at: null,
+              scanned_by: null,
+              expired_at: null
+            }, { transaction });
+          } else {
+            await createOrderQrCode(reservedOrder, { transaction });
+          }
+          completedReservationOrder = reservedOrder;
         }
-        completedReservationOrder = reservedOrder;
       });
+      if (checkupOnlySale) {
+        const customerRecord = await Customer.findByPk(appointment.customer_id, {
+          include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }]
+        });
+        appointmentReceipt = {
+          order_id: `APT-${appointment.appointment_id}`,
+          appointment_id: appointment.appointment_id,
+          customer_name: customerRecord?.User?.full_name || '',
+          Customer: customerRecord,
+          created_at: new Date(),
+          total_amount: updates.checkup_fee,
+          checkup_fee: updates.checkup_fee,
+          payment_status: 'Paid',
+          payment_method: updates.payment_method,
+          OrderItems: []
+        };
+      }
     } else if (status && status.toLowerCase() === 'completed' && !appointment.reservation_order_id && appointment.service_type.toLowerCase() === 'eye checkup' && req.body.purchase_frame) {
       const frameOnlySale = req.body.frame_only === true || req.body.frame_only === 'true';
       const { prescription, error } = normalizePrescription({ ...appointment.toJSON(), ...updates });
@@ -651,7 +733,9 @@ router.put('/appointments/:id', authMiddleware, requireRole('staff'), async (req
           : appointment.reservation_order_id
           ? 'Checkup completed. The reserved frame and prescription are saved as an order for lens customization.'
           : 'Checkup completed. The frame, customized lenses, prescription, payment, and receipt are saved to the customer order.'
-        : 'Appointment updated successfully',
+        : appointmentReceipt
+          ? 'Checkup completed. The reserved frame was released, and the appointment fee and receipt were saved.'
+          : 'Appointment updated successfully',
       appointment,
       order: completedReservationOrder,
       appointmentReceipt
