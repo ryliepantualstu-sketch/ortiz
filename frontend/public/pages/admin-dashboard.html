@@ -4383,16 +4383,61 @@ This will deactivate the account and keep the user record for history.`)) {
                     ? date.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
                     : 'Not specified';
             };
+            const formatPrintDateTime = value => {
+                const date = value ? new Date(value) : null;
+                return date && !Number.isNaN(date.getTime())
+                    ? date.toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                    : 'Not specified';
+            };
             const summary = report.summary || {};
-            const summaryHtml = Object.entries(summary).filter(([key]) => key !== 'data').map(([key, value]) => {
-                const displayValue = value && typeof value === 'object'
-                    ? JSON.stringify(value)
-                    : value;
-                if (value && typeof value === 'object' && !Array.isArray(value)) {
-                    return `<li><strong>${escapePrintHtml(key)}:</strong> ${escapePrintHtml(displayValue)}</li>`;
-                }
-                return `<li><strong>${escapePrintHtml(key)}:</strong> ${escapePrintHtml(displayValue)}</li>`;
-            }).join('');
+            const summaryLabels = {
+                total_orders: 'Paid sales transactions',
+                paid_orders: 'Paid frame and lens orders',
+                paid_standalone_checkups: 'Paid check-up-only visits',
+                total_sales: 'Total collected sales',
+                excluded_unpaid_and_refunded: 'Sales calculation',
+                total_products: 'Active products',
+                low_stock_count: 'Frames low in stock',
+                out_of_stock_count: 'Frames out of stock',
+                total_units: 'Frames currently in stock',
+                total_value: 'Current inventory value',
+                total_appointments: 'Total appointments',
+                completed: 'Completed appointments',
+                confirmed: 'Confirmed appointments',
+                pending: 'Pending appointments',
+                cancelled: 'Cancelled appointments',
+                paid_checkup_fees: 'Collected check-up fees',
+                total_customers: 'Registered customers',
+                total_revenue: 'Revenue from paid orders',
+                by_category: 'Products by category'
+            };
+            const moneySummaryKeys = new Set(['total_sales', 'total_value', 'paid_checkup_fees', 'total_revenue']);
+            const summaryHtml = Object.entries(summary)
+                .filter(([key]) => !['data', 'type', 'scope'].includes(key))
+                .map(([key, value]) => {
+                    let displayValue = value;
+                    if (key === 'excluded_unpaid_and_refunded') {
+                        displayValue = value ? 'Only paid transactions are counted; unpaid and refunded records are excluded.' : 'All transaction statuses are included.';
+                    } else if (moneySummaryKeys.has(key)) {
+                        displayValue = `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    } else if (key === 'by_category' && value && typeof value === 'object') {
+                        displayValue = Object.entries(value).map(([category, count]) => `${category}: ${count}`).join(' · ') || 'No products recorded';
+                    } else if (typeof value === 'number') {
+                        displayValue = value.toLocaleString('en-PH');
+                    }
+                    return `<div class="summary-card ${key === 'excluded_unpaid_and_refunded' ? 'summary-note' : ''}"><div class="summary-label">${escapePrintHtml(summaryLabels[key] || key.replace(/_/g, ' '))}</div><div class="summary-value">${escapePrintHtml(displayValue)}</div></div>`;
+                }).join('');
+
+            const dataHeaders = {
+                order_id: 'Transaction ID', total_amount: 'Amount paid', status: 'Order status', order_date: 'Date and time',
+                appointment_id: 'Appointment ID', appointment_date: 'Appointment date', appointment_time: 'Appointment time',
+                payment_status: 'Payment status', payment_method: 'Payment method', checkup_fee: 'Check-up fee',
+                product_id: 'Frame ID', product_name: 'Frame name', category: 'Category', color_name: 'Color',
+                stock_quantity: 'Stock available', min_stock_level: 'Low-stock alert level', price: 'Frame price',
+                frame_only_price: 'Frame price', is_active: 'Availability', created_at: 'Date added',
+                customer_id: 'Customer ID', user_id: 'Account ID', full_name: 'Customer name', email: 'Email', phone: 'Phone',
+                total_revenue: 'Paid order revenue', OrderItems: 'Items / services', Customer: 'Customer'
+            };
 
             let dataHtml = '';
             const data = Array.isArray(summary.data) ? summary.data : [];
@@ -4402,13 +4447,20 @@ This will deactivate the account and keep the user record for history.`)) {
                     <table class="report-data">
                         <thead>
                             <tr>
-                                ${headers.map(header => `<th>${escapePrintHtml(header === 'OrderItems' ? 'Purchased Glasses' : header)}</th>`).join('')}
+                                ${headers.map(header => `<th>${escapePrintHtml(dataHeaders[header] || header.replace(/_/g, ' '))}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
                             ${data.map(item => `
                                 <tr>
-                                    ${headers.map(header => `<td>${escapePrintHtml(formatReportCellValue(item?.[header]))}</td>`).join('')}
+                                    ${headers.map(header => {
+                                        const value = item?.[header];
+                                        if (['order_date', 'appointment_date', 'created_at'].includes(header)) return `<td>${escapePrintHtml(formatPrintDateTime(value))}</td>`;
+                                        if (header === 'total_amount' || header === 'checkup_fee' || header === 'price' || header === 'frame_only_price') return `<td>₱${escapePrintHtml(Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</td>`;
+                                        if (header === 'status' || header === 'payment_status') return `<td>${escapePrintHtml(String(value || '—').replace(/\b\w/g, char => char.toUpperCase()))}</td>`;
+                                        if (header === 'is_active') return `<td>${value ? 'Active' : 'Inactive'}</td>`;
+                                        return `<td>${escapePrintHtml(formatReportCellValue(value))}</td>`;
+                                    }).join('')}
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -4437,7 +4489,12 @@ This will deactivate the account and keep the user record for history.`)) {
                             h2 { border-bottom: 1px solid #d1d5db; color: #17365d; font-size: 14px; margin: 22px 0 10px; padding-bottom: 6px; }
                             .meta { background: #f3f6fa; border: 1px solid #dbe2ea; border-radius: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; padding: 12px 14px; }
                             .meta p { margin: 0; }
-                            ul { line-height: 1.7; padding-left: 20px; }
+                            .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+                            .summary-card { border: 1px solid #dbe2ea; border-radius: 6px; background: #f8fafc; padding: 10px 12px; min-height: 62px; }
+                            .summary-label { color: #53657d; font-size: 10px; margin-bottom: 5px; }
+                            .summary-value { color: #17365d; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+                            .summary-note { grid-column: 1 / -1; min-height: auto; }
+                            .summary-note .summary-value { font-size: 11px; font-weight: 400; }
                             .report-data { border-collapse: collapse; font-size: 10px; margin-top: 18px; width: 100%; }
                             .report-data th, .report-data td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
                             .report-data th { background: #eaf0f6; color: #17365d; }
@@ -4464,7 +4521,7 @@ This will deactivate the account and keep the user record for history.`)) {
                             <p><strong>Document Status:</strong> ${escapePrintHtml(report.status || 'Generated')}</p>
                         </div>
                         <h2>Summary</h2>
-                        <ul>${summaryHtml || '<li>No summary available</li>'}</ul>
+                        <div class="summary-grid">${summaryHtml || '<div class="summary-card">No summary available</div>'}</div>
                         ${dataHtml}
                         <div class="signatures">
                             <div class="signature">
