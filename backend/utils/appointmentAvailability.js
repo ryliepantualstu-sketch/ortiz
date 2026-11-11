@@ -59,15 +59,38 @@ function parseTimeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
-function isAppointmentSlotInPast(date, time, now = new Date()) {
+function isAppointmentSlotInPast(date, time, now) {
   const appointmentDate = normalizeAppointmentDate(date);
   const appointmentMinutes = parseTimeToMinutes(time);
-  if (!appointmentDate || appointmentMinutes === null || Number.isNaN(now.getTime())) {
+  const currentTime = now || new Date();
+  if (!appointmentDate || appointmentMinutes === null || Number.isNaN(currentTime.getTime())) {
     return false;
   }
 
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return appointmentDate === today && appointmentMinutes <= (now.getHours() * 60) + now.getMinutes();
+  // Production servers may run in UTC. Appointment dates and times are for
+  // the clinic in the Philippines, so use Manila's wall clock for live checks.
+  // Explicit `now` is kept in local time for deterministic callers/tests.
+  let today;
+  let currentMinutes;
+  if (now) {
+    today = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
+    currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  } else {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(currentTime);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    today = `${values.year}-${values.month}-${values.day}`;
+    currentMinutes = Number(values.hour) * 60 + Number(values.minute);
+  }
+
+  return appointmentDate === today && appointmentMinutes <= currentMinutes;
 }
 
 function formatMinutesToTime(totalMinutes) {
