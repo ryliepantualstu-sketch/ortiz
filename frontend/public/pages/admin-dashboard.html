@@ -603,6 +603,30 @@
         #productForm .form-control { border-radius:10px; }
         @media(max-width:575.98px) { #productForm { grid-template-columns:1fr; } #productForm > .mb-3, #productForm > button { grid-column:1/-1; } #productModal .modal-body { padding:17px; } }
         @media(max-width:767.98px) { .product-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .product-management-hero .btn { width:100%; } .product-toolbar .form-select { flex:1 1 140px; } }
+        #adminOrderDetailModal { padding:0 !important; }
+        #adminOrderDetailModal .modal-dialog { width:calc(100% - 32px); max-width:860px !important; margin:1.75rem auto !important; }
+        #adminOrderDetailModal .modal-content { border:0; border-radius:18px; overflow:hidden; box-shadow:0 24px 70px rgba(15,42,67,.24); }
+        #adminOrderDetailModal .modal-header { padding:18px 24px; color:#fff; background:linear-gradient(120deg,#102a43,#155e75); border:0; }
+        #adminOrderDetailModal .modal-title { color:#fff; font-size:1.15rem; font-weight:800; }
+        #adminOrderDetailModal .modal-header .btn-close { filter:invert(1); }
+        #adminOrderDetailModal .modal-body { max-height:min(68vh,680px); padding:22px 24px; background:#f5f8fb; }
+        #adminOrderDetailModal .modal-footer { padding:14px 24px; background:#fff; }
+        .admin-order-detail { color:#334155; }
+        .admin-order-detail-hero { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:16px; padding:17px 19px; border:1px solid #dce7ef; border-radius:14px; background:#fff; }
+        .admin-order-detail-hero h4 { margin:0 0 4px; color:#102a43; font-weight:850; }
+        .admin-order-detail-hero p { margin:0; color:#64748b; }
+        .admin-order-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; margin-bottom:16px; }
+        .admin-order-detail-card { min-width:0; padding:13px 15px; border:1px solid #e1e9f0; border-radius:12px; background:#fff; }
+        .admin-order-detail-card span { display:block; margin-bottom:4px; color:#64748b; font-size:.76rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+        .admin-order-detail-card strong { color:#18364d; overflow-wrap:anywhere; }
+        .admin-order-detail-section { margin-bottom:15px; padding:16px; border:1px solid #e1e9f0; border-radius:14px; background:#fff; }
+        .admin-order-detail-section h6 { margin:0 0 12px; color:#18364d; font-weight:800; }
+        .admin-order-detail-items { margin:0; }
+        .admin-order-detail-items thead th { color:#64748b; font-size:.74rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+        .admin-order-detail-items td { vertical-align:middle; }
+        .admin-order-detail-total { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:12px; border-top:1px solid #e2e8f0; color:#102a43; font-size:1.1rem; font-weight:850; }
+        .admin-order-detail-note { margin:0; padding:12px 14px; border-radius:10px; color:#475569; background:#f8fafc; white-space:pre-wrap; overflow-wrap:anywhere; }
+        @media(max-width:575.98px) { #adminOrderDetailModal .modal-dialog { width:calc(100% - 16px); margin:8px auto !important; } #adminOrderDetailModal .modal-body { padding:14px; } #adminOrderDetailModal .modal-header, #adminOrderDetailModal .modal-footer { padding:14px 16px; } .admin-order-detail-hero { flex-direction:column; padding:14px; } .admin-order-detail-grid { grid-template-columns:1fr; gap:8px; } .admin-order-detail-section { padding:12px; } }
         @media (max-width: 767.98px) { .inventory-hero { align-items:flex-start; flex-direction:column; padding:19px; } .inventory-hero .inventory-actions { width:100%; display:flex; } .inventory-hero .inventory-actions .btn { flex:1; } .inventory-toolbar .form-select { flex:1 1 130px; } }
 
         .table-responsive {
@@ -3219,46 +3243,90 @@ This will deactivate the account and keep the user record for history.`)) {
         async function viewAdminOrder(orderId) {
             if (!orderId) return;
             const modalEl = document.getElementById('adminOrderDetailModal');
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             const body = document.getElementById('adminOrderDetailBody');
-            body.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading order...</p>';
+            const receiptButton = document.getElementById('adminOrderReceiptButton');
+            body.innerHTML = '<p class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading reservation details...</p>';
+            receiptButton.classList.add('d-none');
+            window.currentReceiptOrder = null;
             modal.show();
+
             try {
                 const result = await apiCall(`/admin/orders/${orderId}`);
-                if (!result || !result.success) {
-                    body.innerHTML = `<p class="text-center text-danger">${result?.message || 'Failed to load order.'}</p>`;
+                if (!result?.success || !result.order) {
+                    body.innerHTML = `<div class="alert alert-danger mb-0">${escapeAdminOrderText(result?.message || 'Failed to load reservation details.')}</div>`;
                     return;
                 }
+
                 const order = result.order;
+                const items = Array.isArray(order.OrderItems) ? order.OrderItems : [];
+                const customerName = order.customer_name || (order.is_walk_in ? 'Walk-in customer' : order.Customer?.User?.full_name || 'Customer');
+                const status = String(order.status || 'Pending');
+                const orderDate = order.order_date || order.created_at;
+                const placedAt = orderDate
+                    ? new Date(orderDate).toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+                    : 'Not recorded';
+                const pickupDate = order.pickup_date
+                    ? new Date(`${String(order.pickup_date).slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+                    : '';
+                const isPaid = String(order.payment_status || '').toLowerCase() === 'paid';
                 window.currentReceiptOrder = order;
-                const items = order.OrderItems || [];
+                receiptButton.classList.toggle('d-none', !isPaid);
+
+                const reservationType = order.is_walk_in
+                    ? 'Walk-in sale'
+                    : order.lens_only
+                        ? 'Lens-only reservation'
+                        : order.reservation_only
+                            ? 'Frame reservation'
+                            : 'Customer order';
+                const itemRows = items.length ? items.map((item) => {
+                    const quantity = Number(item.quantity || 0);
+                    const price = Number(item.price || 0);
+                    const subtotal = Number(item.subtotal ?? price * quantity);
+                    const name = item.Product?.product_name || item.product_name || (quantity === 0 ? 'Eye check-up' : 'Frame');
+                    const lensOption = item.lens_option ? `<div class="small text-muted">${escapeAdminOrderText(String(item.lens_option).replace(/-/g, ' '))}</div>` : '';
+                    return `<tr><td><div class="fw-bold text-dark">${escapeAdminOrderText(name)}</div>${lensOption}</td><td class="text-center">${quantity}</td><td class="text-end text-nowrap">${formatAdminPeso(price)}</td><td class="text-end text-nowrap fw-semibold">${formatAdminPeso(subtotal)}</td></tr>`;
+                }).join('') : '<tr><td colspan="4" class="text-center text-muted py-4">No item details were saved for this reservation.</td></tr>';
+
+                const checkupFee = Number(order.checkup_fee ?? order.eye_checkup_fee ?? 0);
+                const itemsSubtotal = items.reduce((sum, item) => sum + Number(item.subtotal ?? Number(item.price || 0) * Number(item.quantity || 0)), 0);
+                const checkupSummary = checkupFee > 0
+                    ? `<div class="small text-muted d-flex justify-content-between mb-2"><span>Items</span><span>${formatAdminPeso(itemsSubtotal)}</span></div><div class="small text-muted d-flex justify-content-between mb-3"><span>Eye check-up fee</span><span>${formatAdminPeso(checkupFee)}</span></div>`
+                    : '';
+                const discountAmount = Number(order.discount_amount || 0);
+                const feedbackSection = order.feedback
+                    ? `<section class="admin-order-detail-section mb-0"><h6><i class="fas fa-star me-2 text-warning"></i>Customer feedback</h6>${renderAdminFeedback(order.feedback)}</section>`
+                    : '';
+
                 body.innerHTML = `
-                    <h5>Order #${order.order_id}</h5>
-                    <p><strong>Customer:</strong> ${escapeAdminOrderText(order.customer_name || (order.is_walk_in ? 'Walk-in Sale' : order.Customer?.User?.full_name || 'N/A'))}${order.is_walk_in ? '' : ` (${escapeAdminOrderText(order.Customer?.User?.email || '')})`}</p>
-                    ${order.is_walk_in ? `<p><strong>Address:</strong> ${escapeAdminOrderText(order.delivery_address || 'Not provided')}</p>` : `<p><strong>Phone:</strong> ${escapeAdminOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'N/A')}</p>
-                    <p><strong>Address:</strong> ${escapeAdminOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</p>`}
-                    <p><strong>Date &amp; Time Ordered:</strong> ${order.order_date || order.created_at ? new Date(order.order_date || order.created_at).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}</p>
-                    <p><strong>Notes:</strong> ${order.notes || 'None'}</p>
-                    ${order.pickup_date ? `<p><strong>Pickup date:</strong> ${order.pickup_date} ${order.pickup_missed ? '<span class="badge bg-danger">Missed - not picked up</span>' : ''}</p><p><strong>Re-pickup requests:</strong> ${order.pickup_reschedule_count || 0} of 1</p>` : ''}
-                    ${order.feedback ? `<div class="border rounded-3 bg-light p-2 mb-3"><strong>Customer feedback</strong>${renderAdminFeedback(order.feedback)}</div>` : ''}
-                    <p><strong>Discount:</strong> ${order.discount_type ? `${order.discount_type} (₱${Number(order.discount_amount || 0).toFixed(2)})` : 'None'}</p>
-                    <p><strong>Status:</strong> <span class="badge ${getOrderStatusBadgeClass(order.status)}">${order.status || 'N/A'}</span></p>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
-                            <tbody>
-                                ${items.map(it => `<tr><td>${it.Product?.product_name || it.product_name || 'Item'}</td><td>${it.quantity}</td><td>₱${Number(it.price||0).toFixed(2)}</td><td>₱${Number(it.subtotal||0).toFixed(2)}</td></tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-3"><strong>Total:</strong> ₱${Number(order.total_amount||0).toFixed(2)}</div>
-                `;
-            } catch (e) {
-                console.error('Order view error', e);
-                body.innerHTML = '<p class="text-center text-danger">Failed to load order details.</p>';
+                    <div class="admin-order-detail">
+                        <div class="admin-order-detail-hero">
+                            <div><h4>Reservation #${Number(order.order_id)}</h4><p>${escapeAdminOrderText(reservationType)} <span class="mx-1">·</span> Placed ${escapeAdminOrderText(placedAt)}</p></div>
+                            <span class="badge ${getOrderStatusBadgeClass(status)}">${escapeAdminOrderText(status.replace(/\b\w/g, char => char.toUpperCase()))}</span>
+                        </div>
+                        <div class="admin-order-detail-grid">
+                            <div class="admin-order-detail-card"><span>Customer</span><strong>${escapeAdminOrderText(customerName)}</strong><div class="small text-muted">${escapeAdminOrderText(order.Customer?.User?.email || '')}</div></div>
+                            <div class="admin-order-detail-card"><span>Contact number</span><strong>${escapeAdminOrderText(order.Customer?.User?.phone || order.Customer?.phone || 'No phone recorded')}</strong></div>
+                            <div class="admin-order-detail-card"><span>Pickup date</span><strong>${pickupDate ? escapeAdminOrderText(pickupDate) : 'Not scheduled'}${order.pickup_missed ? ' · Missed pickup' : ''}</strong>${Number(order.pickup_reschedule_count || 0) ? `<div class="small text-muted">Date changes: ${Number(order.pickup_reschedule_count)}</div>` : ''}</div>
+                            <div class="admin-order-detail-card"><span>Payment</span><strong>${escapeAdminOrderText(String(order.payment_status || 'Unpaid').replace(/\b\w/g, char => char.toUpperCase()))}</strong><div class="small text-muted">${escapeAdminOrderText(order.payment_method || 'Method not recorded')}</div></div>
+                            <div class="admin-order-detail-card" style="grid-column:1/-1"><span>Address</span><strong>${escapeAdminOrderText(order.delivery_address || order.Customer?.address || 'Not provided')}</strong></div>
+                        </div>
+                        <section class="admin-order-detail-section">
+                            <h6><i class="fas fa-box-open me-2 text-primary"></i>Reserved items</h6>
+                            <div class="table-responsive"><table class="table table-sm align-middle admin-order-detail-items mb-2"><thead><tr><th>Item</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Subtotal</th></tr></thead><tbody>${itemRows}</tbody></table></div>
+                            ${checkupSummary}
+                            <div class="small text-muted d-flex justify-content-between mb-3"><span>Discount${order.discount_type ? ` · ${escapeAdminOrderText(order.discount_type)}` : ''}</span><span>${discountAmount ? `−${formatAdminPeso(discountAmount)}` : 'None'}</span></div>
+                            <div class="admin-order-detail-total"><span>Total</span><span>${formatAdminPeso(order.total_amount)}</span></div>
+                        </section>
+                        <section class="admin-order-detail-section"><h6><i class="fas fa-clipboard-list me-2 text-primary"></i>Reservation notes</h6><p class="admin-order-detail-note">${escapeAdminOrderText(order.notes || 'No additional notes.')}</p>${Number(order.pickup_reschedule_count || 0) ? `<div class="small text-muted mt-2">Pickup date change requests: ${Number(order.pickup_reschedule_count)} of 1</div>` : ''}</section>
+                        ${feedbackSection}
+                    </div>`;
+            } catch (error) {
+                console.error('Order view error:', error);
+                body.innerHTML = '<div class="alert alert-danger mb-0">Failed to load reservation details. Please try again.</div>';
             }
         }
-
         async function loadUsers() {
             const tbody = document.getElementById('usersTable');
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading accounts…</td></tr>';
@@ -5003,15 +5071,15 @@ This will deactivate the account and keep the user record for history.`)) {
 
 <!-- Admin Order Detail Modal -->
 <div class="modal fade" id="adminOrderDetailModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Order Details</h5>
+        <h5 class="modal-title"><i class="fas fa-receipt me-2"></i>Reservation Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="adminOrderDetailBody"> </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-success" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
+        <button type="button" class="btn btn-outline-success d-none" id="adminOrderReceiptButton" onclick="showOrderReceipt(window.currentReceiptOrder)"><i class="fas fa-receipt me-1"></i>Receipt</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
