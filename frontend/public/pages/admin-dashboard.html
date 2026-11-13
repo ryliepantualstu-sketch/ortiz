@@ -524,6 +524,26 @@
         .inventory-status.out { color:#b91c1c; background:#fef2f2; }
         .inventory-status.archived { color:#64748b; background:#f1f5f9; }
         .inventory-table td { vertical-align:middle; }
+        .user-management-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; padding:22px 25px; border-radius:17px; background:linear-gradient(120deg,#102a43,#155e75 62%,#0f766e); color:#fff; box-shadow:0 12px 28px rgba(15,55,75,.14); }
+        .user-management-hero h4 { margin:0 0 5px; color:#fff; font-weight:800; }
+        .user-management-hero p { margin:0; color:rgba(255,255,255,.78); }
+        .user-management-hero .btn { white-space:nowrap; border-radius:10px; font-weight:750; }
+        .user-stat { height:100%; padding:16px 18px; background:#fff; border:1px solid #e5edf3; border-radius:14px; box-shadow:0 5px 16px rgba(22,48,66,.05); }
+        .user-stat-label { color:#64748b; font-size:.8rem; font-weight:700; }
+        .user-stat-value { margin-top:7px; color:#102a43; font-size:1.7rem; font-weight:850; line-height:1; }
+        .user-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:15px 17px; border-bottom:1px solid #edf2f7; background:#fbfdff; }
+        .user-search { position:relative; flex:1 1 260px; }
+        .user-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+        .user-search input { padding-left:38px; border-radius:10px; }
+        .user-toolbar .form-select { width:auto; min-width:155px; border-radius:10px; }
+        .user-name { color:#102a43; font-weight:800; }
+        .user-email { color:#64748b; font-size:.82rem; }
+        .user-status-badge { display:inline-flex; padding:6px 10px; border-radius:999px; font-size:.75rem; font-weight:800; }
+        .user-status-active { background:#ecfdf5; color:#047857; }
+        .user-status-pending { background:#fffbeb; color:#b45309; }
+        .user-status-archived { background:#f1f5f9; color:#64748b; }
+        .user-management-table td { vertical-align:middle; }
+        @media(max-width:767.98px) { .user-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .user-management-hero .btn { width:100%; } .user-toolbar .form-select { flex:1 1 130px; } }
         @media (max-width: 767.98px) { .inventory-hero { align-items:flex-start; flex-direction:column; padding:19px; } .inventory-hero .inventory-actions { width:100%; display:flex; } .inventory-hero .inventory-actions .btn { flex:1; } .inventory-toolbar .form-select { flex:1 1 130px; } }
 
         .table-responsive {
@@ -1138,27 +1158,46 @@
 
                     <!-- Users Section -->
                     <div id="usersSection" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4>User Management</h4>
-                            <button class="btn btn-primary" type="button" onclick="openUserModal()" style="box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);">
-                                <i class="fas fa-plus"></i> Add User
+                        <div class="user-management-hero">
+                            <div>
+                                <h4><i class="fas fa-users-gear me-2"></i>User Management</h4>
+                                <p>Manage staff access and keep track of customer account approvals.</p>
+                            </div>
+                            <button class="btn btn-light" type="button" onclick="openUserModal()">
+                                <i class="fas fa-user-plus me-2"></i>Add User
                             </button>
                         </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-xl-3"><div class="user-stat"><div class="user-stat-label">Awaiting owner approval</div><div class="user-stat-value" id="userPendingCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="user-stat"><div class="user-stat-label">Active accounts</div><div class="user-stat-value" id="userActiveCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="user-stat"><div class="user-stat-label">Archived accounts</div><div class="user-stat-value" id="userArchivedCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="user-stat"><div class="user-stat-label">Staff accounts</div><div class="user-stat-value" id="userStaffCount">0</div></div></div>
+                        </div>
                         <div class="table-container">
+                            <div class="user-toolbar">
+                                <div class="user-search"><i class="fas fa-search"></i><input id="adminUserSearch" type="search" class="form-control" placeholder="Search name, email, or phone" oninput="filterAdminUsers()"></div>
+                                <select id="adminUserRoleFilter" class="form-select" aria-label="Filter by role" onchange="filterAdminUsers()">
+                                    <option value="">All roles</option><option value="admin">Admin</option><option value="staff">Staff</option><option value="customer">Customer</option>
+                                </select>
+                                <select id="adminUserStatusFilter" class="form-select" aria-label="Filter by account status" onchange="filterAdminUsers()">
+                                    <option value="">All account statuses</option><option value="pending">Awaiting approval</option><option value="active">Active</option><option value="archived">Archived</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetAdminUserFilters()"><i class="fas fa-rotate-left me-1"></i>Reset</button>
+                            </div>
+                            <div class="px-3 py-2 small text-muted" id="adminUserFilterSummary" aria-live="polite">Loading accounts…</div>
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
+                                <table class="table table-hover mb-0 user-management-table">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
+                                            <th>Account</th>
                                             <th>Role</th>
                                             <th>Phone</th>
-                                            <th>Status</th>
+                                            <th>Account Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="usersTable">
-                                        <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                                        <tr><td colspan="5" class="text-center text-muted py-4">Loading accounts…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2347,6 +2386,75 @@ This will deactivate the account and keep the user record for history.`)) {
             await loadDashboard();
         }
 
+        function getAdminUserStatus(user) {
+            if (String(user.approval_status || '').toLowerCase() === 'pending') return 'pending';
+            return user.is_active ? 'active' : 'archived';
+        }
+
+        function renderAdminUsers(users) {
+            const tbody = document.getElementById('usersTable');
+            const summary = document.getElementById('adminUserFilterSummary');
+            const visibleUsers = Array.isArray(users) ? users : [];
+            summary.textContent = `Showing ${visibleUsers.length} of ${adminUsers.length} accounts`;
+            if (!visibleUsers.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i class="fas fa-user-slash d-block fs-3 mb-2"></i>No accounts match these filters.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = visibleUsers.map(user => {
+                const status = getAdminUserStatus(user);
+                const statusLabel = status === 'pending' ? 'Awaiting owner approval' : status === 'active' ? 'Active' : 'Archived';
+                const statusClass = status === 'pending' ? 'user-status-pending' : status === 'active' ? 'user-status-active' : 'user-status-archived';
+                const actions = [
+                    `<button type="button" class="btn btn-sm btn-outline-primary" onclick="openUserModal(${Number(user.user_id)})" title="Edit account"><i class="fas fa-pen me-1"></i>Edit</button>`
+                ];
+                if (status === 'active') {
+                    actions.push(`<button type="button" class="btn btn-sm btn-outline-secondary" onclick="deleteUser(${Number(user.user_id)})" title="Archive account"><i class="fas fa-box-archive me-1"></i>Archive</button>`);
+                } else if (status === 'archived') {
+                    actions.push(`<button type="button" class="btn btn-sm btn-outline-success" onclick="restoreAdminUser(${Number(user.user_id)})" title="Restore account"><i class="fas fa-rotate-left me-1"></i>Restore</button>`);
+                    actions.push(`<button type="button" class="btn btn-sm btn-outline-danger" onclick="permanentlyDeleteUser(${Number(user.user_id)})" title="Permanently delete account"><i class="fas fa-trash me-1"></i>Delete</button>`);
+                } else {
+                    actions.push('<span class="small text-muted align-self-center" title="The owner must approve this account from the approval email."><i class="fas fa-envelope me-1"></i>Owner approval required</span>');
+                }
+                return `<tr>
+                    <td><div class="user-name">${escapeAdminOrderText(user.full_name || 'Unnamed account')}</div><div class="user-email">${escapeAdminOrderText(user.email || '')}</div></td>
+                    <td><span class="badge ${user.role === 'admin' ? 'bg-primary' : user.role === 'staff' ? 'bg-info text-dark' : 'bg-secondary'}">${escapeAdminOrderText(String(user.role || 'customer').replace(/^./, c => c.toUpperCase()))}</span></td>
+                    <td>${escapeAdminOrderText(user.phone || '—')}</td>
+                    <td><span class="user-status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td><div class="d-flex flex-wrap gap-1">${actions.join('')}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterAdminUsers() {
+            const query = document.getElementById('adminUserSearch').value.trim().toLowerCase();
+            const role = document.getElementById('adminUserRoleFilter').value;
+            const status = document.getElementById('adminUserStatusFilter').value;
+            const filtered = adminUsers.filter(user => {
+                const matchesSearch = !query || [user.full_name, user.email, user.phone].some(value => String(value || '').toLowerCase().includes(query));
+                return matchesSearch && (!role || user.role === role) && (!status || getAdminUserStatus(user) === status);
+            });
+            renderAdminUsers(filtered);
+        }
+
+        function resetAdminUserFilters() {
+            document.getElementById('adminUserSearch').value = '';
+            document.getElementById('adminUserRoleFilter').value = '';
+            document.getElementById('adminUserStatusFilter').value = '';
+            filterAdminUsers();
+        }
+
+        async function restoreAdminUser(userId) {
+            const user = adminUsers.find(entry => Number(entry.user_id) === Number(userId));
+            if (!user || !confirm(`Restore ${user.full_name}'s account? They will be able to log in again.`)) return;
+            const result = await apiCall(`/admin/users/${userId}/restore`, 'POST');
+            if (!result?.success) {
+                alert(result?.message || 'Failed to restore account.');
+                return;
+            }
+            await loadUsers();
+        }
+
         
 
         async function submitProductForm(event) {
@@ -2972,32 +3080,22 @@ This will deactivate the account and keep the user record for history.`)) {
         }
 
         async function loadUsers() {
+            const tbody = document.getElementById('usersTable');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading accounts…</td></tr>';
             try {
                 const result = await apiCall('/admin/users');
-                const tbody = document.getElementById('usersTable');
-                
-                if (result && result.success && result.users && result.users.length > 0) {
-                    adminUsers = result.users;
-                    tbody.innerHTML = result.users.map(user => `
-                        <tr>
-                            <td>${user.full_name}</td>
-                            <td>${user.email}</td>
-                            <td><span class="badge bg-info">${user.role}</span></td>
-                            <td>${user.phone || 'N/A'}</td>
-                            <td><span class="badge ${user.is_active ? 'bg-success' : 'bg-danger'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" onclick="openUserModal(${user.user_id})">Edit</button>
-                                <button class="btn btn-sm btn-secondary" onclick="deleteUser(${user.user_id})">Archive</button>
-                                <button class="btn btn-sm btn-danger" onclick="permanentlyDeleteUser(${user.user_id})">Delete</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    adminUsers = [];
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No users found</td></tr>';
-                }
+                if (!result?.success) throw new Error(result?.message || 'Failed to load accounts.');
+                adminUsers = Array.isArray(result.users) ? result.users : [];
+                document.getElementById('userPendingCount').textContent = adminUsers.filter(user => getAdminUserStatus(user) === 'pending').length.toLocaleString();
+                document.getElementById('userActiveCount').textContent = adminUsers.filter(user => getAdminUserStatus(user) === 'active').length.toLocaleString();
+                document.getElementById('userArchivedCount').textContent = adminUsers.filter(user => getAdminUserStatus(user) === 'archived').length.toLocaleString();
+                document.getElementById('userStaffCount').textContent = adminUsers.filter(user => user.role === 'staff').length.toLocaleString();
+                filterAdminUsers();
             } catch (error) {
                 console.error('Users error:', error);
+                adminUsers = [];
+                document.getElementById('adminUserFilterSummary').textContent = 'Accounts could not be loaded.';
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4"><i class="fas fa-triangle-exclamation me-2"></i>${escapeAdminOrderText(error.message || 'Failed to load accounts.')}</td></tr>`;
             }
         }
 

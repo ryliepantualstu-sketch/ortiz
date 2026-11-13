@@ -312,6 +312,7 @@ router.get('/users', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: { exclude: ['password'] },
+      where: { approval_status: { [Op.ne]: 'walk-in' } },
       order: [['created_at', 'DESC']]
     });
 
