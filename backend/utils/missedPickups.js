@@ -5,9 +5,77 @@ const User = require('../models/User');
 const OrderItem = require('../models/OrderItem');
 const Product = require('../models/Product');
 const QRCode = require('../models/QRCode');
+const Appointment = require('../models/Appointment');
 const sequelize = require('../config/database');
 const { getManilaToday, getReservationPickupDeadline } = require('./orderPickup');
-const { notifyOrderUpdate } = require('./notificationService');
+const { normalizeAppointmentDate, normalizeAppointmentTime, isAppointmentSlotInPast } = require('./appointmentAvailability');
+const { notifyOrderUpdate, notifyAppointmentUpdate } = require('./notificationService');
+
+async function cancelExpiredAppointments() {
+  const today = getManilaToday();
+  const candidates = await Appointment.findAll({
+    where: {
+      appointment_date: { [Op.lte]: today },
+      status: { [Op.in]: ['pending', 'confirmed'] }
+    }
+  });
+  let cancelledCount = 0;
+
+  for (const candidate of candidates) {
+    // A checked-in customer is already at the clinic; leave that visit active
+    // for staff to finish even if treatment runs beyond the scheduled slot.
+    if (candidate.checked_in || candidate.verified_at) continue;
+    const appointmentDate = normalizeAppointmentDate(candidate.appointment_date);
+    const appointmentTime = normalizeAppointmentTime(candidate.appointment_time);
+    const hasPassed = appointmentDate < today || isAppointmentSlotInPast(appointmentDate, appointmentTime);
+    if (!hasPassed) continue;
+
+    let cancelledAppointment = null;
+    await sequelize.transaction(async transaction => {
+      const appointment = await Appointment.findByPk(candidate.appointment_id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!appointment || !['pending', 'confirmed'].includes(String(appointment.status || '').toLowerCase())) return;
+      if (appointment.checked_in || appointment.verified_at) return;
+
+      const currentDate = normalizeAppointmentDate(appointment.appointment_date);
+      const currentTime = normalizeAppointmentTime(appointment.appointment_time);
+      if (!(currentDate < getManilaToday() || isAppointmentSlotInPast(currentDate, currentTime))) return;
+
+      await appointment.update({
+        status: 'cancelled',
+        notes: `${appointment.notes || ''} Automatically cancelled because the scheduled appointment time passed without completion.`.trim(),
+        updated_at: new Date()
+      }, { transaction });
+      await QRCode.update(
+        { expired_at: new Date() },
+        { where: { code_type: 'Appointment', reference_id: appointment.appointment_id, expired_at: null }, transaction }
+      );
+      cancelledAppointment = appointment;
+      cancelledCount += 1;
+    });
+
+    if (cancelledAppointment) {
+      try {
+        const appointmentWithCustomer = await Appointment.findByPk(cancelledAppointment.appointment_id, {
+          include: [{ model: Customer, include: [{ model: User, attributes: ['full_name', 'email', 'phone'] }] }]
+        });
+        if (appointmentWithCustomer?.Customer?.User) {
+          await notifyAppointmentUpdate({
+            user: appointmentWithCustomer.Customer.User,
+            appointment: appointmentWithCustomer,
+            action: 'automatically cancelled because the scheduled time passed without completion'
+          });
+        }
+      } catch (error) {
+        console.warn('Expired appointment notification failed:', error.message);
+      }
+    }
+  }
+
+  return cancelledCount;
+}
 
 // Orders whose re-pickup date has also passed are cancelled automatically
 async function cancelExpiredPickups() {
@@ -100,11 +168,14 @@ async function cancelExpiredPickups() {
 }
 
 function startMissedPickupJob(intervalMs = 10 * 60 * 1000) {
-  const run = () => cancelExpiredPickups()
-    .then((count) => { if (count) console.log(`[PICKUP] Auto-cancelled ${count} unclaimed order(s)`); })
+  const run = () => Promise.all([cancelExpiredPickups(), cancelExpiredAppointments()])
+    .then(([pickupCount, appointmentCount]) => {
+      const count = pickupCount + appointmentCount;
+      if (count) console.log(`[EXPIRATION] Auto-cancelled ${pickupCount} unclaimed order(s) and ${appointmentCount} expired appointment(s)`);
+    })
     .catch((error) => console.error('[PICKUP] Auto-cancel failed:', error.message));
   run();
   return setInterval(run, intervalMs).unref();
 }
 
-module.exports = { cancelExpiredPickups, startMissedPickupJob };
+module.exports = { cancelExpiredPickups, cancelExpiredAppointments, startMissedPickupJob };
