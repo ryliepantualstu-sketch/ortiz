@@ -568,6 +568,41 @@
         .customer-history-section .table { font-size:.86rem; }
         .customer-history-section .table th { white-space:nowrap; }
         @media(max-width:767.98px) { .customer-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .customer-toolbar .form-select { flex:1 1 150px; } .customer-history-section { padding:12px; } }
+        .product-management-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; padding:22px 25px; border-radius:17px; color:#fff; background:linear-gradient(120deg,#102a43,#155e75 62%,#0f766e); box-shadow:0 12px 28px rgba(15,55,75,.14); }
+        .product-management-hero h4 { margin:0 0 5px; color:#fff; font-weight:800; }
+        .product-management-hero p { margin:0; color:rgba(255,255,255,.78); }
+        .product-management-hero .btn { white-space:nowrap; border-radius:10px; font-weight:750; }
+        .product-stat { height:100%; padding:16px 18px; border:1px solid #e5edf3; border-radius:14px; background:#fff; box-shadow:0 5px 16px rgba(22,48,66,.05); }
+        .product-stat-label { color:#64748b; font-size:.8rem; font-weight:700; }
+        .product-stat-value { margin-top:7px; color:#102a43; font-size:1.65rem; font-weight:850; line-height:1.1; }
+        .product-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:15px 17px; border-bottom:1px solid #edf2f7; background:#fbfdff; }
+        .product-search { position:relative; flex:1 1 260px; }
+        .product-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+        .product-search input { padding-left:38px; border-radius:10px; }
+        .product-toolbar .form-select { width:auto; min-width:160px; border-radius:10px; }
+        .product-management-table td { vertical-align:middle; }
+        .product-frame-cell { display:flex; align-items:center; gap:11px; min-width:220px; }
+        .product-frame-thumb { width:48px; height:48px; flex:0 0 48px; display:grid; place-items:center; overflow:hidden; border:1px solid #e2e8f0; border-radius:12px; background:#f1f5f9; color:#64748b; }
+        .product-frame-thumb img { width:100%; height:100%; object-fit:cover; }
+        .product-frame-name { color:#102a43; font-weight:800; }
+        .product-frame-meta { color:#64748b; font-size:.78rem; }
+        .product-stock-count { color:#102a43; font-weight:850; }
+        .product-stock-meter { width:100px; height:6px; margin-top:5px; overflow:hidden; border-radius:999px; background:#eaf0f5; }
+        .product-stock-meter span { display:block; height:100%; border-radius:inherit; }
+        .product-form-section { margin:0 0 17px; padding:15px; border:1px solid #e5edf3; border-radius:13px; background:#fbfdff; }
+        .product-form-section h6 { margin:0 0 13px; color:#123047; font-weight:800; }
+        #productModal .modal-dialog { max-width:760px; }
+        #productModal .modal-content { border:0; border-radius:18px; overflow:hidden; box-shadow:0 24px 70px rgba(15,42,67,.22); }
+        #productModal .modal-header { padding:20px 24px; color:#fff; background:linear-gradient(120deg,#102a43,#155e75); }
+        #productModal .modal-title { font-weight:800; }
+        #productModal .modal-header .btn-close { filter:invert(1); }
+        #productModal .modal-body { padding:22px 24px; }
+        #productForm { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:16px; }
+        #productForm > input[type="hidden"] { display:none; }
+        #productForm > .mb-3:nth-of-type(2), #productForm > .mb-3:nth-of-type(9), #productForm > .mb-3:nth-of-type(10), #productForm > .mb-3:nth-of-type(11), #productForm > .mb-3:nth-of-type(12), #productForm > button { grid-column:1/-1; }
+        #productForm .form-control { border-radius:10px; }
+        @media(max-width:575.98px) { #productForm { grid-template-columns:1fr; } #productForm > .mb-3, #productForm > button { grid-column:1/-1; } #productModal .modal-body { padding:17px; } }
+        @media(max-width:767.98px) { .product-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .product-management-hero .btn { width:100%; } .product-toolbar .form-select { flex:1 1 140px; } }
         @media (max-width: 767.98px) { .inventory-hero { align-items:flex-start; flex-direction:column; padding:19px; } .inventory-hero .inventory-actions { width:100%; display:flex; } .inventory-hero .inventory-actions .btn { flex:1; } .inventory-toolbar .form-select { flex:1 1 130px; } }
 
         .table-responsive {
@@ -1293,27 +1328,32 @@
                         <div class="tab-content">
                             <!-- Products Tab -->
                             <div class="tab-pane fade show active" id="productsTabContent" role="tabpanel" aria-labelledby="productsTab">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4>Product Management</h4>
-                                    <button class="btn btn-primary" type="button" onclick="openProductModal()" style="box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);">
-                                        <i class="fas fa-plus"></i> Add Product
-                                    </button>
+                                <div class="product-management-hero">
+                                    <div><h4><i class="fas fa-glasses me-2"></i>Frame Product Management</h4><p>Check frame prices and stock, and update the catalog.</p></div>
+                                    <button class="btn btn-light" type="button" onclick="openProductModal()"><i class="fas fa-plus me-2"></i>Add Frame</button>
+                                </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-6 col-xl-3"><div class="product-stat"><div class="product-stat-label">Active frames</div><div class="product-stat-value" id="productActiveCount">0</div></div></div>
+                                    <div class="col-6 col-xl-3"><div class="product-stat"><div class="product-stat-label">Low stock</div><div class="product-stat-value" id="productLowStockCount">0</div></div></div>
+                                    <div class="col-6 col-xl-3"><div class="product-stat"><div class="product-stat-label">Out of stock</div><div class="product-stat-value" id="productOutStockCount">0</div></div></div>
+                                    <div class="col-6 col-xl-3"><div class="product-stat"><div class="product-stat-label">On-hand frame value</div><div class="product-stat-value fs-5" id="productInventoryValue">₱0.00</div></div></div>
                                 </div>
                                 <div class="table-container">
+                                    <div class="product-toolbar">
+                                        <div class="product-search"><i class="fas fa-search"></i><input id="adminProductSearch" type="search" class="form-control" placeholder="Search frame, material, color, or supplier" oninput="filterAdminProducts()"></div>
+                                        <select id="adminProductStatusFilter" class="form-select" aria-label="Filter frames by stock status" onchange="filterAdminProducts()">
+                                            <option value="">All stock statuses</option><option value="healthy">In stock</option><option value="medium">Medium stock</option><option value="low">Low stock</option><option value="out">Out of stock</option><option value="archived">Archived</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="resetAdminProductFilters()"><i class="fas fa-rotate-left me-1"></i>Reset</button>
+                                    </div>
+                                    <div class="px-3 py-2 small text-muted" id="adminProductFilterSummary" aria-live="polite">Loading frames…</div>
                                     <div class="table-responsive">
-                                        <table class="table table-hover mb-0">
+                                        <table class="table table-hover mb-0 product-management-table">
                                             <thead class="table-light">
-                                                <tr>
-                                                    <th>Product Name</th>
-                                                    <th>Category</th>
-                                                    <th>Price</th>
-                                                    <th>Stock</th>
-                                                    <th>Status</th>
-                                                    <th>Actions</th>
-                                                </tr>
+                                                <tr><th>Frame</th><th>Price</th><th>Stock on hand</th><th>Status</th><th>Actions</th></tr>
                                             </thead>
                                             <tbody id="productsTable">
-                                                <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                                                <tr><td colspan="5" class="text-center text-muted py-4">Loading frames…</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -1876,13 +1916,14 @@
 
     <!-- Product Modal -->
     <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="productModalTitle">Add New Product</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-light border small text-muted mb-3"><i class="fas fa-circle-info text-primary me-2"></i>Add frame details, selling price, stock levels, and photos. Stock updates are recorded in Stock Change History.</div>
                     <form id="productForm">
                         <input type="hidden" id="productId">
                         <input type="hidden" id="productCategory" value="Frame">
@@ -2244,25 +2285,79 @@
 
         function getProductStockStatus(product) {
             if (product.is_active === false) {
-                return { label: 'Archived', badgeClass: 'bg-secondary' };
+                return { label: 'Archived', badgeClass: 'bg-secondary', key: 'archived' };
             }
 
             const stock = Number(product.stock_quantity || 0);
             const minStock = Number(product.min_stock_level || 10);
 
             if (stock <= 0) {
-                return { label: 'Out of Stock', badgeClass: 'bg-danger' };
+                return { label: 'Out of Stock', badgeClass: 'bg-danger', key: 'out' };
             }
 
             if (stock <= minStock) {
-                return { label: 'Low Stock', badgeClass: 'bg-danger' };
+                return { label: 'Low Stock', badgeClass: 'bg-danger', key: 'low' };
             }
 
             if (stock <= minStock * 2) {
-                return { label: 'Medium Stock', badgeClass: 'bg-warning' };
+                return { label: 'Medium Stock', badgeClass: 'bg-warning', key: 'medium' };
             }
 
-            return { label: 'High Stock', badgeClass: 'bg-success' };
+            return { label: 'In Stock', badgeClass: 'bg-success', key: 'healthy' };
+        }
+
+        function formatAdminPeso(value) {
+            return `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function filterAdminProducts() {
+            const query = (document.getElementById('adminProductSearch')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('adminProductStatusFilter')?.value || '';
+            const filtered = adminProducts.filter((product) => {
+                const status = getProductStockStatus(product);
+                const searchable = [product.product_name, product.frame_material, product.frame_shape, product.color_name, product.supplier, product.description]
+                    .filter(Boolean).join(' ').toLowerCase();
+                return (!query || searchable.includes(query)) && (!statusFilter || status.key === statusFilter);
+            });
+            const summary = document.getElementById('adminProductFilterSummary');
+            if (summary) summary.textContent = `Showing ${filtered.length} of ${adminProducts.length} frames`;
+            renderAdminProducts(filtered);
+        }
+
+        function resetAdminProductFilters() {
+            document.getElementById('adminProductSearch').value = '';
+            document.getElementById('adminProductStatusFilter').value = '';
+            filterAdminProducts();
+        }
+
+        function renderAdminProducts(products) {
+            const tbody = document.getElementById('productsTable');
+            if (!tbody) return;
+            if (!products.length) {
+                const hasFilters = (document.getElementById('adminProductSearch')?.value || document.getElementById('adminProductStatusFilter')?.value);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5"><i class="fas fa-glasses d-block fs-3 mb-2"></i>${hasFilters ? 'No frames match these filters.' : 'No frames in the catalog yet.'}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = products.map((product) => {
+                const status = getProductStockStatus(product);
+                const stock = Math.max(0, Number(product.stock_quantity || 0));
+                const minStock = Math.max(1, Number(product.min_stock_level || 10));
+                const meterWidth = Math.min(100, Math.round(stock / (minStock * 2) * 100));
+                const meterColor = status.key === 'out' || status.key === 'low' ? '#dc3545' : status.key === 'medium' ? '#e2a400' : '#0f766e';
+                const images = getProductImageUrls(product);
+                const image = images[0] ? `<img src="${escapeAdminOrderText(resolveProductImageSrc(images[0]))}" alt="${escapeAdminOrderText(product.product_name)}" loading="lazy" onerror="this.remove()">` : '<i class="fas fa-glasses"></i>';
+                const meta = [product.frame_material, product.frame_shape, product.color_name].filter(Boolean).join(' · ') || 'Frame details not added';
+                const price = product.frame_only_price ?? product.price ?? 0;
+                const actions = product.is_active === false
+                    ? `<button class="btn btn-sm btn-outline-primary" onclick="openProductModal(${Number(product.product_id)})"><i class="fas fa-pen me-1"></i>Edit</button> <button class="btn btn-sm btn-success" onclick="restoreProduct(${Number(product.product_id)})"><i class="fas fa-rotate-left me-1"></i>Restore</button> <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${Number(product.product_id)})" title="Permanently delete archived frame"><i class="fas fa-trash"></i></button>`
+                    : `<button class="btn btn-sm btn-outline-primary" onclick="openProductModal(${Number(product.product_id)})"><i class="fas fa-pen me-1"></i>Edit</button> <button class="btn btn-sm btn-outline-secondary" onclick="archiveProduct(${Number(product.product_id)})"><i class="fas fa-box-archive me-1"></i>Archive</button>`;
+                return `<tr>
+                    <td><div class="product-frame-cell"><div class="product-frame-thumb">${image}</div><div><div class="product-frame-name">${escapeAdminOrderText(product.product_name || 'Unnamed frame')}</div><div class="product-frame-meta">${escapeAdminOrderText(meta)}${product.supplier ? ` · ${escapeAdminOrderText(product.supplier)}` : ''}</div></div></div></td>
+                    <td class="fw-bold text-nowrap">${formatAdminPeso(price)}</td>
+                    <td><div class="product-stock-count">${stock.toLocaleString()} <span class="text-muted fw-normal">units</span></div><div class="product-stock-meter"><span style="width:${meterWidth}%;background:${meterColor}"></span></div><div class="product-frame-meta">Minimum: ${minStock}</div></td>
+                    <td><span class="badge ${status.badgeClass}">${status.label}</span></td><td class="text-nowrap">${actions}</td>
+                </tr>`;
+            }).join('');
         }
 
         function getProductStockBadge(product) {
@@ -2636,6 +2731,19 @@ This will deactivate the account and keep the user record for history.`)) {
                 console.error('Archive product error:', error);
                 alert('❌ Error archiving product. Please try again.');
             }
+        }
+
+        async function restoreProduct(productId) {
+            const product = adminProducts.find((entry) => entry.product_id === productId);
+            if (!product || !confirm(`Restore "${product.product_name}" to the active frame catalog?`)) return;
+            const result = await apiCall(`/admin/products/${productId}`, 'PUT', { is_active: true });
+            if (!result?.success) {
+                alert(result?.message || 'Could not restore this frame.');
+                return;
+            }
+            await loadProducts();
+            await loadInventory();
+            await loadDashboard();
         }
 
         function loadSection(section, event) {
@@ -3175,39 +3283,20 @@ This will deactivate the account and keep the user record for history.`)) {
         async function loadProducts() {
             try {
                 const result = await apiCall('/admin/products');
-                const tbody = document.getElementById('productsTable');
-                
-                if (result && result.success && result.products && result.products.length > 0) {
-                    adminProducts = result.products;
-                    tbody.innerHTML = result.products.map(product => {
-                        const status = getProductStockStatus(product);
-                        return `
-                            <tr>
-                                <td>${product.product_name}</td>
-                                <td>${product.category || 'General'}</td>
-                                <td>₱${parseFloat(product.price).toFixed(2)}</td>
-                                <td>${product.stock_quantity}</td>
-                                <td><span class="badge ${status.badgeClass}">${status.label}</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-warning" onclick="openProductModal(${product.product_id})" title="Edit product">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="archiveProduct(${product.product_id})" title="Archive product">
-                                        <i class="fas fa-archive"></i> Archive
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.product_id})" title="Delete product">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    adminProducts = [];
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No products found</td></tr>';
-                }
+                if (!result?.success) throw new Error(result?.message || 'Failed to load frame catalog.');
+                adminProducts = Array.isArray(result.products) ? result.products : [];
+                const active = adminProducts.filter(product => product.is_active !== false);
+                document.getElementById('productActiveCount').textContent = active.length.toLocaleString();
+                document.getElementById('productLowStockCount').textContent = active.filter(product => Number(product.stock_quantity || 0) > 0 && Number(product.stock_quantity || 0) <= Number(product.min_stock_level || 10)).length.toLocaleString();
+                document.getElementById('productOutStockCount').textContent = active.filter(product => Number(product.stock_quantity || 0) <= 0).length.toLocaleString();
+                const inventoryValue = active.reduce((sum, product) => sum + Number(product.stock_quantity || 0) * Number(product.frame_only_price ?? product.price ?? 0), 0);
+                document.getElementById('productInventoryValue').textContent = formatAdminPeso(inventoryValue);
+                filterAdminProducts();
             } catch (error) {
                 console.error('Products error:', error);
+                adminProducts = [];
+                document.getElementById('adminProductFilterSummary').textContent = 'Frame catalog could not be loaded.';
+                document.getElementById('productsTable').innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4"><i class="fas fa-triangle-exclamation me-2"></i>${escapeAdminOrderText(error.message || 'Failed to load frames.')}</td></tr>`;
             }
         }
 
