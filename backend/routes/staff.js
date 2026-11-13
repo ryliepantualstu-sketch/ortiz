@@ -1777,7 +1777,7 @@ router.get('/customers/:id', authMiddleware, requireRole('staff', 'admin'), asyn
   try {
     const customer = await Customer.findByPk(req.params.id, {
       include: [
-        { model: User, attributes: ['full_name', 'email', 'phone'] }
+        { model: User, attributes: ['full_name', 'email', 'phone', 'is_active', 'approval_status'] }
       ]
     });
 
@@ -1787,16 +1787,20 @@ router.get('/customers/:id', authMiddleware, requireRole('staff', 'admin'), asyn
 
     const appointments = await Appointment.findAll({
       where: { customer_id: customer.customer_id },
-      order: [['appointment_date', 'DESC']],
-      limit: 10
+      order: [['appointment_date', 'DESC'], ['appointment_time', 'DESC']]
     });
 
     const orders = await Order.findAll({
       where: { customer_id: customer.customer_id },
       include: [{ model: OrderItem, include: [{ model: Product, attributes: ['product_id', 'product_name', 'category', 'color_name', 'color_hex', 'color_int', 'price'] }] }],
-      order: [['created_at', 'DESC']],
-      limit: 10
+      order: [['created_at', 'DESC']]
     });
+    const feedbackRecords = await CustomerFeedback.findAll({
+      where: { customer_id: customer.customer_id },
+      attributes: ['feedback_id', 'order_id', 'appointment_id', 'rating', 'comment', 'created_at']
+    });
+    const feedbackByOrder = new Map(feedbackRecords.filter(feedback => feedback.order_id).map(feedback => [Number(feedback.order_id), feedback.toJSON()]));
+    const feedbackByAppointment = new Map(feedbackRecords.filter(feedback => feedback.appointment_id).map(feedback => [Number(feedback.appointment_id), feedback.toJSON()]));
 
     res.json({
       success: true,
@@ -1804,8 +1808,14 @@ router.get('/customers/:id', authMiddleware, requireRole('staff', 'admin'), asyn
         ...customer.toJSON(),
         discount_card_image_url: customer.discount_card_image_url || null
       },
-      appointments,
-      orders
+      appointments: appointments.map(appointment => ({
+        ...appointment.toJSON(),
+        feedback: feedbackByAppointment.get(Number(appointment.appointment_id)) || null
+      })),
+      orders: orders.map(order => ({
+        ...order.toJSON(),
+        feedback: feedbackByOrder.get(Number(order.order_id)) || null
+      }))
     });
   } catch (error) {
     res.status(500).json({

@@ -544,6 +544,30 @@
         .user-status-archived { background:#f1f5f9; color:#64748b; }
         .user-management-table td { vertical-align:middle; }
         @media(max-width:767.98px) { .user-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .user-management-hero .btn { width:100%; } .user-toolbar .form-select { flex:1 1 130px; } }
+        .customer-management-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; padding:22px 25px; border-radius:17px; color:#fff; background:linear-gradient(120deg,#102a43,#155e75 62%,#0f766e); box-shadow:0 12px 28px rgba(15,55,75,.14); }
+        .customer-management-hero h4 { margin:0 0 5px; color:#fff; font-weight:800; }
+        .customer-management-hero p { margin:0; color:rgba(255,255,255,.78); }
+        .customer-stat { height:100%; padding:16px 18px; border:1px solid #e5edf3; border-radius:14px; background:#fff; box-shadow:0 5px 16px rgba(22,48,66,.05); }
+        .customer-stat-label { color:#64748b; font-size:.8rem; font-weight:700; }
+        .customer-stat-value { margin-top:7px; color:#102a43; font-size:1.7rem; font-weight:850; line-height:1; }
+        .customer-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:15px 17px; border-bottom:1px solid #edf2f7; background:#fbfdff; }
+        .customer-search { position:relative; flex:1 1 260px; }
+        .customer-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+        .customer-search input { padding-left:38px; border-radius:10px; }
+        .customer-toolbar .form-select { width:auto; min-width:190px; border-radius:10px; }
+        .customer-name { color:#102a43; font-weight:800; }
+        .customer-email { color:#64748b; font-size:.82rem; }
+        .customer-count-badge { display:inline-flex; min-width:30px; justify-content:center; padding:5px 9px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-weight:800; }
+        .customer-detail-hero { padding:20px; border-radius:15px; background:linear-gradient(120deg,#f0f9ff,#f0fdfa); border:1px solid #dbeafe; }
+        .customer-avatar { display:grid; place-items:center; width:54px; height:54px; border-radius:16px; background:#0f766e; color:#fff; font-size:1.2rem; font-weight:800; }
+        .customer-detail-stat { height:100%; padding:13px; border:1px solid #e2e8f0; border-radius:12px; background:#fff; }
+        .customer-detail-stat span { display:block; color:#64748b; font-size:.78rem; font-weight:700; }
+        .customer-detail-stat strong { display:block; margin-top:4px; color:#102a43; font-size:1.35rem; }
+        .customer-history-section { padding:16px; border:1px solid #e5edf3; border-radius:14px; background:#fff; }
+        .customer-history-section h6 { color:#123047; font-weight:800; }
+        .customer-history-section .table { font-size:.86rem; }
+        .customer-history-section .table th { white-space:nowrap; }
+        @media(max-width:767.98px) { .customer-management-hero { align-items:flex-start; flex-direction:column; padding:19px; } .customer-toolbar .form-select { flex:1 1 150px; } .customer-history-section { padding:12px; } }
         @media (max-width: 767.98px) { .inventory-hero { align-items:flex-start; flex-direction:column; padding:19px; } .inventory-hero .inventory-actions { width:100%; display:flex; } .inventory-hero .inventory-actions .btn { flex:1; } .inventory-toolbar .form-select { flex:1 1 130px; } }
 
         .table-responsive {
@@ -1206,27 +1230,34 @@
 
                     <!-- Customers Section -->
                     <div id="customersSection" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="customer-management-hero">
                             <div>
-                                <h4>Customer Records</h4>
-                                <p class="text-muted mb-0">View customer info and recent history in one place.</p>
+                                <h4><i class="fas fa-address-book me-2"></i>Customer Records</h4>
+                                <p>Find customer accounts, check their activity, and review their history.</p>
                             </div>
                         </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-xl-3"><div class="customer-stat"><div class="customer-stat-label">All customers</div><div class="customer-stat-value" id="customerTotalCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="customer-stat"><div class="customer-stat-label">With appointments</div><div class="customer-stat-value" id="customerAppointmentCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="customer-stat"><div class="customer-stat-label">With orders</div><div class="customer-stat-value" id="customerOrderCount">0</div></div></div>
+                            <div class="col-6 col-xl-3"><div class="customer-stat"><div class="customer-stat-label">Discount cards uploaded</div><div class="customer-stat-value" id="customerCardCount">0</div></div></div>
+                        </div>
                         <div class="table-container mb-4">
-                            <div class="p-4">
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                    <input type="text" id="adminCustomerSearchInput" class="form-control" placeholder="Search by name, email, or phone..." oninput="filterAdminCustomers()">
-                                </div>
+                            <div class="customer-toolbar">
+                                <div class="customer-search"><i class="fas fa-search"></i><input type="search" id="adminCustomerSearchInput" class="form-control" placeholder="Search name, email, or phone" oninput="filterAdminCustomers()"></div>
+                                <select id="adminCustomerActivityFilter" class="form-select" aria-label="Filter customers by activity" onchange="filterAdminCustomers()">
+                                    <option value="">All customers</option><option value="appointments">Has appointments</option><option value="orders">Has orders</option><option value="card">Discount card uploaded</option><option value="no-card">No discount card</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetAdminCustomerFilters()"><i class="fas fa-rotate-left me-1"></i>Reset</button>
                             </div>
+                            <div class="px-3 py-2 small text-muted" id="adminCustomerFilterSummary" aria-live="polite">Loading customersâ€¦</div>
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
+                                <table class="table table-hover mb-0 user-management-table">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
+                                            <th>Customer</th>
                                             <th>Phone</th>
-                                            <th>Card</th>
+                                            <th>Discount card</th>
                                             <th>Appointments</th>
                                             <th>Orders</th>
                                             <th>Joined</th>
@@ -1234,7 +1265,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="adminCustomersTable">
-                                        <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+                                        <tr><td colspan="7" class="text-center text-muted py-4">Loading customersâ€¦</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1780,7 +1811,7 @@
 
     <!-- Customer Detail Modal -->
     <div class="modal fade" id="adminCustomerDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Customer Details</h5>
@@ -2851,42 +2882,43 @@ This will deactivate the account and keep the user record for history.`)) {
         }
 
         async function loadCustomers() {
+            const tbody = document.getElementById('adminCustomersTable');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading customers…</td></tr>';
             try {
                 const result = await apiCall('/staff/customers');
-                const tbody = document.getElementById('adminCustomersTable');
-
-                if (result && result.success && result.customers && result.customers.length > 0) {
-                    adminCustomersData = result.customers;
-                    renderAdminCustomers(adminCustomersData);
-                } else {
-                    adminCustomersData = [];
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No customers found.</td></tr>';
-                }
+                if (!result?.success) throw new Error(result?.message || 'Failed to load customers.');
+                adminCustomersData = Array.isArray(result.customers) ? result.customers : [];
+                document.getElementById('customerTotalCount').textContent = adminCustomersData.length.toLocaleString();
+                document.getElementById('customerAppointmentCount').textContent = adminCustomersData.filter(customer => Number(customer.appointment_count || 0) > 0).length.toLocaleString();
+                document.getElementById('customerOrderCount').textContent = adminCustomersData.filter(customer => Number(customer.order_count || 0) > 0).length.toLocaleString();
+                document.getElementById('customerCardCount').textContent = adminCustomersData.filter(customer => Boolean(customer.discount_card_image_url)).length.toLocaleString();
+                filterAdminCustomers();
             } catch (error) {
                 console.error('Customers error:', error);
-                document.getElementById('adminCustomersTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load customers.</td></tr>';
+                adminCustomersData = [];
+                document.getElementById('adminCustomerFilterSummary').textContent = 'Customer records could not be loaded.';
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4"><i class="fas fa-triangle-exclamation me-2"></i>${escapeAdminOrderText(error.message || 'Failed to load customers.')}</td></tr>`;
             }
         }
 
         function renderAdminCustomers(customers) {
             const tbody = document.getElementById('adminCustomersTable');
             if (!customers || customers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No customers found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-user-slash d-block fs-3 mb-2"></i>No customers match these filters.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = customers.map(customer => `
                 <tr>
-                    <td>${customer.User?.full_name || 'N/A'}</td>
-                    <td>${customer.User?.email || 'N/A'}</td>
-                    <td>${customer.User?.phone || 'N/A'}</td>
-                    <td>${customer.discount_card_image_url ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
-                    <td><span class="badge bg-info">${customer.appointment_count || 0}</span></td>
-                    <td><span class="badge bg-warning">${customer.order_count || 0}</span></td>
-                    <td>${new Date(customer.created_at).toLocaleDateString()}</td>
+                    <td><div class="customer-name">${escapeAdminOrderText(customer.User?.full_name || 'Unnamed customer')}</div><div class="customer-email">${escapeAdminOrderText(customer.User?.email || 'No email on record')}</div></td>
+                    <td>${escapeAdminOrderText(customer.User?.phone || '—')}</td>
+                    <td>${customer.discount_card_image_url ? '<span class="badge bg-success-subtle text-success-emphasis"><i class="fas fa-id-card me-1"></i>Uploaded</span>' : '<span class="text-muted small">Not uploaded</span>'}</td>
+                    <td><span class="customer-count-badge">${Number(customer.appointment_count || 0).toLocaleString()}</span></td>
+                    <td><span class="customer-count-badge">${Number(customer.order_count || 0).toLocaleString()}</span></td>
+                    <td>${customer.created_at && !Number.isNaN(new Date(customer.created_at).getTime()) ? new Date(customer.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
                     <td>
                         <button type="button" class="btn btn-sm btn-primary" onclick="viewAdminCustomerDetails(${customer.customer_id || customer.id || customer.user_id})">
-                            <i class="fas fa-eye"></i> View
+                            <i class="fas fa-eye me-1"></i>View record
                         </button>
                     </td>
                 </tr>
@@ -2894,19 +2926,24 @@ This will deactivate the account and keep the user record for history.`)) {
         }
 
         function filterAdminCustomers() {
-            const query = (document.getElementById('adminCustomerSearchInput').value || '').toLowerCase();
-            if (!query) {
-                renderAdminCustomers(adminCustomersData);
-                return;
-            }
-
+            const query = (document.getElementById('adminCustomerSearchInput').value || '').trim().toLowerCase();
+            const activity = document.getElementById('adminCustomerActivityFilter').value;
             const filtered = adminCustomersData.filter(customer => {
-                const name = (customer.User?.full_name || '').toLowerCase();
-                const email = (customer.User?.email || '').toLowerCase();
-                const phone = (customer.User?.phone || '').toLowerCase();
-                return name.includes(query) || email.includes(query) || phone.includes(query);
+                const matchesSearch = !query || [customer.User?.full_name, customer.User?.email, customer.User?.phone, customer.phone].some(value => String(value || '').toLowerCase().includes(query));
+                const matchesActivity = !activity || (activity === 'appointments' ? Number(customer.appointment_count || 0) > 0
+                    : activity === 'orders' ? Number(customer.order_count || 0) > 0
+                    : activity === 'card' ? Boolean(customer.discount_card_image_url)
+                    : !customer.discount_card_image_url);
+                return matchesSearch && matchesActivity;
             });
+            document.getElementById('adminCustomerFilterSummary').textContent = `Showing ${filtered.length} of ${adminCustomersData.length} customer records`;
             renderAdminCustomers(filtered);
+        }
+
+        function resetAdminCustomerFilters() {
+            document.getElementById('adminCustomerSearchInput').value = '';
+            document.getElementById('adminCustomerActivityFilter').value = '';
+            filterAdminCustomers();
         }
 
         function getAdminDiscountCardImageUrl(path) {
@@ -2919,6 +2956,22 @@ This will deactivate the account and keep the user record for history.`)) {
             return `${baseUrl}${cleanPath}`;
         }
 
+        function formatAdminCustomerDate(value, withTime = false) {
+            if (!value) return '—';
+            const normalized = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value;
+            const date = new Date(normalized);
+            if (Number.isNaN(date.getTime())) return '—';
+            return withTime
+                ? date.toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatAdminCustomerPrescription(record) {
+            if (!record) return '';
+            const eye = (label, sph, cyl, axis) => sph == null && cyl == null && axis == null ? '' : `${label}: SPH ${sph ?? '—'} · CYL ${cyl ?? '0'} · AXIS ${axis ?? '—'}`;
+            return [eye('OD', record.right_sph, record.right_cyl, record.right_axis), eye('OS', record.left_sph, record.left_cyl, record.left_axis)].filter(Boolean).join(' | ');
+        }
+
         async function viewAdminCustomerDetails(customerId) {
             if (!customerId) {
                 const body = document.getElementById('adminCustomerDetailBody');
@@ -2926,15 +2979,17 @@ This will deactivate the account and keep the user record for history.`)) {
                 return;
             }
 
-            const modal = new bootstrap.Modal(document.getElementById('adminCustomerDetailModal'));
+            const modalElement = document.getElementById('adminCustomerDetailModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
             const body = document.getElementById('adminCustomerDetailBody');
+            modalElement.querySelector('.modal-title').textContent = 'Customer Record';
             body.innerHTML = '<p class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
             modal.show();
 
             try {
                 const result = await apiCall(`/staff/customers/${customerId}`);
                 if (!result || !result.success) {
-                    body.innerHTML = `<p class="text-center text-danger">${result?.message || 'Failed to load customer details.'}</p>`;
+                    body.innerHTML = `<p class="text-center text-danger">${escapeAdminOrderText(result?.message || 'Failed to load customer details.')}</p>`;
                     return;
                 }
 
@@ -2942,79 +2997,93 @@ This will deactivate the account and keep the user record for history.`)) {
                 const appointments = result.appointments || [];
                 const orders = result.orders || [];
                 const discountCardImageUrl = getAdminDiscountCardImageUrl(customer.discount_card_image_url);
+                const customerName = customer.User?.full_name || 'Unnamed customer';
+                const initials = customerName.trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
+                const paidTotal = orders.filter(order => String(order.payment_status || '').toLowerCase() === 'paid').reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+                const appointmentRows = appointments.map(apt => {
+                    const status = String(apt.status || 'pending').toLowerCase();
+                    const statusClass = status === 'completed' ? 'bg-success' : status === 'confirmed' ? 'bg-primary' : status === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark';
+                    const prescription = formatAdminCustomerPrescription(apt);
+                    return `<tr><td class="text-nowrap">${escapeAdminOrderText(formatAdminCustomerDate(apt.appointment_date))}<div class="small text-muted">${escapeAdminOrderText(formatAppointmentTime(apt.appointment_time || ''))}</div></td><td>${escapeAdminOrderText(apt.service_type || 'Eye check-up')}${prescription ? `<div class="small text-muted mt-1">${escapeAdminOrderText(prescription)}</div>` : ''}</td><td class="text-nowrap">₱${Number(apt.checkup_fee || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<div class="small text-muted">${escapeAdminOrderText(apt.payment_status || 'Unpaid')}</div></td><td><span class="badge ${statusClass}">${escapeAdminOrderText(status.replace(/\b\w/g, char => char.toUpperCase()))}</span>${apt.checked_in ? '<div class="small text-success mt-1">Checked in</div>' : ''}</td><td>${apt.feedback ? renderAdminFeedback(apt.feedback) : '<span class="text-muted">—</span>'}</td></tr>`;
+                }).join('');
+                const orderRows = orders.map(order => {
+                    const items = (order.OrderItems || []).map(item => `<div>${escapeAdminOrderText(item.Product?.product_name || item.product_name || 'Frame')} <span class="text-muted">× ${Number(item.quantity || 1)}${item.lens_option && item.lens_option !== 'frame-only' ? ` · ${escapeAdminOrderText(item.lens_option.replace(/-/g, ' '))}` : ''}</span></div>`).join('') || (order.reservation_only ? 'Frame reservation' : order.lens_only ? 'Lenses only' : 'No item details');
+                    const status = String(order.status || 'pending').replace(/\b\w/g, char => char.toUpperCase());
+                    return `<tr><td class="fw-bold">#${Number(order.order_id)}</td><td class="text-nowrap">${escapeAdminOrderText(formatAdminCustomerDate(order.created_at || order.order_date))}${order.pickup_date ? `<div class="small text-muted">Pickup: ${escapeAdminOrderText(formatAdminCustomerDate(order.pickup_date))}</div>` : ''}</td><td>${items}${order.feedback ? renderAdminFeedback(order.feedback) : ''}</td><td class="text-nowrap fw-semibold">₱${Number(order.total_amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td><span class="badge ${String(order.payment_status || '').toLowerCase() === 'paid' ? 'bg-success' : 'bg-secondary'}">${escapeAdminOrderText(order.payment_status || 'Unpaid')}</span><div class="small text-muted">${escapeAdminOrderText(order.payment_method || '—')}</div></td><td><span class="badge ${getOrderStatusBadgeClass(order.status)}">${escapeAdminOrderText(status)}</span>${order.pickup_missed ? '<div class="small text-danger">Missed pickup</div>' : ''}</td></tr>`;
+                }).join('');
 
                 body.innerHTML = `
+                    <div class="customer-detail-hero mb-3">
+                        <div class="d-flex align-items-center gap-3 mb-3"><div class="customer-avatar">${escapeAdminOrderText(initials || 'C')}</div><div><h4 class="mb-1 text-dark">${escapeAdminOrderText(customerName)}</h4><div class="text-muted">${escapeAdminOrderText(customer.User?.email || 'No email on record')}</div></div></div>
+                        <div class="row g-2">
+                            <div class="col-6 col-lg-3"><div class="customer-detail-stat"><span>Appointments</span><strong>${appointments.length}</strong></div></div>
+                            <div class="col-6 col-lg-3"><div class="customer-detail-stat"><span>Orders / reservations</span><strong>${orders.length}</strong></div></div>
+                            <div class="col-6 col-lg-3"><div class="customer-detail-stat"><span>Paid total</span><strong class="fs-6">₱${paidTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div></div>
+                            <div class="col-6 col-lg-3"><div class="customer-detail-stat"><span>Member since</span><strong class="fs-6">${escapeAdminOrderText(formatAdminCustomerDate(customer.created_at))}</strong></div></div>
+                        </div>
+                    </div>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6 col-12">
                             <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
                                 <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-user me-2"></i>Customer Information</h6>
                                 <table class="table table-sm customer-info-table mb-0">
-                                    <tr><td class="info-label">Name</td><td class="info-value"><strong>${customer.User?.full_name || 'N/A'}</strong></td></tr>
-                                    <tr><td class="info-label">Email</td><td class="info-value">${customer.User?.email || 'N/A'}</td></tr>
-                                    <tr><td class="info-label">Phone</td><td class="info-value">${customer.User?.phone || 'N/A'}</td></tr>
-                                    <tr><td class="info-label">Birthday</td><td class="info-value">${customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td></tr>
-                                    <tr><td class="info-label">Address</td><td class="info-value">${customer.address || 'N/A'}</td></tr>
-                                    <tr><td class="info-label">Joined</td><td class="info-value">${new Date(customer.created_at).toLocaleDateString()}</td></tr>
+                                    <tr><td class="info-label">Name</td><td class="info-value"><strong>${escapeAdminOrderText(customerName)}</strong></td></tr>
+                                    <tr><td class="info-label">Email</td><td class="info-value">${escapeAdminOrderText(customer.User?.email || 'N/A')}</td></tr>
+                                    <tr><td class="info-label">Phone</td><td class="info-value">${escapeAdminOrderText(customer.User?.phone || customer.phone || 'N/A')}</td></tr>
+                                    <tr><td class="info-label">Birthday</td><td class="info-value">${escapeAdminOrderText(formatAdminCustomerDate(customer.date_of_birth))}</td></tr>
+                                    <tr><td class="info-label">Address</td><td class="info-value">${escapeAdminOrderText(customer.address || 'N/A')}</td></tr>
+                                    <tr><td class="info-label">Joined</td><td class="info-value">${escapeAdminOrderText(formatAdminCustomerDate(customer.created_at))}</td></tr>
                                     <tr><td class="info-label">Discount Card</td><td class="info-value">${discountCardImageUrl ? '<span class="badge bg-success">Uploaded</span>' : '<span class="badge bg-secondary">No card uploaded</span>'}</td></tr>
                                 </table>
                             </div>
                         </div>
                         <div class="col-md-6 col-12">
                             <div class="border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-column">
-                                <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-history me-2"></i>Customer Activity</h6>
+                                <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Discount Card</h6>
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
                                         <div class="p-2 border rounded-3 bg-light text-center">
-                                            <div class="text-muted small fw-semibold">Appointments</div>
-                                            <div class="fs-4 fw-bold text-primary mb-0">${appointments.length}</div>
+                                            <div class="text-muted small fw-semibold">Account status</div>
+                                            <div class="fs-6 fw-bold text-primary mb-0">${customer.User?.approval_status === 'walk-in' ? 'Walk-in record' : customer.User?.approval_status === 'pending' ? 'Awaiting approval' : customer.User?.is_active === false ? 'Archived' : 'Active'}</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-2 border rounded-3 bg-light text-center">
-                                            <div class="text-muted small fw-semibold">Orders</div>
-                                            <div class="fs-4 fw-bold text-primary mb-0">${orders.length}</div>
+                                            <div class="text-muted small fw-semibold">Discount card</div>
+                                            <div class="fs-6 fw-bold text-primary mb-0">${discountCardImageUrl ? 'Uploaded' : 'Not uploaded'}</div>
                                         </div>
                                     </div>
                                 </div>
                                 ${discountCardImageUrl ? `
                                     <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-id-card me-2"></i>Discount Card Preview</h6>
                                     <div class="border rounded-3 p-2 bg-light text-center flex-grow-1 d-flex align-items-center justify-content-center">
-                                        <img src="${discountCardImageUrl}" alt="Discount card" class="img-fluid rounded" style="max-height: 200px; object-fit: contain;" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'alert alert-warning mb-0 small\\'><i class=\\'fas fa-exclamation-triangle me-1\\'></i> Previous file missing on server. Please ask customer to re-upload discount card.</div>';">
+                                        <a href="${escapeAdminOrderText(discountCardImageUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeAdminOrderText(discountCardImageUrl)}" alt="Customer discount card" class="img-fluid rounded" style="max-height: 200px; object-fit: contain;" onerror="this.onerror=null; this.alt='Discount card image unavailable'; this.classList.add('opacity-50');"></a>
                                     </div>
                                 ` : '<div class="alert alert-secondary mb-0 small"><i class="fas fa-info-circle me-1"></i> No discount card uploaded yet.</div>'}
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-calendar-check me-2"></i>Recent Appointments</h6>
+                    <div class="customer-history-section mb-3">
+                        <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-calendar-check me-2"></i>Appointment History <span class="badge bg-light text-dark">${appointments.length}</span></h6>
                         ${appointments.length > 0 ? `
                             <div class="table-responsive border rounded-3 bg-white shadow-sm">
                                 <table class="table table-sm table-hover align-middle mb-0">
-                                    <thead class="table-light"><tr><th>Date</th><th>Time</th><th>Service</th><th>Status</th></tr></thead>
-                                    <tbody>
-                                        ${appointments.map(apt => `
-                                            <tr>
-                                                <td class="fw-semibold">${apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : 'N/A'}</td>
-                                                <td>${formatAppointmentTime(apt.appointment_time || 'N/A')}</td>
-                                                <td>${apt.service_type || 'N/A'}</td>
-                                                <td><span class="badge ${apt.status === 'completed' ? 'bg-success' : apt.status === 'confirmed' ? 'bg-primary' : apt.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}">${apt.status || 'Pending'}</span></td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
+                                    <thead class="table-light"><tr><th>Date / time</th><th>Service &amp; prescription</th><th>Check-up fee</th><th>Status</th><th>Feedback</th></tr></thead>
+                                    <tbody>${appointmentRows}</tbody>
                                 </table>
                             </div>
-                        ` : '<p class="text-muted small">No recent appointments yet.</p>'}
+                        ` : '<p class="text-muted small">No appointments recorded for this customer.</p>'}
                     </div>
 
-                    <div>
-                        <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-shopping-bag me-2"></i>Recent Orders</h6>
+                    <div class="customer-history-section">
+                        <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-shopping-bag me-2"></i>Order &amp; Reservation History <span class="badge bg-light text-dark">${orders.length}</span></h6>
                         ${orders.length > 0 ? `
                             <div class="table-responsive border rounded-3 bg-white shadow-sm">
                                 <table class="table table-sm table-hover align-middle mb-0">
-                                    <thead class="table-light"><tr><th>Order #</th><th>Date</th><th>Total</th><th>Items</th><th>Status</th></tr></thead>
-                                    <tbody>
-                                        ${orders.map(order => `
+                                    <thead class="table-light"><tr><th>Order #</th><th>Date / pickup</th><th>Frames / lenses</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+                                    <tbody id="customerOrderHistoryRows">
+                                        ${[].map(order => `
                                             <tr>
                                                 <td class="fw-bold">#${order.order_id}</td>
                                                 <td>${order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td>
@@ -3026,9 +3095,12 @@ This will deactivate the account and keep the user record for history.`)) {
                                     </tbody>
                                 </table>
                             </div>
-                        ` : '<p class="text-muted small">No recent orders yet.</p>'}
+                        ` : '<p class="text-muted small">No orders or reservations recorded for this customer.</p>'}
                     </div>
                 `;
+                const customerOrderHistoryRows = document.getElementById('customerOrderHistoryRows');
+                if (customerOrderHistoryRows) customerOrderHistoryRows.innerHTML = orderRows;
+                modalElement.querySelector('.modal-title').textContent = `Customer Record · ${customerName}`;
             } catch (error) {
                 console.error('Admin customer detail error:', error);
                 body.innerHTML = '<p class="text-center text-danger">Failed to load customer details.</p>';
