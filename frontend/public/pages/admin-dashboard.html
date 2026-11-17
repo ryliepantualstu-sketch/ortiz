@@ -1235,6 +1235,18 @@
                                 <h5>Top Selling Frames <span class="dashboard-chart-note">Paid frame units</span></h5>
                                 <canvas id="adminTopFramesChart"></canvas>
                             </div>
+                            <div class="chart-card">
+                                <h5>Appointment Activity <span class="dashboard-chart-note">By scheduled date</span></h5>
+                                <canvas id="adminAppointmentTrendChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h5>Appointment Status <span class="dashboard-chart-note">Visits in selected period</span></h5>
+                                <canvas id="adminAppointmentStatusChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h5>Most Requested Services <span class="dashboard-chart-note">Appointment type</span></h5>
+                                <canvas id="adminAppointmentServicesChart"></canvas>
+                            </div>
                         </div>
 
                         <!-- Recent Reservations Table -->
@@ -2920,6 +2932,9 @@ This will deactivate the account and keep the user record for history.`)) {
         let adminSalesTrendChart = null;
         let adminReservationStatusChart = null;
         let adminTopFramesChart = null;
+        let adminAppointmentTrendChart = null;
+        let adminAppointmentStatusChart = null;
+        let adminAppointmentServicesChart = null;
 
         function renderAdminCharts(stats) {
             const summaryCtx = document.getElementById('adminSummaryChart').getContext('2d');
@@ -3104,6 +3119,70 @@ This will deactivate the account and keep the user record for history.`)) {
                         legend: { display: false },
                         tooltip: { callbacks: { label: context => `${context.parsed.x} frame${context.parsed.x === 1 ? '' : 's'} sold` } }
                     },
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(15,42,67,.07)' }, ticks: { color: '#64748b', precision: 0 } },
+                        y: { grid: { display: false }, ticks: { color: '#334155', autoSkip: false } }
+                    }
+                }
+            });
+
+            const appointmentTrend = Array.isArray(analytics.appointment_trend) ? analytics.appointment_trend : [];
+            const appointmentLabels = appointmentTrend.map(point => {
+                const parsed = new Date(`${point.date}T12:00:00`);
+                return Number.isNaN(parsed.getTime()) ? point.date : dateFormatter.format(parsed);
+            });
+            if (adminAppointmentTrendChart) adminAppointmentTrendChart.destroy();
+            adminAppointmentTrendChart = new Chart(document.getElementById('adminAppointmentTrendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: appointmentLabels,
+                    datasets: [
+                        { label: 'Scheduled (excluding cancelled)', data: appointmentTrend.map(point => Number(point.booked || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.08)', fill: true, tension: .3, pointRadius: appointmentTrend.length > 31 ? 0 : 3, borderWidth: 3 },
+                        { label: 'Completed', data: appointmentTrend.map(point => Number(point.completed || 0)), borderColor: '#10b981', backgroundColor: 'transparent', fill: false, tension: .3, pointRadius: appointmentTrend.length > 31 ? 0 : 3, borderWidth: 3 }
+                    ]
+                },
+                plugins: [emptyDataPlugin('appointmentTrendEmpty', 'No appointments in this period')],
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#334155', usePointStyle: true, pointStyle: 'circle', padding: 14 } }, tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.formattedValue}` } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 10, maxRotation: 0 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(15,42,67,.07)' }, ticks: { color: '#64748b', precision: 0 } }
+                    }
+                }
+            });
+
+            const appointmentStatuses = Array.isArray(analytics.appointment_status) ? analytics.appointment_status.filter(item => Number(item.count || 0) > 0) : [];
+            const appointmentStatusColors = { pending: '#f59e0b', confirmed: '#2563eb', completed: '#10b981', cancelled: '#94a3b8' };
+            if (adminAppointmentStatusChart) adminAppointmentStatusChart.destroy();
+            adminAppointmentStatusChart = new Chart(document.getElementById('adminAppointmentStatusChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: appointmentStatuses.map(item => String(item.status).replace(/\b\w/g, char => char.toUpperCase())),
+                    datasets: [{ data: appointmentStatuses.map(item => Number(item.count || 0)), backgroundColor: appointmentStatuses.map(item => appointmentStatusColors[item.status] || '#64748b'), hoverOffset: 7, borderWidth: 0 }]
+                },
+                plugins: [emptyDataPlugin('appointmentStatusEmpty', 'No appointments in this period')],
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: { legend: { position: 'bottom', labels: { color: '#334155', usePointStyle: true, pointStyle: 'circle', padding: 14 } }, tooltip: { callbacks: { label: context => `${context.label}: ${context.formattedValue} appointments` } } }
+                }
+            });
+
+            const appointmentServices = Array.isArray(analytics.appointment_services) ? analytics.appointment_services : [];
+            if (adminAppointmentServicesChart) adminAppointmentServicesChart.destroy();
+            adminAppointmentServicesChart = new Chart(document.getElementById('adminAppointmentServicesChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: appointmentServices.map(item => item.service_type),
+                    datasets: [{ label: 'Appointments', data: appointmentServices.map(item => Number(item.count || 0)), backgroundColor: appointmentServices.map((_, index) => palette[(index + 1) % palette.length]), borderRadius: 7, borderWidth: 0, maxBarThickness: 32 }]
+                },
+                plugins: [emptyDataPlugin('appointmentServicesEmpty', 'No appointment services in this period')],
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => `${context.parsed.x} appointment${context.parsed.x === 1 ? '' : 's'}` } } },
                     scales: {
                         x: { beginAtZero: true, grid: { color: 'rgba(15,42,67,.07)' }, ticks: { color: '#64748b', precision: 0 } },
                         y: { grid: { display: false }, ticks: { color: '#334155', autoSkip: false } }

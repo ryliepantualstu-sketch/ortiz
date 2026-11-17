@@ -335,16 +335,24 @@ router.get('/dashboard-analytics', authMiddleware, requireRole('admin'), async (
       },
       attributes: ['appointment_id', 'checkup_fee', 'updated_at']
     });
+    const appointmentsInPeriod = await Appointment.findAll({
+      where: { appointment_date: { [Op.gte]: rangeStart, [Op.lt]: rangeEnd } },
+      attributes: ['appointment_id', 'appointment_date', 'status', 'service_type']
+    });
 
     const salesByDate = new Map();
+    const appointmentTrend = new Map();
     const reservationStatuses = new Map([
       ['pending', 0], ['processing', 0], ['ready for pickup', 0],
       ['picked up', 0], ['completed', 0], ['cancelled', 0]
     ]);
+    const appointmentStatuses = new Map([['pending', 0], ['confirmed', 0], ['completed', 0], ['cancelled', 0]]);
+    const appointmentServices = new Map();
     const frameSales = new Map();
     for (let offset = 0; offset < days; offset += 1) {
       const date = new Date(Date.UTC(year, month - 1, day - (days - 1) + offset)).toISOString().slice(0, 10);
       salesByDate.set(date, 0);
+      appointmentTrend.set(date, { booked: 0, completed: 0, cancelled: 0 });
     }
 
     const toManilaDate = (value) => {
@@ -354,6 +362,20 @@ router.get('/dashboard-analytics', authMiddleware, requireRole('admin'), async (
       const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
       return `${fields.year}-${fields.month}-${fields.day}`;
     };
+    for (const appointment of appointmentsInPeriod) {
+      const data = appointment.toJSON();
+      const status = String(data.status || 'pending').toLowerCase();
+      const date = toManilaDate(data.appointment_date);
+      if (appointmentStatuses.has(status)) appointmentStatuses.set(status, appointmentStatuses.get(status) + 1);
+      const dayTotals = appointmentTrend.get(date);
+      if (dayTotals) {
+        if (status === 'cancelled') dayTotals.cancelled += 1;
+        else dayTotals.booked += 1;
+        if (status === 'completed') dayTotals.completed += 1;
+      }
+      const service = String(data.service_type || 'Eye check-up').trim() || 'Eye check-up';
+      appointmentServices.set(service, (appointmentServices.get(service) || 0) + 1);
+    }
     const standaloneAppointmentIds = standaloneAppointments.map(appointment => appointment.appointment_id);
     const linkedPaidOrders = standaloneAppointmentIds.length ? await Order.findAll({
       attributes: ['prescription_appointment_id'],
@@ -399,6 +421,12 @@ router.get('/dashboard-analytics', authMiddleware, requireRole('admin'), async (
       days,
       sales_trend: [...salesByDate.entries()].map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) })),
       reservation_status: [...reservationStatuses.entries()].map(([status, count]) => ({ status, count })),
+      appointment_trend: [...appointmentTrend.entries()].map(([date, totals]) => ({ date, ...totals })),
+      appointment_status: [...appointmentStatuses.entries()].map(([status, count]) => ({ status, count })),
+      appointment_services: [...appointmentServices.entries()]
+        .map(([service_type, count]) => ({ service_type, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8),
       top_frames: [...frameSales.entries()]
         .map(([product_name, totals]) => ({ product_name, quantity: totals.quantity, revenue: Number(totals.revenue.toFixed(2)) }))
         .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
