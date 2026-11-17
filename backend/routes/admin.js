@@ -307,6 +307,108 @@ router.get('/dashboard-stats', authMiddleware, requireRole('admin'), async (req,
   }
 });
 
+// Business intelligence data for the admin dashboard. Sales include paid orders
+// and standalone paid check-ups; reservations are grouped by their current status.
+router.get('/dashboard-analytics', authMiddleware, requireRole('admin'), async (req, res) => {
+  try {
+    const requestedDays = Number(req.query.days);
+    const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
+    const today = getManilaToday();
+    const [year, month, day] = today.split('-').map(Number);
+    const firstDay = new Date(Date.UTC(year, month - 1, day - (days - 1)));
+    const startDate = firstDay.toISOString().slice(0, 10);
+    const endDay = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+    const rangeStart = new Date(`${startDate}T00:00:00+08:00`);
+    const rangeEnd = new Date(`${endDay}T00:00:00+08:00`);
+
+    const orders = await Order.findAll({
+      where: { order_date: { [Op.gte]: rangeStart, [Op.lt]: rangeEnd } },
+      include: [{ model: OrderItem, include: [{ model: Product, attributes: ['product_id', 'product_name'] }] }],
+      order: [['order_date', 'ASC']]
+    });
+    const standaloneAppointments = await Appointment.findAll({
+      where: {
+        updated_at: { [Op.gte]: rangeStart, [Op.lt]: rangeEnd },
+        status: 'completed',
+        payment_status: 'Paid',
+        reservation_order_id: null
+      },
+      attributes: ['appointment_id', 'checkup_fee', 'updated_at']
+    });
+
+    const salesByDate = new Map();
+    const reservationStatuses = new Map([
+      ['pending', 0], ['processing', 0], ['ready for pickup', 0],
+      ['picked up', 0], ['completed', 0], ['cancelled', 0]
+    ]);
+    const frameSales = new Map();
+    for (let offset = 0; offset < days; offset += 1) {
+      const date = new Date(Date.UTC(year, month - 1, day - (days - 1) + offset)).toISOString().slice(0, 10);
+      salesByDate.set(date, 0);
+    }
+
+    const toManilaDate = (value) => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).formatToParts(new Date(value));
+      const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${fields.year}-${fields.month}-${fields.day}`;
+    };
+    const standaloneAppointmentIds = standaloneAppointments.map(appointment => appointment.appointment_id);
+    const linkedPaidOrders = standaloneAppointmentIds.length ? await Order.findAll({
+      attributes: ['prescription_appointment_id'],
+      where: {
+        prescription_appointment_id: { [Op.in]: standaloneAppointmentIds },
+        payment_status: 'Paid',
+        reservation_only: false
+      }
+    }) : [];
+    const linkedPaidAppointmentIds = new Set(linkedPaidOrders.map(order => Number(order.prescription_appointment_id)));
+    for (const order of orders) {
+      const data = order.toJSON();
+      const orderDate = toManilaDate(data.order_date);
+      const status = String(data.status || '').toLowerCase();
+      if (data.reservation_only) {
+        if (reservationStatuses.has(status)) reservationStatuses.set(status, reservationStatuses.get(status) + 1);
+        continue;
+      }
+      if (data.payment_status !== 'Paid') continue;
+
+      const saleAmount = Number(data.total_amount || 0);
+      salesByDate.set(orderDate, Number(salesByDate.get(orderDate) || 0) + saleAmount);
+      if (data.lens_only) continue;
+      for (const item of data.OrderItems || []) {
+        const productName = item.Product?.product_name || 'Frame';
+        const current = frameSales.get(productName) || { quantity: 0, revenue: 0 };
+        current.quantity += Number(item.quantity || 0);
+        current.revenue += Number(item.subtotal || 0);
+        frameSales.set(productName, current);
+      }
+    }
+
+    for (const appointment of standaloneAppointments) {
+      if (linkedPaidAppointmentIds.has(Number(appointment.appointment_id))) continue;
+      const date = toManilaDate(appointment.updated_at);
+      if (salesByDate.has(date)) {
+        salesByDate.set(date, Number(salesByDate.get(date) || 0) + Number(appointment.checkup_fee || 0));
+      }
+    }
+
+    res.json({
+      success: true,
+      days,
+      sales_trend: [...salesByDate.entries()].map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) })),
+      reservation_status: [...reservationStatuses.entries()].map(([status, count]) => ({ status, count })),
+      top_frames: [...frameSales.entries()]
+        .map(([product_name, totals]) => ({ product_name, quantity: totals.quantity, revenue: Number(totals.revenue.toFixed(2)) }))
+        .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
+        .slice(0, 8)
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to load dashboard analytics', error: error.message });
+  }
+});
+
 // Get all users
 router.get('/users', authMiddleware, requireRole('admin'), async (req, res) => {
   try {

@@ -384,6 +384,9 @@
             width: 100% !important;
             max-height: 320px;
         }
+        #chartGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        #chartGrid .chart-card { min-width:0; min-height:390px; }
+        @media(max-width:767.98px) { #chartGrid .chart-card { min-height:340px; padding:19px; } }
 
         .admin-dashboard-hero { display:flex; justify-content:space-between; align-items:center; gap:22px; margin-bottom:20px; padding:28px 30px; border-radius:20px; color:#fff; background:linear-gradient(120deg,#102a43 0%,#155e75 56%,#0f766e 100%); box-shadow:0 16px 34px rgba(16,42,67,.18); }
         .admin-dashboard-kicker { display:flex; align-items:center; gap:8px; margin-bottom:9px; color:#a5f3fc; font-size:.76rem; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }
@@ -1201,15 +1204,36 @@
                             <button type="button" onclick="loadSection('reports')"><i class="fas fa-chart-column"></i><span>View reports</span><i class="fas fa-arrow-right"></i></button>
                         </div>
 
-                        <!-- Charts -->
+                        <!-- Business Intelligence Charts -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+                            <div><h4 class="mb-1">Business Intelligence</h4><p class="text-muted mb-0">Sales performance, reservation flow, and frame demand.</p></div>
+                            <label class="small text-muted fw-semibold">Analysis period
+                                <select id="adminAnalyticsRange" class="form-select form-select-sm mt-1" onchange="loadAdminAnalytics()" aria-label="Analytics date range">
+                                    <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option>
+                                </select>
+                            </label>
+                        </div>
+
                         <div id="chartGrid">
                             <div class="chart-card">
-                                <h5>Order Pipeline <span class="dashboard-chart-note">Current order status</span></h5>
+                                <h5>Order Pipeline <span class="dashboard-chart-note">Non-reservation orders</span></h5>
                                 <canvas id="adminSummaryChart"></canvas>
                             </div>
                             <div class="chart-card">
                                 <h5>Frame Stock Health <span class="dashboard-chart-note">Active frame styles</span></h5>
                                 <canvas id="stockHealthChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h5>Paid Sales Trend <span class="dashboard-chart-note">Orders + check-ups</span></h5>
+                                <canvas id="adminSalesTrendChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h5>Reservation Status <span class="dashboard-chart-note" id="reservationStatusChartNote">Last 30 days</span></h5>
+                                <canvas id="adminReservationStatusChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h5>Top Selling Frames <span class="dashboard-chart-note">Paid frame units</span></h5>
+                                <canvas id="adminTopFramesChart"></canvas>
                             </div>
                         </div>
 
@@ -2884,7 +2908,7 @@ This will deactivate the account and keep the user record for history.`)) {
                     document.getElementById('stat-stock-note').textContent = `${stats.out_of_stock_products || 0} out · ${stats.low_stock_products || 0} low`;
                     document.getElementById('stat-revenue').textContent = `₱${Number(stats.paid_revenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                     renderAdminCharts(stats);
-                    await Promise.all([loadOrders(), loadAdminPosSales()]);
+                    await Promise.all([loadOrders(), loadAdminPosSales(), loadAdminAnalytics()]);
                 }
             } catch (error) {
                 console.error('Dashboard error:', error);
@@ -2893,6 +2917,9 @@ This will deactivate the account and keep the user record for history.`)) {
 
         let adminSummaryChart = null;
         let stockHealthChart = null;
+        let adminSalesTrendChart = null;
+        let adminReservationStatusChart = null;
+        let adminTopFramesChart = null;
 
         function renderAdminCharts(stats) {
             const summaryCtx = document.getElementById('adminSummaryChart').getContext('2d');
@@ -2973,6 +3000,113 @@ This will deactivate the account and keep the user record for history.`)) {
                                 label: ctx => `${ctx.label}: ${ctx.formattedValue}`
                             }
                         }
+                    }
+                }
+            });
+        }
+
+        async function loadAdminAnalytics() {
+            const rangeSelect = document.getElementById('adminAnalyticsRange');
+            const days = Number(rangeSelect?.value || 30);
+            try {
+                const result = await apiCall(`/admin/dashboard-analytics?days=${days}`);
+                if (!result?.success) throw new Error(result?.message || 'Failed to load business intelligence data.');
+                renderAdminAnalytics(result);
+            } catch (error) {
+                console.error('Admin analytics error:', error);
+                document.getElementById('reservationStatusChartNote').textContent = 'Data unavailable';
+            }
+        }
+
+        function renderAdminAnalytics(analytics) {
+            const palette = ['#0f766e', '#2563eb', '#f59e0b', '#db2777', '#7c3aed', '#0891b2', '#65a30d', '#ea580c'];
+            const emptyDataPlugin = (pluginId, message) => ({
+                id: pluginId,
+                afterDraw(chart) {
+                    const values = chart.data.datasets.flatMap(dataset => dataset.data || []).map(Number);
+                    if (values.some(value => value > 0)) return;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return;
+                    ctx.save();
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '600 13px system-ui, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(message, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2);
+                    ctx.restore();
+                }
+            });
+            const trend = Array.isArray(analytics.sales_trend) ? analytics.sales_trend : [];
+            const dateFormatter = new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric' });
+            const trendLabels = trend.map(point => {
+                const parsed = new Date(`${point.date}T12:00:00`);
+                return Number.isNaN(parsed.getTime()) ? point.date : dateFormatter.format(parsed);
+            });
+
+            if (adminSalesTrendChart) adminSalesTrendChart.destroy();
+            adminSalesTrendChart = new Chart(document.getElementById('adminSalesTrendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{ label: 'Paid sales', data: trend.map(point => Number(point.amount || 0)), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,.12)', fill: true, tension: .32, pointRadius: trend.length > 31 ? 0 : 3, pointHoverRadius: 5, borderWidth: 3 }]
+                },
+                plugins: [emptyDataPlugin('salesTrendEmpty', 'No paid sales in this period')],
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: context => `Paid sales: ${formatAdminPeso(context.parsed.y)}` } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 10, maxRotation: 0 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(15,42,67,.07)' }, ticks: { color: '#64748b', callback: value => `₱${Number(value).toLocaleString('en-PH')}` } }
+                    }
+                }
+            });
+
+            const reservations = Array.isArray(analytics.reservation_status) ? analytics.reservation_status : [];
+            const statusColors = { pending: '#f59e0b', processing: '#0ea5e9', 'ready for pickup': '#14b8a6', 'picked up': '#2563eb', completed: '#10b981', cancelled: '#94a3b8' };
+            const activeReservations = reservations.filter(item => Number(item.count || 0) > 0);
+            const reservationStatusNote = document.getElementById('reservationStatusChartNote');
+            if (reservationStatusNote) reservationStatusNote.textContent = `Created in last ${Number(analytics.days || 30)} days`;
+            if (adminReservationStatusChart) adminReservationStatusChart.destroy();
+            adminReservationStatusChart = new Chart(document.getElementById('adminReservationStatusChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: activeReservations.map(item => String(item.status).replace(/\b\w/g, char => char.toUpperCase())),
+                    datasets: [{ data: activeReservations.map(item => Number(item.count || 0)), backgroundColor: activeReservations.map(item => statusColors[item.status] || '#64748b'), hoverOffset: 7, borderWidth: 0 }]
+                },
+                plugins: [emptyDataPlugin('reservationStatusEmpty', 'No reservations in this period')],
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#334155', usePointStyle: true, pointStyle: 'circle', padding: 14 } },
+                        tooltip: { callbacks: { label: context => `${context.label}: ${context.formattedValue} reservations` } }
+                    }
+                }
+            });
+
+            const topFrames = Array.isArray(analytics.top_frames) ? analytics.top_frames : [];
+            if (adminTopFramesChart) adminTopFramesChart.destroy();
+            adminTopFramesChart = new Chart(document.getElementById('adminTopFramesChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: topFrames.map(frame => frame.product_name),
+                    datasets: [{ label: 'Units sold', data: topFrames.map(frame => Number(frame.quantity || 0)), backgroundColor: topFrames.map((_, index) => palette[index % palette.length]), borderRadius: 7, borderWidth: 0, maxBarThickness: 32 }]
+                },
+                plugins: [emptyDataPlugin('topFramesEmpty', 'No frame sales in this period')],
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: context => `${context.parsed.x} frame${context.parsed.x === 1 ? '' : 's'} sold` } }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(15,42,67,.07)' }, ticks: { color: '#64748b', precision: 0 } },
+                        y: { grid: { display: false }, ticks: { color: '#334155', autoSkip: false } }
                     }
                 }
             });
